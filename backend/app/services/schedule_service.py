@@ -69,8 +69,10 @@ class ScheduleService:
         return schedule
     
     @staticmethod
-    def add_shift(schedule_id, employee_id, shift_date, start_time, end_time):
+    def add_shift(schedule_id, employee_id, shift_date, start_time, end_time, changed_by_user_id=None):
         """Add a shift to a schedule"""
+        from app.services.notification_service import NotificationService
+        
         shift = Shift(
             schedule_id=schedule_id,
             employee_id=employee_id,
@@ -82,14 +84,30 @@ class ScheduleService:
         
         db.session.add(shift)
         db.session.commit()
+        
+        # Check if schedule is published, if so notify employee
+        schedule = Schedule.query.get(schedule_id)
+        if schedule and schedule.status == 'published' and changed_by_user_id:
+            NotificationService.notify_shift_added(shift, changed_by_user_id)
+        
         return shift
     
     @staticmethod
-    def update_shift(shift_id, **kwargs):
+    def update_shift(shift_id, changed_by_user_id=None, **kwargs):
         """Update a shift"""
+        from app.services.notification_service import NotificationService
+        
         shift = Shift.query.get(shift_id)
         if not shift:
             return None
+        
+        # Store old data for notification
+        old_data = {
+            'shift_date': str(shift.shift_date),
+            'start_time': str(shift.start_time),
+            'end_time': str(shift.end_time),
+            'hours': float(shift.hours)
+        }
         
         for key, value in kwargs.items():
             if hasattr(shift, key):
@@ -99,17 +117,43 @@ class ScheduleService:
             shift.calculate_hours()
         
         db.session.commit()
+        
+        # Check if schedule is published, if so notify employee
+        schedule = Schedule.query.get(shift.schedule_id)
+        if schedule and schedule.status == 'published' and changed_by_user_id:
+            NotificationService.notify_shift_modified(shift, old_data, changed_by_user_id)
+        
         return shift
     
     @staticmethod
-    def delete_shift(shift_id):
+    def delete_shift(shift_id, changed_by_user_id=None):
         """Delete a shift"""
+        from app.services.notification_service import NotificationService
+        
         shift = Shift.query.get(shift_id)
         if not shift:
             return False
         
+        # Store shift data for notification
+        shift_data = {
+            'employee_id': shift.employee_id,
+            'shift_date': str(shift.shift_date),
+            'start_time': str(shift.start_time),
+            'end_time': str(shift.end_time),
+            'hours': float(shift.hours)
+        }
+        schedule_id = shift.schedule_id
+        
+        # Check if schedule is published
+        schedule = Schedule.query.get(schedule_id)
+        
         db.session.delete(shift)
         db.session.commit()
+        
+        # Notify if published
+        if schedule and schedule.status == 'published' and changed_by_user_id:
+            NotificationService.notify_shift_deleted(shift_data, schedule_id, changed_by_user_id)
+        
         return True
     
     @staticmethod

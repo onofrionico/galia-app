@@ -43,7 +43,8 @@ def create_shift():
         data['employee_id'],
         shift_date,
         start_time,
-        end_time
+        end_time,
+        changed_by_user_id=current_user.id
     )
     
     return jsonify({
@@ -103,7 +104,7 @@ def update_shift(shift_id):
             'conflicting_shift': conflicting_shift.to_dict()
         }), 409
     
-    updated_shift = ScheduleService.update_shift(shift_id, **update_data)
+    updated_shift = ScheduleService.update_shift(shift_id, changed_by_user_id=current_user.id, **update_data)
     
     return jsonify({
         'message': 'Turno actualizado exitosamente',
@@ -114,7 +115,7 @@ def update_shift(shift_id):
 @login_required
 @admin_required
 def delete_shift(shift_id):
-    success = ScheduleService.delete_shift(shift_id)
+    success = ScheduleService.delete_shift(shift_id, changed_by_user_id=current_user.id)
     
     if not success:
         return jsonify({'error': 'Turno no encontrado'}), 404

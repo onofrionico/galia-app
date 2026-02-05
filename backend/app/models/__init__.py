@@ -6,6 +6,8 @@ from app.models.sale import Sale, SaleItem
 from app.models.expense import Expense, ExpenseCategory
 from app.models.supply import Supply, SupplyPrice
 from app.models.payroll import Payroll
+from app.models.notification import Notification, ScheduleChangeLog
+from app.models.staffing_metrics import StaffingMetrics, StaffingPrediction
 
 __all__ = [
     'User',
@@ -18,5 +20,9 @@ __all__ = [
     'ExpenseCategory',
     'Supply',
     'SupplyPrice',
-    'Payroll'
+    'Payroll',
+    'Notification',
+    'ScheduleChangeLog',
+    'StaffingMetrics',
+    'StaffingPrediction'
 ]

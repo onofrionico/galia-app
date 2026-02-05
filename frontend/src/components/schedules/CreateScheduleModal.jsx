@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { X, Calendar, Plus, Brain } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { scheduleService } from '@/services/scheduleService'
-import { X } from 'lucide-react'
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns'
+import { es } from 'date-fns/locale'
+import api from '@/services/api'
+import MLRecommendations from './MLRecommendations'
+import { scheduleService } from '@/services/scheduleService'
 
 const CreateScheduleModal = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient()
@@ -76,19 +79,48 @@ const CreateScheduleModal = ({ isOpen, onClose }) => {
           <div className="flex space-x-2 mb-4">
             <button
               type="button"
-              onClick={setWeekDates}
-              className="flex-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              onClick={() => handleQuickFill('this_week')}
+              className="text-sm text-primary hover:text-primary-dark flex items-center space-x-1"
             >
-              Esta semana
+              <Plus className="h-4 w-4" />
+              <span>Esta semana</span>
             </button>
             <button
               type="button"
-              onClick={setNextWeekDates}
-              className="flex-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              onClick={() => handleQuickFill('next_week')}
+              className="text-sm text-primary hover:text-primary-dark flex items-center space-x-1"
             >
-              Próxima semana
+              <Plus className="h-4 w-4" />
+              <span>Próxima semana</span>
             </button>
           </div>
+
+          {startDate && endDate && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowRecommendations(!showRecommendations)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                  <span className="font-medium text-purple-900">
+                    {showRecommendations ? 'Ocultar' : 'Ver'} Recomendaciones IA
+                  </span>
+                </div>
+                <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
+                  ML
+                </span>
+              </button>
+
+              {showRecommendations && (
+                <MLRecommendations
+                  startDate={startDate}
+                  endDate={endDate}
+                />
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

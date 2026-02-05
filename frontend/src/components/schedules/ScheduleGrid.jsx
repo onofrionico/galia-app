@@ -177,24 +177,22 @@ const ScheduleGrid = ({ schedule, onBack }) => {
                               {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
                             </div>
                             <div className="text-gray-600">{shift.hours}h</div>
-                            {scheduleData.status === 'draft' && (
-                              <button
-                                onClick={() => handleDeleteShift(shift.id)}
-                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleDeleteShift(shift.id)}
+                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title={scheduleData.status === 'published' ? 'El empleado será notificado' : 'Eliminar turno'}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
                         ))}
-                        {scheduleData.status === 'draft' && (
-                          <button
-                            onClick={() => handleAddShift(date, employee)}
-                            className="w-full py-1 text-xs text-gray-400 hover:text-primary hover:bg-primary/5 rounded transition-colors"
-                          >
-                            <Plus className="h-4 w-4 mx-auto" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleAddShift(date, employee)}
+                          className="w-full py-1 text-xs text-gray-400 hover:text-primary hover:bg-primary/5 rounded transition-colors"
+                          title={scheduleData.status === 'published' ? 'El empleado será notificado del nuevo turno' : 'Agregar turno'}
+                        >
+                          <Plus className="h-4 w-4 mx-auto" />
+                        </button>
                       </div>
                     </td>
                   )
