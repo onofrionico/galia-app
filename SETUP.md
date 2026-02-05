@@ -195,52 +195,56 @@ docker-compose down
 
 4. Verificar que puedes acceder al dashboard
 
-## Paso 9: Crear Datos de Prueba (Opcional)
+## Paso 9: Cargar Datos de Prueba (Opcional pero Recomendado)
 
-Puedes crear un script para poblar la base de datos con datos de prueba:
+El proyecto incluye una migración completa con datos de prueba realistas para todas las funcionalidades.
+
+### Opción A: Usando el script de carga (Recomendado)
 
 ```bash
 cd backend
-flask shell
+python load_test_data.py
 ```
 
-```python
-from app import create_app
-from app.extensions import db
-from app.models import *
-from datetime import date, time, datetime, timedelta
+### Opción B: Usando Flask-Migrate
 
-app = create_app()
-with app.app_context():
-    # Crear categorías de gastos
-    categories = [
-        ExpenseCategory(name='Insumos', description='Café, leche, etc.'),
-        ExpenseCategory(name='Servicios', description='Luz, agua, internet'),
-        ExpenseCategory(name='Mantenimiento', description='Reparaciones'),
-        ExpenseCategory(name='Personal', description='Sueldos y cargas'),
-        ExpenseCategory(name='Otros', description='Gastos varios'),
-    ]
-    for cat in categories:
-        db.session.add(cat)
-    
-    # Crear empleados de prueba
-    emp_user = User(email='empleado@galia.com', role='employee', is_active=True)
-    emp_user.set_password('empleado123')
-    db.session.add(emp_user)
-    db.session.commit()
-    
-    employee = Employee(
-        user_id=emp_user.id,
-        full_name='Juan Pérez',
-        hourly_rate=2500,
-        hire_date=date(2024, 1, 1)
-    )
-    db.session.add(employee)
-    
-    db.session.commit()
-    print("Datos de prueba creados exitosamente")
-    exit()
+```bash
+cd backend
+flask db upgrade
 ```
+
+### Verificar que los datos se cargaron correctamente
+
+```bash
+cd backend
+python verify_test_data.py
+```
+
+### Datos incluidos
+
+La migración crea automáticamente:
+- **6 usuarios** (1 admin + 5 empleados)
+- **4 horarios semanales** con ~140 turnos distribuidos
+- **~200 ventas** de los últimos 30 días con items detallados
+- **~30 gastos** en 6 categorías diferentes
+- **8 suministros** con precios históricos
+- **5 nóminas** del mes anterior
+- **Notificaciones** y logs de cambios
+
+### Credenciales de acceso
+
+**Administrador:**
+- Email: `admin@galia.com`
+- Password: `admin123`
+
+**Empleados** (todos con password: `empleado123`):
+- `juan.perez@galia.com`
+- `maria.garcia@galia.com`
+- `carlos.rodriguez@galia.com`
+- `ana.martinez@galia.com`
+- `pedro.lopez@galia.com`
+
+Para más detalles sobre los datos de prueba, consulta `backend/TEST_DATA_README.md`
 
 ## Solución de Problemas Comunes
 
