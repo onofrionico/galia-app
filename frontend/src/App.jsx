@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Schedules from './pages/Schedules'
+import MySchedule from './pages/MySchedule'
 import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
@@ -22,6 +23,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/schedules" element={<Schedules />} />
+            <Route path="/my-schedule" element={<MySchedule />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />

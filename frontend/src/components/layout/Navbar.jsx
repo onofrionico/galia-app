@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext'
 import { LogOut, User } from 'lucide-react'
+import NotificationBell from '../notifications/NotificationBell'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -22,6 +23,8 @@ const Navbar = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <NotificationBell />
+            
             <div className="flex items-center space-x-2">
               <User className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm font-medium">{user?.email}</span>

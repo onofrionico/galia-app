@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { 
   LayoutDashboard, 
   Calendar, 
+  Clock,
   ShoppingCart, 
   Receipt, 
   BarChart3, 
@@ -15,7 +16,8 @@ const Sidebar = () => {
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: false },
-    { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: false },
+    { to: '/my-schedule', icon: Clock, label: 'Mi Horario', adminOnly: false, employeeOnly: true },
+    { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: true },
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: false },
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
@@ -23,7 +25,11 @@ const Sidebar = () => {
     { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', adminOnly: true },
   ]
 
-  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin())
+  const filteredNavItems = navItems.filter(item => {
+    if (item.adminOnly && !isAdmin()) return false
+    if (item.employeeOnly && isAdmin()) return false
+    return true
+  })
 
   return (
     <aside className="w-64 bg-white border-r min-h-[calc(100vh-73px)]">

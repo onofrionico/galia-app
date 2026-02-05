@@ -30,7 +30,7 @@ def mark_notification_read(notification_id):
         'notification': notification.to_dict()
     }), 200
 
-@bp.route('/read-all', methods=['PUT'])
+@bp.route('/mark-all-read', methods=['PUT'])
 @login_required
 def mark_all_read():
     """Mark all notifications as read for current user"""
