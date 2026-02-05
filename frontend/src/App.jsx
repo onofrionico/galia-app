@@ -10,6 +10,9 @@ import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
+import EmployeeForm from './pages/EmployeeForm'
+import EmployeeDetail from './pages/EmployeeDetail'
+import JobPositions from './pages/JobPositions'
 import MLDashboard from './pages/MLDashboard'
 
 function App() {
@@ -28,6 +31,10 @@ function App() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/employees/new" element={<EmployeeForm />} />
+            <Route path="/employees/:id" element={<EmployeeDetail />} />
+            <Route path="/employees/:id/edit" element={<EmployeeForm />} />
+            <Route path="/job-positions" element={<JobPositions />} />
             <Route path="/ml-dashboard" element={<MLDashboard />} />
           </Route>
         </Routes>

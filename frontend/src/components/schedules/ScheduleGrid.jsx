@@ -18,10 +18,12 @@ const ScheduleGrid = ({ schedule, onBack }) => {
     queryFn: () => scheduleService.getSchedule(schedule.id),
   })
 
-  const { data: employees } = useQuery({
+  const { data: employeesData } = useQuery({
     queryKey: ['employees'],
     queryFn: employeeService.getEmployees,
   })
+  
+  const employees = employeesData?.employees || []
 
   const { data: summary } = useQuery({
     queryKey: ['schedule-summary', schedule.id],

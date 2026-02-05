@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
-    employee = db.relationship('Employee', backref='user', uselist=False, cascade='all, delete-orphan')
+    employee = db.relationship('Employee', backref='user', uselist=False, cascade='all, delete-orphan', foreign_keys='Employee.user_id')
     
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')

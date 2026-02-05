@@ -1,5 +1,7 @@
 from app.models.user import User
 from app.models.employee import Employee
+from app.models.job_position import JobPosition
+from app.models.employee_job_history import EmployeeJobHistory
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.sale import Sale, SaleItem
@@ -13,6 +15,8 @@ from app.models.ml_tracking import MLModelVersion, MLPredictionAccuracy, Holiday
 __all__ = [
     'User',
     'Employee',
+    'JobPosition',
+    'EmployeeJobHistory',
     'Schedule',
     'Shift',
     'Sale',
