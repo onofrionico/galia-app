@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta
 from app.extensions import db
 from app.models.staffing_metrics import StaffingMetrics, StaffingPrediction
+from app.models.ml_tracking import MLModelVersion, Holiday
 
 class StaffingPredictor:
     """
@@ -56,11 +57,15 @@ class StaffingPredictor:
         df['is_afternoon'] = ((df['hour'] >= 12) & (df['hour'] < 18)).astype(int)
         df['is_evening'] = ((df['hour'] >= 18) & (df['hour'] < 24)).astype(int)
         
-        # Holiday feature (if available)
-        if 'is_holiday' in df.columns:
-            df['is_holiday'] = df['is_holiday'].astype(int)
-        else:
-            df['is_holiday'] = 0
+        # Holiday feature - check database
+        df['is_holiday'] = 0
+        df['holiday_impact'] = 1.0
+        
+        for idx, row in df.iterrows():
+            holiday = Holiday.query.filter_by(date=row['date']).first()
+            if holiday:
+                df.at[idx, 'is_holiday'] = 1
+                df.at[idx, 'holiday_impact'] = holiday.impact_multiplier
         
         return df
     
@@ -119,7 +124,7 @@ class StaffingPredictor:
         # Feature columns
         feature_cols = [
             'hour', 'day_of_week', 'is_weekend', 'is_morning', 
-            'is_afternoon', 'is_evening', 'is_holiday',
+            'is_afternoon', 'is_evening', 'is_holiday', 'holiday_impact',
             'hour_sin', 'hour_cos', 'day_sin', 'day_cos'
         ]
         
@@ -156,6 +161,28 @@ class StaffingPredictor:
         # Save models
         self.save_models()
         
+        # Save model version to database
+        model_version_record = MLModelVersion(
+            version=self.model_version,
+            trained_at=datetime.utcnow(),
+            training_records=len(df),
+            train_score=train_score,
+            test_score=test_score,
+            features_used=feature_cols,
+            hyperparameters={
+                'n_estimators': 100,
+                'max_depth': 10,
+                'min_samples_split': 5
+            },
+            is_active=True
+        )
+        
+        # Deactivate previous versions
+        MLModelVersion.query.update({'is_active': False})
+        
+        db.session.add(model_version_record)
+        db.session.commit()
+        
         return {
             'success': True,
             'records': len(df),
@@ -184,6 +211,11 @@ class StaffingPredictor:
         # Prepare features
         day_of_week = date.weekday()
         
+        # Check for holiday
+        holiday = Holiday.query.filter_by(date=date).first()
+        is_holiday = 1 if holiday else 0
+        holiday_impact = holiday.impact_multiplier if holiday else 1.0
+        
         features = {
             'hour': hour,
             'day_of_week': day_of_week,
@@ -191,7 +223,8 @@ class StaffingPredictor:
             'is_morning': 1 if 6 <= hour < 12 else 0,
             'is_afternoon': 1 if 12 <= hour < 18 else 0,
             'is_evening': 1 if 18 <= hour < 24 else 0,
-            'is_holiday': 0,  # TODO: Add holiday detection
+            'is_holiday': is_holiday,
+            'holiday_impact': holiday_impact,
             'hour_sin': np.sin(2 * np.pi * hour / 24),
             'hour_cos': np.cos(2 * np.pi * hour / 24),
             'day_sin': np.sin(2 * np.pi * day_of_week / 7),
@@ -200,7 +233,7 @@ class StaffingPredictor:
         
         feature_cols = [
             'hour', 'day_of_week', 'is_weekend', 'is_morning', 
-            'is_afternoon', 'is_evening', 'is_holiday',
+            'is_afternoon', 'is_evening', 'is_holiday', 'holiday_impact',
             'hour_sin', 'hour_cos', 'day_sin', 'day_cos'
         ]
         

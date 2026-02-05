@@ -1,0 +1,32 @@
+#!/bin/bash
+# Setup cron jobs for ML tasks
+# Run this script to install cron jobs for automated ML maintenance
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PYTHON_PATH="$SCRIPT_DIR/venv/bin/python"
+TASKS_PATH="$SCRIPT_DIR/app/tasks/ml_tasks.py"
+
+echo "Setting up ML maintenance cron jobs..."
+echo ""
+echo "The following cron jobs will be added:"
+echo ""
+echo "# Daily accuracy update (every day at 1:00 AM)"
+echo "0 1 * * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH daily_accuracy"
+echo ""
+echo "# Weekly retrain check (every Monday at 2:00 AM)"
+echo "0 2 * * 1 cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH weekly_retrain_check"
+echo ""
+echo "# Weekly predictions generation (every Sunday at 3:00 AM)"
+echo "0 3 * * 0 cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH weekly_predictions"
+echo ""
+echo "# Daily alert check (every day at 9:00 AM)"
+echo "0 9 * * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH daily_alerts"
+echo ""
+echo "# Monthly full retrain (first day of month at 4:00 AM)"
+echo "0 4 1 * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH monthly_retrain"
+echo ""
+echo "To install these cron jobs, run:"
+echo ""
+echo "(crontab -l 2>/dev/null; echo '# ML Maintenance Tasks'; echo '0 1 * * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH daily_accuracy'; echo '0 2 * * 1 cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH weekly_retrain_check'; echo '0 3 * * 0 cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH weekly_predictions'; echo '0 9 * * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH daily_alerts'; echo '0 4 1 * * cd $SCRIPT_DIR && $PYTHON_PATH $TASKS_PATH monthly_retrain') | crontab -"
+echo ""
+echo "Or manually add them to your crontab with: crontab -e"

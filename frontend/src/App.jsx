@@ -9,6 +9,7 @@ import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
+import MLDashboard from './pages/MLDashboard'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/ml-dashboard" element={<MLDashboard />} />
           </Route>
         </Routes>
       </AuthProvider>

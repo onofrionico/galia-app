@@ -8,6 +8,7 @@ from app.models.supply import Supply, SupplyPrice
 from app.models.payroll import Payroll
 from app.models.notification import Notification, ScheduleChangeLog
 from app.models.staffing_metrics import StaffingMetrics, StaffingPrediction
+from app.models.ml_tracking import MLModelVersion, MLPredictionAccuracy, Holiday, PredictionAlert
 
 __all__ = [
     'User',

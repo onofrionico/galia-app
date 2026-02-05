@@ -6,7 +6,8 @@ import {
   ShoppingCart, 
   Receipt, 
   BarChart3, 
-  Users 
+  Users,
+  Brain
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -19,6 +20,7 @@ const Sidebar = () => {
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
     { to: '/employees', icon: Users, label: 'Empleados', adminOnly: true },
+    { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', adminOnly: true },
   ]
 
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin())

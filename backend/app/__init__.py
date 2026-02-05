@@ -14,7 +14,7 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     migrate.init_app(app, db)
     
-    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions
+    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard
     app.register_blueprint(auth.bp)
     app.register_blueprint(schedules.bp)
     app.register_blueprint(shifts.bp)
@@ -22,6 +22,7 @@ def create_app(config_name='development'):
     app.register_blueprint(notifications.bp)
     app.register_blueprint(coverage.bp)
     app.register_blueprint(ml_predictions.bp)
+    app.register_blueprint(ml_dashboard.bp)
     app.register_blueprint(sales.bp)
     app.register_blueprint(expenses.bp)
     app.register_blueprint(reports.bp)
