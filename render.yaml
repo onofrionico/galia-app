@@ -39,4 +39,4 @@ databases:
   - name: galia-db
     databaseName: galia_db
     user: galia_user
-    plan: standard
+    plan: basic
