@@ -12,6 +12,7 @@ const CreateScheduleModal = ({ isOpen, onClose }) => {
   const [startDate, setStartDate] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'))
   const [error, setError] = useState('')
+  const [showRecommendations, setShowRecommendations] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: scheduleService.createSchedule,

@@ -9,6 +9,7 @@ pip install gunicorn
 echo "Running database migrations..."
 cd backend
 flask db upgrade
+python create_notifications_tables.py
 cd ..
 
 echo "Build completed successfully!"
