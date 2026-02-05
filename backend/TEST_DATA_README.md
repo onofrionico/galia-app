@@ -2,18 +2,28 @@
 
 Este documento describe los datos de prueba disponibles para la aplicación de gestión de cafetería.
 
+## ⚠️ IMPORTANTE
+
+**Este script es SOLO para desarrollo y pruebas locales.**
+
+- Los datos de prueba NO son parte de las migraciones de Alembic
+- Se cargan mediante un script independiente (`seed_test_data.py`)
+- El script verifica automáticamente si ya existen datos antes de insertarlos
+- Si detecta que ya existe el usuario `admin@galia.com`, te preguntará si deseas recargar
+- **NO ejecutar en producción** - solo para desarrollo local
+
 ## 🚀 Cómo Cargar los Datos de Prueba
 
-### Opción 1: Usando el script de carga
+### Opción 1: Usando el script de carga (Recomendado)
 ```bash
 cd backend
 python load_test_data.py
 ```
 
-### Opción 2: Usando Flask-Migrate directamente
+### Opción 2: Usando el script de seed directamente
 ```bash
 cd backend
-flask db upgrade
+python seed_test_data.py
 ```
 
 ## 👥 Usuarios y Credenciales

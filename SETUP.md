@@ -197,7 +197,9 @@ docker-compose down
 
 ## Paso 9: Cargar Datos de Prueba (Opcional pero Recomendado)
 
-El proyecto incluye una migración completa con datos de prueba realistas para todas las funcionalidades.
+El proyecto incluye un script independiente con datos de prueba realistas para todas las funcionalidades.
+
+**IMPORTANTE:** Los datos de prueba NO son parte de las migraciones de Alembic. Se cargan mediante un script separado solo para desarrollo local.
 
 ### Opción A: Usando el script de carga (Recomendado)
 
@@ -206,11 +208,11 @@ cd backend
 python load_test_data.py
 ```
 
-### Opción B: Usando Flask-Migrate
+### Opción B: Usando el script de seed directamente
 
 ```bash
 cd backend
-flask db upgrade
+python seed_test_data.py
 ```
 
 ### Verificar que los datos se cargaron correctamente
