@@ -1,17 +1,10 @@
 services:
-  # PostgreSQL Database
-  - type: pserv
-    name: galia-db
-    env: docker
-    plan: free
-    region: oregon
-    
   # Backend Flask API
   - type: web
     name: galia-backend
     env: python
     region: oregon
-    plan: free
+    plan: starter
     buildCommand: "./build.sh"
     startCommand: "gunicorn --chdir backend --bind 0.0.0.0:$PORT run:app"
     envVars:
@@ -46,4 +39,4 @@ databases:
   - name: galia-db
     databaseName: galia_db
     user: galia_user
-    plan: free
+    plan: starter
