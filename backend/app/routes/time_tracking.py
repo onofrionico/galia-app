@@ -10,6 +10,10 @@ import logging
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
 
+def blocks_overlap(start1, end1, start2, end2):
+    """Verifica si dos bloques de tiempo se superponen"""
+    return start1 < end2 and start2 < end1
+
 @bp.route('/check-in', methods=['POST'])
 @login_required
 def check_in():
@@ -41,6 +45,11 @@ def check_in():
             db.session.flush()
         
         current_time = datetime.now().time()
+        
+        for existing_block in record.work_blocks:
+            if blocks_overlap(existing_block.start_time, existing_block.end_time, current_time, current_time):
+                return jsonify({'error': 'Ya existe un bloque de trabajo en este horario'}), 409
+        
         work_block = WorkBlock(
             time_tracking_id=record.id,
             start_time=current_time,
@@ -227,6 +236,10 @@ def record_hours():
             )
             db.session.add(record)
             db.session.flush()
+        
+        for existing_block in record.work_blocks:
+            if blocks_overlap(existing_block.start_time, existing_block.end_time, check_in_time, check_out_time):
+                return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
         
         work_block = WorkBlock(
             time_tracking_id=record.id,

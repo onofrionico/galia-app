@@ -107,6 +107,26 @@ const TimeTracking = () => {
     setError(null)
     setSuccess(null)
 
+    const [inHour, inMin] = pastDayData.check_in.split(':').map(Number)
+    const [outHour, outMin] = pastDayData.check_out.split(':').map(Number)
+    const checkInTime = inHour * 60 + inMin
+    const checkOutTime = outHour * 60 + outMin
+
+    if (todayRecord?.work_blocks && todayRecord.work_blocks.length > 0) {
+      for (const block of todayRecord.work_blocks) {
+        const [bsHour, bsMin] = block.start_time.split(':').map(Number)
+        const [beHour, beMin] = block.end_time.split(':').map(Number)
+        const blockStart = bsHour * 60 + bsMin
+        const blockEnd = beHour * 60 + beMin
+
+        if (checkInTime < blockEnd && blockStart < checkOutTime) {
+          setError('Este bloque se superpone con otro bloque existente')
+          setLoading(false)
+          return
+        }
+      }
+    }
+
     try {
       await timeTrackingService.recordPastDayHours(
         pastDayData.date,
