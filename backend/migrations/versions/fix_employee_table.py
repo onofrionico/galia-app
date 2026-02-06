@@ -1,7 +1,7 @@
 """fix employee table structure
 
 Revision ID: fix_employee_table
-Revises: b020c4aff4de
+Revises: add_employee_mgmt
 Create Date: 2026-02-05 18:26:00.000000
 
 """
@@ -11,26 +11,12 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'fix_employee_table'
-down_revision = 'b020c4aff4de'
+down_revision = 'add_employee_mgmt'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    # Crear tabla employee_job_history si no existe
-    op.execute("""
-        CREATE TABLE IF NOT EXISTS employee_job_history (
-            id SERIAL PRIMARY KEY,
-            employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-            job_position_id INTEGER NOT NULL REFERENCES job_positions(id),
-            start_date DATE NOT NULL,
-            end_date DATE,
-            created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-            CONSTRAINT fk_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-            CONSTRAINT fk_job_position FOREIGN KEY (job_position_id) REFERENCES job_positions(id)
-        )
-    """)
-    
     # Agregar columnas nuevas a employees
     op.add_column('employees', sa.Column('first_name', sa.String(100), nullable=True))
     op.add_column('employees', sa.Column('last_name', sa.String(100), nullable=True))
@@ -124,6 +110,3 @@ def downgrade():
     op.drop_column('employees', 'dni')
     op.drop_column('employees', 'last_name')
     op.drop_column('employees', 'first_name')
-    
-    # Eliminar tabla employee_job_history
-    op.drop_table('employee_job_history')
