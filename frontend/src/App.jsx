@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Schedules from './pages/Schedules'
 import MySchedule from './pages/MySchedule'
+import TimeTracking from './pages/TimeTracking'
 import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
@@ -27,6 +28,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/schedules" element={<Schedules />} />
             <Route path="/my-schedule" element={<MySchedule />} />
+            <Route path="/time-tracking" element={<TimeTracking />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />

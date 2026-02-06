@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Calendar, 
   Clock,
+  LogIn,
   ShoppingCart, 
   Receipt, 
   BarChart3, 
@@ -18,6 +19,7 @@ const Sidebar = () => {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: false },
     { to: '/my-schedule', icon: Clock, label: 'Mi Horario', adminOnly: false, employeeOnly: true },
+    { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios', adminOnly: false, employeeOnly: true },
     { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: true },
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: false },
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
