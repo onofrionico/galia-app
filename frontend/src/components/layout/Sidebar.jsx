@@ -8,6 +8,7 @@ import {
   Receipt, 
   BarChart3, 
   Users,
+  Briefcase,
   Brain
 } from 'lucide-react'
 
@@ -22,6 +23,7 @@ const Sidebar = () => {
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
     { to: '/employees', icon: Users, label: 'Empleados', adminOnly: true },
+    { to: '/job-positions', icon: Briefcase, label: 'Puestos', adminOnly: true },
     { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', adminOnly: true },
   ]
 
