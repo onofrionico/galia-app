@@ -116,6 +116,7 @@ class Employee(db.Model):
             })
         
         if include_history:
-            data['job_history'] = [h.to_dict() for h in self.job_history.order_by(EmployeeJobHistory.start_date.desc()).all()]
+            job_history_records = EmployeeJobHistory.query.filter_by(employee_id=self.id).order_by(EmployeeJobHistory.start_date.desc()).all()
+            data['job_history'] = [h.to_dict() for h in job_history_records]
         
         return data
