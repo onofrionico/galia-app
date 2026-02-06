@@ -8,14 +8,25 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         
+        # Log para debugging
+        print(f"[AUTH DEBUG] Request path: {request.path}")
+        print(f"[AUTH DEBUG] Request method: {request.method}")
+        print(f"[AUTH DEBUG] Headers: {dict(request.headers)}")
+        
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
+            print(f"[AUTH DEBUG] Authorization header encontrado: {auth_header[:50]}...")
             try:
                 token = auth_header.split(" ")[1]
+                print(f"[AUTH DEBUG] Token extraído: {token[:20]}...")
             except IndexError:
+                print("[AUTH DEBUG] Error al extraer token del header")
                 return jsonify({'error': 'Token inválido'}), 401
+        else:
+            print("[AUTH DEBUG] No se encontró header Authorization")
         
         if not token:
+            print("[AUTH DEBUG] Token es None, retornando 401")
             return jsonify({'error': 'Token requerido'}), 401
         
         try:

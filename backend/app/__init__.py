@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from app.config import config
 from app.extensions import db, login_manager, bcrypt, migrate
@@ -7,11 +7,28 @@ def create_app(config_name='development'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     
+    # Log CORS configuration
+    print(f"[CORS CONFIG] Allowed origins: {app.config['CORS_ORIGINS']}")
+    
     CORS(app, 
          resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}},
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    
+    # Middleware para loguear todas las requests
+    @app.before_request
+    def log_request_info():
+        print(f"\n[REQUEST] {request.method} {request.path}")
+        print(f"[REQUEST] Origin: {request.headers.get('Origin', 'No Origin header')}")
+        print(f"[REQUEST] Authorization: {request.headers.get('Authorization', 'No Auth header')[:50] if request.headers.get('Authorization') else 'No Auth header'}")
+        print(f"[REQUEST] Content-Type: {request.headers.get('Content-Type', 'No Content-Type')}")
+    
+    @app.after_request
+    def log_response_info(response):
+        print(f"[RESPONSE] Status: {response.status}")
+        print(f"[RESPONSE] CORS headers: {response.headers.get('Access-Control-Allow-Origin', 'Not set')}")
+        return response
     
     db.init_app(app)
     login_manager.init_app(app)
