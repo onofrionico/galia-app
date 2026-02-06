@@ -1,7 +1,7 @@
 """fix employee table structure
 
 Revision ID: fix_employee_table
-Revises: add_employee_mgmt
+Revises: add_work_blocks
 Create Date: 2026-02-05 18:26:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'fix_employee_table'
-down_revision = 'add_employee_mgmt'
+down_revision = 'add_work_blocks'
 branch_labels = None
 depends_on = None
 
