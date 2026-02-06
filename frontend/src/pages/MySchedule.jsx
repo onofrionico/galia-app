@@ -82,56 +82,54 @@ const MySchedule = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Mi Horario</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Horario</h1>
         
         <div className="flex gap-2">
           <button
             onClick={() => setView('weekly')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base flex items-center gap-1 md:gap-2 ${
               view === 'weekly'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Semanal
-            </div>
+            <Clock className="w-4 h-4" />
+            <span className="hidden sm:inline">Semanal</span>
+            <span className="sm:hidden">Sem</span>
           </button>
           <button
             onClick={() => setView('monthly')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base flex items-center gap-1 md:gap-2 ${
               view === 'monthly'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Mensual
-            </div>
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Mensual</span>
+            <span className="sm:hidden">Mes</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+        <div className="flex justify-between items-center mb-4 md:mb-6 gap-2">
           <button
             onClick={navigatePrevious}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-gray-900 capitalize">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            <h2 className="text-base md:text-xl font-semibold text-gray-900 capitalize text-center sm:text-left truncate">
               {getDisplayTitle()}
             </h2>
             <button
               onClick={navigateToday}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-3 py-1 text-xs md:text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors whitespace-nowrap"
             >
               Hoy
             </button>
@@ -139,7 +137,7 @@ const MySchedule = () => {
           
           <button
             onClick={navigateNext}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

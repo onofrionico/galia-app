@@ -25,28 +25,28 @@ const Schedules = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4 border-b border-gray-200">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center space-x-2 md:space-x-4 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab('schedules')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors ${
+          className={`flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 md:py-3 border-b-2 transition-colors whitespace-nowrap text-sm md:text-base ${
             activeTab === 'schedules'
               ? 'border-primary text-primary font-semibold'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
-          <Calendar className="h-5 w-5" />
+          <Calendar className="h-4 md:h-5 w-4 md:w-5" />
           <span>Grillas</span>
         </button>
         <button
           onClick={() => setActiveTab('coverage')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors ${
+          className={`flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 md:py-3 border-b-2 transition-colors whitespace-nowrap text-sm md:text-base ${
             activeTab === 'coverage'
               ? 'border-primary text-primary font-semibold'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
-          <BarChart3 className="h-5 w-5" />
+          <BarChart3 className="h-4 md:h-5 w-4 md:w-5" />
           <span>Cobertura</span>
         </button>
       </div>
@@ -64,28 +64,28 @@ const Schedules = () => {
           />
         </>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4">
+        <div className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
                 Desde
               </label>
               <input
                 type="date"
                 value={coverageDates.start}
                 onChange={(e) => setCoverageDates({ ...coverageDates, start: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
                 Hasta
               </label>
               <input
                 type="date"
                 value={coverageDates.end}
                 onChange={(e) => setCoverageDates({ ...coverageDates, end: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
             </div>
           </div>

@@ -3,29 +3,38 @@ import { Clock } from 'lucide-react'
 const WeeklyScheduleView = ({ schedule }) => {
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   
+  const parseDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  
   const getShiftsForDay = (dayIndex) => {
-    const startDate = new Date(schedule.start_date)
+    const startDate = parseDate(schedule.start_date)
     const targetDate = new Date(startDate)
     targetDate.setDate(targetDate.getDate() + dayIndex)
-    const targetDateStr = targetDate.toISOString().split('T')[0]
+    const targetDateStr = targetDate.getFullYear() + '-' + 
+                          String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(targetDate.getDate()).padStart(2, '0')
     
     return schedule.shifts.filter(shift => shift.shift_date === targetDateStr)
   }
 
   const formatDate = (dayIndex) => {
-    const startDate = new Date(schedule.start_date)
+    const startDate = parseDate(schedule.start_date)
     const targetDate = new Date(startDate)
     targetDate.setDate(targetDate.getDate() + dayIndex)
     return targetDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
   }
 
   const isToday = (dayIndex) => {
-    const startDate = new Date(schedule.start_date)
+    const startDate = parseDate(schedule.start_date)
     const targetDate = new Date(startDate)
     targetDate.setDate(targetDate.getDate() + dayIndex)
     const today = new Date()
     
-    return targetDate.toDateString() === today.toDateString()
+    return targetDate.getFullYear() === today.getFullYear() &&
+           targetDate.getMonth() === today.getMonth() &&
+           targetDate.getDate() === today.getDate()
   }
 
   return (

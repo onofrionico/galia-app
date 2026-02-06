@@ -167,33 +167,33 @@ const EmployeeForm = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/employees')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h1>
       </div>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 flex items-start gap-3">
-          <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-          <div className="text-red-700">{error}</div>
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 md:p-4 flex items-start gap-3">
+          <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+          <div className="text-xs md:text-sm text-red-700">{error}</div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 space-y-4 md:space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Información Personal</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">Información Personal</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
                   Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -201,17 +201,17 @@ const EmployeeForm = () => {
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm ${
                     validationErrors.first_name ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {validationErrors.first_name && (
-                  <p className="text-red-500 text-sm mt-1">{validationErrors.first_name}</p>
+                  <p className="text-red-500 text-xs md:text-sm mt-1">{validationErrors.first_name}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
                   Apellido <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -219,12 +219,12 @@ const EmployeeForm = () => {
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm ${
                     validationErrors.last_name ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {validationErrors.last_name && (
-                  <p className="text-red-500 text-sm mt-1">{validationErrors.last_name}</p>
+                  <p className="text-red-500 text-xs md:text-sm mt-1">{validationErrors.last_name}</p>
                 )}
               </div>
 

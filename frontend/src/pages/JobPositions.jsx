@@ -154,42 +154,42 @@ const JobPositions = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Puestos de Trabajo</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Puestos de Trabajo</h1>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base w-full sm:w-auto"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nuevo Puesto
         </button>
       </div>
 
       {error && !showModal && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700">
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 md:p-4 text-red-700 text-sm md:text-base">
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-6 md:p-8 text-center text-gray-500 text-sm md:text-base">
             Cargando puestos...
           </div>
         ) : positions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-6 md:p-8 text-center text-gray-500 text-sm md:text-base">
             No hay puestos de trabajo registrados
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
             {positions.map((position) => (
-              <div key={position.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Briefcase size={20} className="text-gray-400" />
-                      <h3 className="text-lg font-semibold text-gray-900">{position.name}</h3>
+              <div key={position.id} className="p-4 md:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <Briefcase size={18} className="text-gray-400 flex-shrink-0" />
+                      <h3 className="text-base md:text-lg font-semibold text-gray-900 truncate">{position.name}</h3>
                       {getContractTypeBadge(position.contract_type)}
                       {!position.is_active && (
                         <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">
@@ -199,30 +199,30 @@ const JobPositions = () => {
                     </div>
                     
                     {position.description && (
-                      <p className="text-gray-600 mb-3">{position.description}</p>
+                      <p className="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2">{position.description}</p>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 mt-3">
                       {position.contract_type === 'por_hora' ? (
-                        <div className="flex items-center gap-2 text-sm">
-                          <DollarSign size={16} className="text-gray-400" />
+                        <div className="flex items-center gap-2 text-xs md:text-sm">
+                          <DollarSign size={14} className="text-gray-400 flex-shrink-0" />
                           <span className="text-gray-600">Tarifa:</span>
                           <span className="font-medium text-gray-900">
-                            ${position.hourly_rate?.toLocaleString('es-AR')}/hora
+                            ${position.hourly_rate?.toLocaleString('es-AR')}/h
                           </span>
                         </div>
                       ) : (
                         <>
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign size={16} className="text-gray-400" />
-                            <span className="text-gray-600">Salario Base:</span>
-                            <span className="font-medium text-gray-900">
+                          <div className="flex items-center gap-2 text-xs md:text-sm">
+                            <DollarSign size={14} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-600">Salario:</span>
+                            <span className="font-medium text-gray-900 truncate">
                               ${position.base_salary?.toLocaleString('es-AR')}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock size={16} className="text-gray-400" />
-                            <span className="text-gray-600">Horas/semana:</span>
+                          <div className="flex items-center gap-2 text-xs md:text-sm">
+                            <Clock size={14} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-gray-600">Horas/sem:</span>
                             <span className="font-medium text-gray-900">
                               {position.standard_hours_per_week}
                             </span>
@@ -230,9 +230,9 @@ const JobPositions = () => {
                         </>
                       )}
                       
-                      <div className="flex items-center gap-2 text-sm">
-                        <TrendingUp size={16} className="text-gray-400" />
-                        <span className="text-gray-600">Horas extras:</span>
+                      <div className="flex items-center gap-2 text-xs md:text-sm">
+                        <TrendingUp size={14} className="text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-600">Extras:</span>
                         <span className="font-medium text-gray-900">
                           {position.overtime_rate_multiplier}x
                         </span>
@@ -240,29 +240,29 @@ const JobPositions = () => {
                     </div>
 
                     {position.employee_count !== undefined && (
-                      <div className="mt-3 text-sm text-gray-500">
+                      <div className="mt-3 text-xs md:text-sm text-gray-500">
                         {position.employee_count} empleado{position.employee_count !== 1 ? 's' : ''} asignado{position.employee_count !== 1 ? 's' : ''}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => handleOpenModal(position)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Editar"
                     >
-                      <Edit2 size={18} />
+                      <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleToggleActive(position)}
-                      className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                      className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded-lg transition-colors whitespace-nowrap ${
                         position.is_active
                           ? 'text-red-600 hover:bg-red-50'
                           : 'text-green-600 hover:bg-green-50'
                       }`}
                     >
-                      {position.is_active ? 'Desactivar' : 'Activar'}
+                      {position.is_active ? 'Desact.' : 'Activ.'}
                     </button>
                   </div>
                 </div>
