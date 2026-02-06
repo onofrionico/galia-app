@@ -1,16 +1,16 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
 from datetime import datetime
 from app.extensions import db
 from app.models.job_position import JobPosition
 from app.models.employee import Employee
 from app.utils.decorators import admin_required
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('job_positions', __name__, url_prefix='/api/v1/job-positions')
 
 @bp.route('', methods=['GET'])
-@login_required
-def get_job_positions():
+@token_required
+def get_job_positions(current_user):
     is_active = request.args.get('is_active', '')
     contract_type = request.args.get('contract_type', '')
     
@@ -27,15 +27,15 @@ def get_job_positions():
     return jsonify([pos.to_dict(include_employees=False) for pos in positions]), 200
 
 @bp.route('/<int:position_id>', methods=['GET'])
-@login_required
-def get_job_position(position_id):
+@token_required
+def get_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     return jsonify(position.to_dict(include_employees=False)), 200
 
 @bp.route('', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def create_job_position():
+def create_job_position(current_user):
     data = request.get_json()
     
     required_fields = ['name', 'contract_type']
@@ -71,9 +71,9 @@ def create_job_position():
     return jsonify(position.to_dict()), 201
 
 @bp.route('/<int:position_id>', methods=['PUT'])
-@login_required
+@token_required
 @admin_required
-def update_job_position(position_id):
+def update_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     data = request.get_json()
     
@@ -113,9 +113,9 @@ def update_job_position(position_id):
     return jsonify(position.to_dict()), 200
 
 @bp.route('/<int:position_id>/deactivate', methods=['PATCH'])
-@login_required
+@token_required
 @admin_required
-def deactivate_job_position(position_id):
+def deactivate_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     
     if not position.is_active:
@@ -142,9 +142,9 @@ def deactivate_job_position(position_id):
     }), 200
 
 @bp.route('/<int:position_id>/activate', methods=['PATCH'])
-@login_required
+@token_required
 @admin_required
-def activate_job_position(position_id):
+def activate_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     
     if position.is_active:

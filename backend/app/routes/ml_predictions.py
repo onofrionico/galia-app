@@ -1,17 +1,17 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required
 from app.utils.decorators import admin_required
 from app.ml.staffing_predictor import StaffingPredictor
 from app.models.staffing_metrics import StaffingPrediction
 from datetime import datetime, timedelta
 from sqlalchemy import and_
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('ml_predictions', __name__, url_prefix='/api/v1/ml')
 
 @bp.route('/train', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def train_model():
+def train_model(current_user):
     """
     Train the ML model with historical data.
     Admin only endpoint.
@@ -34,9 +34,9 @@ def train_model():
         }), 400
 
 @bp.route('/predict', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def generate_predictions():
+def generate_predictions(current_user):
     """
     Generate predictions for a date range.
     Admin only endpoint.
@@ -74,8 +74,8 @@ def generate_predictions():
         }), 400
 
 @bp.route('/recommendations', methods=['GET'])
-@login_required
-def get_recommendations():
+@token_required
+def get_recommendations(current_user):
     """
     Get staffing recommendations for a date range.
     Returns predictions grouped by date and hour.
@@ -118,8 +118,8 @@ def get_recommendations():
     return jsonify(result), 200
 
 @bp.route('/recommendations/summary', methods=['GET'])
-@login_required
-def get_recommendations_summary():
+@token_required
+def get_recommendations_summary(current_user):
     """
     Get summary of recommendations for a date range.
     Useful for quick overview when creating schedules.
@@ -188,9 +188,9 @@ def get_recommendations_summary():
     }), 200
 
 @bp.route('/model/status', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_model_status():
+def get_model_status(current_user):
     """
     Get status of the ML model.
     """

@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.time_tracking import TimeTracking
 from app.models.work_block import WorkBlock
 from datetime import datetime, date
 from sqlalchemy.exc import IntegrityError
 import logging
+from app.utils.jwt_utils import token_required
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
@@ -15,8 +15,8 @@ def blocks_overlap(start1, end1, start2, end2):
     return start1 < end2 and start2 < end1
 
 @bp.route('/check-in', methods=['POST'])
-@login_required
-def check_in():
+@token_required
+def check_in(current_user):
     data = request.get_json()
     
     if not current_user.employee:
@@ -73,8 +73,8 @@ def check_in():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/check-out', methods=['POST'])
-@login_required
-def check_out():
+@token_required
+def check_out(current_user):
     data = request.get_json()
     
     if not current_user.employee:
@@ -116,8 +116,8 @@ def check_out():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/today', methods=['GET'])
-@login_required
-def get_today_record():
+@token_required
+def get_today_record(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
@@ -142,8 +142,8 @@ def get_today_record():
     return jsonify(record.to_dict()), 200
 
 @bp.route('/records', methods=['GET'])
-@login_required
-def get_records():
+@token_required
+def get_records(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
@@ -168,8 +168,8 @@ def get_records():
     return jsonify([record.to_dict() for record in records]), 200
 
 @bp.route('/monthly', methods=['GET'])
-@login_required
-def get_monthly_records():
+@token_required
+def get_monthly_records(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
@@ -199,8 +199,8 @@ def get_monthly_records():
     return jsonify([record.to_dict() for record in records]), 200
 
 @bp.route('/record-hours', methods=['POST'])
-@login_required
-def record_hours():
+@token_required
+def record_hours(current_user):
     data = request.get_json()
     
     if not current_user.employee:

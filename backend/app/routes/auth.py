@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify
-from flask_login import login_user, logout_user, login_required, current_user
+from flask import Blueprint, request, jsonify, current_app
+import jwt
+from datetime import datetime, timedelta
 from app.extensions import db
 from app.models.user import User
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -20,20 +22,24 @@ def login():
     if not user.is_active:
         return jsonify({'error': 'Usuario inactivo'}), 403
     
-    login_user(user, remember=True)
+    token = jwt.encode({
+        'user_id': user.id,
+        'email': user.email,
+        'exp': datetime.utcnow() + timedelta(days=7)
+    }, current_app.config['SECRET_KEY'], algorithm='HS256')
     
     return jsonify({
         'message': 'Login exitoso',
+        'token': token,
         'user': user.to_dict()
     }), 200
 
 @bp.route('/logout', methods=['POST'])
-@login_required
-def logout():
-    logout_user()
+@token_required
+def logout(current_user):
     return jsonify({'message': 'Logout exitoso'}), 200
 
 @bp.route('/me', methods=['GET'])
-@login_required
-def get_current_user():
+@token_required
+def get_current_user(current_user):
     return jsonify({'user': current_user.to_dict()}), 200

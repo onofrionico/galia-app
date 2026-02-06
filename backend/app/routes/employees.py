@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
 from datetime import datetime, date
 from app.extensions import db
 from app.models.employee import Employee
@@ -8,12 +7,13 @@ from app.models.job_position import JobPosition
 from app.models.employee_job_history import EmployeeJobHistory
 from app.models.shift import Shift
 from app.utils.decorators import admin_required
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('employees', __name__, url_prefix='/api/v1/employees')
 
 @bp.route('', methods=['GET'])
-@login_required
-def get_employees():
+@token_required
+def get_employees(current_user):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()
         if not employee:
@@ -65,8 +65,8 @@ def get_employees():
     }), 200
 
 @bp.route('/<int:employee_id>', methods=['GET'])
-@login_required
-def get_employee(employee_id):
+@token_required
+def get_employee(current_user, employee_id):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()
         if not employee or employee.id != employee_id:
@@ -79,9 +79,9 @@ def get_employee(employee_id):
     return jsonify(employee.to_dict(include_sensitive=include_sensitive, include_history=True)), 200
 
 @bp.route('', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def create_employee():
+def create_employee(current_user):
     data = request.get_json()
     
     required_fields = [
@@ -169,8 +169,8 @@ def create_employee():
     return jsonify(employee.to_dict(include_sensitive=True)), 201
 
 @bp.route('/<int:employee_id>', methods=['PUT'])
-@login_required
-def update_employee(employee_id):
+@token_required
+def update_employee(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     
     is_admin = current_user.role == 'admin'
@@ -259,9 +259,9 @@ def update_employee(employee_id):
     return jsonify(employee.to_dict(include_sensitive=True, include_history=True)), 200
 
 @bp.route('/<int:employee_id>/deactivate', methods=['PATCH'])
-@login_required
+@token_required
 @admin_required
-def deactivate_employee(employee_id):
+def deactivate_employee(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     
     if employee.status == 'inactivo':
@@ -285,9 +285,9 @@ def deactivate_employee(employee_id):
     }), 200
 
 @bp.route('/<int:employee_id>/change-status', methods=['PATCH'])
-@login_required
+@token_required
 @admin_required
-def change_employee_status(employee_id):
+def change_employee_status(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     data = request.get_json()
     
@@ -321,8 +321,8 @@ def change_employee_status(employee_id):
     }), 200
 
 @bp.route('/<int:employee_id>/job-history', methods=['GET'])
-@login_required
-def get_employee_job_history(employee_id):
+@token_required
+def get_employee_job_history(current_user, employee_id):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()
         if not employee or employee.id != employee_id:

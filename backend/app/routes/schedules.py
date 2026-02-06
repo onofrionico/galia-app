@@ -1,22 +1,22 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.utils.decorators import admin_required
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('schedules', __name__, url_prefix='/api/v1/schedules')
 
 @bp.route('', methods=['GET'])
-@login_required
-def get_schedules():
+@token_required
+def get_schedules(current_user):
     schedules = Schedule.query.order_by(Schedule.start_date.desc()).all()
     return jsonify([schedule.to_dict() for schedule in schedules]), 200
 
 @bp.route('', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def create_schedule():
+def create_schedule(current_user):
     from app.services.schedule_service import ScheduleService
     from app.utils.validators import validate_date_range
     from datetime import datetime
@@ -43,15 +43,15 @@ def create_schedule():
     }), 201
 
 @bp.route('/<int:schedule_id>', methods=['GET'])
-@login_required
-def get_schedule(schedule_id):
+@token_required
+def get_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     return jsonify(schedule.to_dict(include_shifts=True)), 200
 
 @bp.route('/<int:schedule_id>', methods=['PUT'])
-@login_required
+@token_required
 @admin_required
-def update_schedule(schedule_id):
+def update_schedule(current_user, schedule_id):
     from app.services.schedule_service import ScheduleService
     from datetime import datetime
     
@@ -86,9 +86,9 @@ def update_schedule(schedule_id):
     }), 200
 
 @bp.route('/<int:schedule_id>', methods=['DELETE'])
-@login_required
+@token_required
 @admin_required
-def delete_schedule(schedule_id):
+def delete_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     db.session.delete(schedule)
     db.session.commit()

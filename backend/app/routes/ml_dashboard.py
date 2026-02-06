@@ -1,18 +1,18 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required
 from app.utils.decorators import admin_required
 from app.services.ml_accuracy_service import MLAccuracyService
 from app.services.holiday_service import HolidayService
 from app.services.alert_service import AlertService
 from app.models.ml_tracking import MLModelVersion, PredictionAlert
 from datetime import datetime, timedelta
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('ml_dashboard', __name__, url_prefix='/api/v1/ml/dashboard')
 
 @bp.route('/accuracy', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_accuracy_metrics():
+def get_accuracy_metrics(current_user):
     """Get overall accuracy metrics"""
     days = request.args.get('days', 30, type=int)
     
@@ -21,25 +21,25 @@ def get_accuracy_metrics():
     return jsonify(metrics), 200
 
 @bp.route('/accuracy/by-hour', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_accuracy_by_hour():
+def get_accuracy_by_hour(current_user):
     """Get accuracy metrics grouped by hour"""
     result = MLAccuracyService.get_accuracy_by_hour()
     return jsonify(result), 200
 
 @bp.route('/accuracy/by-day', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_accuracy_by_day():
+def get_accuracy_by_day(current_user):
     """Get accuracy metrics grouped by day of week"""
     result = MLAccuracyService.get_accuracy_by_day_of_week()
     return jsonify(result), 200
 
 @bp.route('/accuracy/update', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def update_accuracy():
+def update_accuracy(current_user):
     """Update accuracy for a specific date"""
     data = request.get_json()
     
@@ -56,17 +56,17 @@ def update_accuracy():
     return jsonify(result), 200
 
 @bp.route('/retrain-check', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def check_retrain_needed():
+def check_retrain_needed(current_user):
     """Check if model should be retrained"""
     result = MLAccuracyService.should_retrain_model()
     return jsonify(result), 200
 
 @bp.route('/model-versions', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_model_versions():
+def get_model_versions(current_user):
     """Get all model versions"""
     versions = MLModelVersion.query.order_by(
         MLModelVersion.trained_at.desc()
@@ -78,8 +78,8 @@ def get_model_versions():
     }), 200
 
 @bp.route('/alerts', methods=['GET'])
-@login_required
-def get_alerts():
+@token_required
+def get_alerts(current_user):
     """Get prediction alerts"""
     schedule_id = request.args.get('schedule_id', type=int)
     severity = request.args.get('severity')
@@ -92,12 +92,10 @@ def get_alerts():
     return jsonify(result), 200
 
 @bp.route('/alerts/<int:alert_id>/acknowledge', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def acknowledge_alert(alert_id):
+def acknowledge_alert(current_user, alert_id):
     """Acknowledge an alert"""
-    from flask_login import current_user
-    
     result = AlertService.acknowledge_alert(alert_id, current_user.id)
     
     if result['success']:
@@ -106,9 +104,9 @@ def acknowledge_alert(alert_id):
         return jsonify(result), 404
 
 @bp.route('/alerts/<int:alert_id>/resolve', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def resolve_alert(alert_id):
+def resolve_alert(current_user, alert_id):
     """Resolve an alert"""
     result = AlertService.resolve_alert(alert_id)
     
@@ -118,16 +116,16 @@ def resolve_alert(alert_id):
         return jsonify(result), 404
 
 @bp.route('/alerts/summary', methods=['GET'])
-@login_required
-def get_alert_summary():
+@token_required
+def get_alert_summary(current_user):
     """Get alert summary by severity"""
     result = AlertService.get_alert_summary()
     return jsonify(result), 200
 
 @bp.route('/alerts/check-schedule/<int:schedule_id>', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def check_schedule_alerts(schedule_id):
+def check_schedule_alerts(current_user, schedule_id):
     """Check a schedule for prediction discrepancies"""
     result = AlertService.check_schedule_predictions(schedule_id)
     
@@ -137,25 +135,25 @@ def check_schedule_alerts(schedule_id):
         return jsonify(result), 404
 
 @bp.route('/holidays', methods=['GET'])
-@login_required
-def get_holidays():
+@token_required
+def get_holidays(current_user):
     """Get all holidays"""
     year = request.args.get('year', type=int)
     result = HolidayService.get_all_holidays(year=year)
     return jsonify(result), 200
 
 @bp.route('/holidays/initialize', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def initialize_holidays():
+def initialize_holidays(current_user):
     """Initialize Argentina holidays"""
     result = HolidayService.initialize_holidays()
     return jsonify(result), 200
 
 @bp.route('/holidays', methods=['POST'])
-@login_required
+@token_required
 @admin_required
-def add_special_event():
+def add_special_event(current_user):
     """Add a special event"""
     data = request.get_json()
     
@@ -175,9 +173,9 @@ def add_special_event():
         return jsonify(result), 400
 
 @bp.route('/holidays/<int:holiday_id>', methods=['DELETE'])
-@login_required
+@token_required
 @admin_required
-def delete_holiday(holiday_id):
+def delete_holiday(current_user, holiday_id):
     """Delete a holiday"""
     result = HolidayService.delete_holiday(holiday_id)
     
@@ -187,9 +185,9 @@ def delete_holiday(holiday_id):
         return jsonify(result), 404
 
 @bp.route('/stats', methods=['GET'])
-@login_required
+@token_required
 @admin_required
-def get_dashboard_stats():
+def get_dashboard_stats(current_user):
     """Get overall dashboard statistics"""
     # Get active model version
     active_model = MLModelVersion.query.filter_by(is_active=True).first()

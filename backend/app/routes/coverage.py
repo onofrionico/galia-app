@@ -1,16 +1,16 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required
 from app.models.shift import Shift
 from app.models.employee import Employee
 from sqlalchemy import func
 from datetime import datetime, timedelta, time
 from collections import defaultdict
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('coverage', __name__, url_prefix='/api/v1/coverage')
 
 @bp.route('/hourly', methods=['GET'])
-@login_required
-def get_hourly_coverage():
+@token_required
+def get_hourly_coverage(current_user):
     """Get hourly coverage for a date range"""
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -67,8 +67,8 @@ def get_hourly_coverage():
     return jsonify(result), 200
 
 @bp.route('/summary', methods=['GET'])
-@login_required
-def get_coverage_summary():
+@token_required
+def get_coverage_summary(current_user):
     """Get coverage summary statistics for a date range"""
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')

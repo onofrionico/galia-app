@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
 from app.services.employee_schedule_service import EmployeeScheduleService
 from app.models.employee import Employee
 from datetime import datetime
+from app.utils.jwt_utils import token_required
 
 bp = Blueprint('employee_schedule', __name__, url_prefix='/api/v1/employee/schedule')
 
 @bp.route('/my-schedule/weekly', methods=['GET'])
-@login_required
-def get_my_weekly_schedule():
+@token_required
+def get_my_weekly_schedule(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:
@@ -27,8 +27,8 @@ def get_my_weekly_schedule():
     return jsonify(schedule), 200
 
 @bp.route('/my-schedule/monthly', methods=['GET'])
-@login_required
-def get_my_monthly_schedule():
+@token_required
+def get_my_monthly_schedule(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:
@@ -45,8 +45,8 @@ def get_my_monthly_schedule():
     return jsonify(schedule), 200
 
 @bp.route('/my-schedule/upcoming', methods=['GET'])
-@login_required
-def get_my_upcoming_shifts():
+@token_required
+def get_my_upcoming_shifts(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:
@@ -62,8 +62,8 @@ def get_my_upcoming_shifts():
     return jsonify(schedule), 200
 
 @bp.route('/my-schedule/current-week', methods=['GET'])
-@login_required
-def get_my_current_week():
+@token_required
+def get_my_current_week(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:
@@ -74,8 +74,8 @@ def get_my_current_week():
     return jsonify(schedule), 200
 
 @bp.route('/my-schedule/next-week', methods=['GET'])
-@login_required
-def get_my_next_week():
+@token_required
+def get_my_next_week(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:
@@ -86,8 +86,8 @@ def get_my_next_week():
     return jsonify(schedule), 200
 
 @bp.route('/my-schedule/summary', methods=['GET'])
-@login_required
-def get_my_schedule_summary():
+@token_required
+def get_my_schedule_summary(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
     if not employee:

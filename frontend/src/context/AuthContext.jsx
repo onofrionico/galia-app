@@ -8,18 +8,22 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    checkAuth()
+    initializeAuth()
   }, [])
 
-  const checkAuth = async () => {
-    try {
-      const userData = await authService.getCurrentUser()
-      setUser(userData)
-    } catch (error) {
-      setUser(null)
-    } finally {
-      setLoading(false)
+  const initializeAuth = async () => {
+    const token = authService.getToken()
+    
+    if (token) {
+      try {
+        const userData = await authService.getCurrentUser()
+        setUser(userData)
+      } catch (error) {
+        setUser(null)
+      }
     }
+    
+    setLoading(false)
   }
 
   const login = async (email, password) => {
