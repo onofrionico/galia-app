@@ -30,13 +30,19 @@ def token_required(f):
             return jsonify({'error': 'Token requerido'}), 401
         
         try:
+            print(f"[AUTH DEBUG] Intentando decodificar token...")
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            print(f"[AUTH DEBUG] Token decodificado exitosamente. User ID: {data.get('user_id')}")
             current_user = User.query.get(data['user_id'])
             if not current_user:
+                print(f"[AUTH DEBUG] Usuario no encontrado en BD")
                 return jsonify({'error': 'Usuario no encontrado'}), 401
-        except jwt.ExpiredSignatureError:
+            print(f"[AUTH DEBUG] Usuario encontrado: {current_user.email}")
+        except jwt.ExpiredSignatureError as e:
+            print(f"[AUTH DEBUG] Token expirado: {str(e)}")
             return jsonify({'error': 'Token expirado'}), 401
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            print(f"[AUTH DEBUG] Token inválido: {str(e)}")
             return jsonify({'error': 'Token inválido'}), 401
         
         return f(current_user, *args, **kwargs)
