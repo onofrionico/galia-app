@@ -82,91 +82,103 @@ def get_employee(current_user, employee_id):
 @token_required
 @admin_required
 def create_employee(current_user):
-    data = request.get_json()
-    
-    required_fields = [
-        'first_name', 'last_name', 'dni', 'cuil', 'birth_date', 
-        'phone', 'address', 'email', 'employment_relationship',
-        'emergency_contact_name', 'emergency_contact_phone', 
-        'emergency_contact_relationship', 'hire_date', 'job_position_id', 'password'
-    ]
-    
-    for field in required_fields:
-        if field not in data:
-            return jsonify({'error': f'Campo requerido: {field}'}), 400
-    
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'El email ya está registrado'}), 400
-    
-    if Employee.query.filter_by(dni=data['dni']).first():
-        return jsonify({'error': 'El DNI ya está registrado'}), 400
-    
-    if Employee.query.filter_by(cuil=data['cuil']).first():
-        return jsonify({'error': 'El CUIL ya está registrado'}), 400
-    
     try:
-        birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
-        hire_date = datetime.strptime(data['hire_date'], '%Y-%m-%d').date()
-    except ValueError:
-        return jsonify({'error': 'Formato de fecha inválido'}), 400
-    
-    age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
-    if age < 18:
-        return jsonify({'error': 'El empleado debe tener al menos 18 años'}), 400
-    
-    job_position = JobPosition.query.get(data['job_position_id'])
-    if not job_position:
-        return jsonify({'error': 'Puesto de trabajo no encontrado'}), 404
-    
-    user = User(
-        email=data['email'],
-        role='employee',
-        is_active=True
-    )
-    user.set_password(data['password'])
-    db.session.add(user)
-    db.session.flush()
-    
-    employee = Employee(
-        user_id=user.id,
-        first_name=data['first_name'],
-        last_name=data['last_name'],
-        dni=data['dni'],
-        cuil=data['cuil'],
-        birth_date=birth_date,
-        phone=data['phone'],
-        address=data['address'],
-        profile_photo_url=data.get('profile_photo_url'),
-        employment_relationship=data['employment_relationship'],
-        emergency_contact_name=data['emergency_contact_name'],
-        emergency_contact_phone=data['emergency_contact_phone'],
-        emergency_contact_relationship=data['emergency_contact_relationship'],
-        hire_date=hire_date,
-        status='activo',
-        current_job_position_id=data['job_position_id'],
-        created_by_id=current_user.id
-    )
-    
-    validation_errors = employee.validate()
-    if validation_errors:
+        print(f"[CREATE EMPLOYEE] Iniciando creación de empleado por usuario: {current_user.email}")
+        data = request.get_json()
+        print(f"[CREATE EMPLOYEE] Datos recibidos: {list(data.keys())}")
+        
+        required_fields = [
+            'first_name', 'last_name', 'dni', 'cuil', 'birth_date', 
+            'phone', 'address', 'email', 'employment_relationship',
+            'emergency_contact_name', 'emergency_contact_phone', 
+            'emergency_contact_relationship', 'hire_date', 'job_position_id', 'password'
+        ]
+        
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Campo requerido: {field}'}), 400
+        
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'El email ya está registrado'}), 400
+        
+        if Employee.query.filter_by(dni=data['dni']).first():
+            return jsonify({'error': 'El DNI ya está registrado'}), 400
+        
+        if Employee.query.filter_by(cuil=data['cuil']).first():
+            return jsonify({'error': 'El CUIL ya está registrado'}), 400
+        
+        try:
+            birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+            hire_date = datetime.strptime(data['hire_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Formato de fecha inválido'}), 400
+        
+        age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
+        if age < 18:
+            return jsonify({'error': 'El empleado debe tener al menos 18 años'}), 400
+        
+        job_position = JobPosition.query.get(data['job_position_id'])
+        if not job_position:
+            return jsonify({'error': 'Puesto de trabajo no encontrado'}), 404
+        
+        user = User(
+            email=data['email'],
+            role='employee',
+            is_active=True
+        )
+        user.set_password(data['password'])
+        db.session.add(user)
+        db.session.flush()
+        
+        employee = Employee(
+            user_id=user.id,
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            dni=data['dni'],
+            cuil=data['cuil'],
+            birth_date=birth_date,
+            phone=data['phone'],
+            address=data['address'],
+            profile_photo_url=data.get('profile_photo_url'),
+            employment_relationship=data['employment_relationship'],
+            emergency_contact_name=data['emergency_contact_name'],
+            emergency_contact_phone=data['emergency_contact_phone'],
+            emergency_contact_relationship=data['emergency_contact_relationship'],
+            hire_date=hire_date,
+            status='activo',
+            current_job_position_id=data['job_position_id'],
+            created_by_id=current_user.id
+        )
+        
+        validation_errors = employee.validate()
+        if validation_errors:
+            db.session.rollback()
+            return jsonify({'error': ', '.join(validation_errors)}), 400
+        
+        db.session.add(employee)
+        db.session.flush()
+        
+        job_history = EmployeeJobHistory(
+            employee_id=employee.id,
+            job_position_id=data['job_position_id'],
+            start_date=hire_date,
+            notes=data.get('notes', 'Ingreso inicial'),
+            created_by_id=current_user.id
+        )
+        db.session.add(job_history)
+        
+        db.session.commit()
+        print(f"[CREATE EMPLOYEE] Empleado creado exitosamente: {employee.id}")
+        
+        return jsonify(employee.to_dict(include_sensitive=True)), 201
+        
+    except Exception as e:
+        print(f"[CREATE EMPLOYEE ERROR] Error al crear empleado: {str(e)}")
+        print(f"[CREATE EMPLOYEE ERROR] Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"[CREATE EMPLOYEE ERROR] Traceback: {traceback.format_exc()}")
         db.session.rollback()
-        return jsonify({'error': ', '.join(validation_errors)}), 400
-    
-    db.session.add(employee)
-    db.session.flush()
-    
-    job_history = EmployeeJobHistory(
-        employee_id=employee.id,
-        job_position_id=data['job_position_id'],
-        start_date=hire_date,
-        notes=data.get('notes', 'Ingreso inicial'),
-        created_by_id=current_user.id
-    )
-    db.session.add(job_history)
-    
-    db.session.commit()
-    
-    return jsonify(employee.to_dict(include_sensitive=True)), 201
+        return jsonify({'error': f'Error al crear empleado: {str(e)}'}), 500
 
 @bp.route('/<int:employee_id>', methods=['PUT'])
 @token_required
