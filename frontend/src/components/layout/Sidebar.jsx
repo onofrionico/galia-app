@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Users,
   Briefcase,
-  Brain
+  Brain,
+  Wallet
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -21,9 +22,11 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: false },
     { to: '/my-schedule', icon: Clock, label: 'Mi Horario', adminOnly: false, employeeOnly: true },
     { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios', adminOnly: false, employeeOnly: true },
+    { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas', adminOnly: false, employeeOnly: true },
     { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: true },
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: true },
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
+    { to: '/payroll', icon: Wallet, label: 'Sueldos', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
     { to: '/employees', icon: Users, label: 'Empleados', adminOnly: true },
     { to: '/job-positions', icon: Briefcase, label: 'Puestos', adminOnly: true },

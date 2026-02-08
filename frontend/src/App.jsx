@@ -15,6 +15,10 @@ import EmployeeForm from './pages/EmployeeForm'
 import EmployeeDetail from './pages/EmployeeDetail'
 import JobPositions from './pages/JobPositions'
 import MLDashboard from './pages/MLDashboard'
+import Payroll from './pages/Payroll'
+import PayrollDetail from './pages/PayrollDetail'
+import MyPayrolls from './pages/MyPayrolls'
+import MyPayrollDetail from './pages/MyPayrollDetail'
 
 function App() {
   return (
@@ -38,6 +42,10 @@ function App() {
             <Route path="/employees/:id/edit" element={<EmployeeForm />} />
             <Route path="/job-positions" element={<JobPositions />} />
             <Route path="/ml-dashboard" element={<MLDashboard />} />
+            <Route path="/payroll" element={<Payroll />} />
+            <Route path="/payroll/:id" element={<PayrollDetail />} />
+            <Route path="/my-payrolls" element={<MyPayrolls />} />
+            <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
           </Route>
         </Routes>
       </AuthProvider>

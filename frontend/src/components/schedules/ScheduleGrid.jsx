@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { scheduleService } from '@/services/scheduleService'
-import { employeeService } from '@/services/employeeService'
+import employeeService from '@/services/employeeService'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Plus, Trash2, Clock, DollarSign, Send } from 'lucide-react'

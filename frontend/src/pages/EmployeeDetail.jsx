@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { employeeService } from '../services/employeeService'
+import employeeService from '../services/employeeService'
 import { ArrowLeft, Edit, UserX, Mail, Phone, MapPin, Calendar, Briefcase, AlertCircle, User, Clock } from 'lucide-react'
 
 const EmployeeDetail = () => {

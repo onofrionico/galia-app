@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { employeeService } from '../services/employeeService'
+import employeeService from '../services/employeeService'
 import { jobPositionService } from '../services/jobPositionService'
 import { validateDNI, validateCUIL, validateAge, validateEmail, validatePhone, formatCUIL } from '../utils/validators'
 import { ArrowLeft, Save, Upload, AlertCircle } from 'lucide-react'

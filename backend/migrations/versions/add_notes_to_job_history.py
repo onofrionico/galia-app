@@ -17,22 +17,28 @@ depends_on = None
 
 
 def upgrade():
-    # Add notes column
-    op.add_column('employee_job_history', 
-        sa.Column('notes', sa.Text(), nullable=True)
-    )
+    # Check and add notes column if it doesn't exist
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('employee_job_history')]
     
-    # Add created_by_id column
-    op.add_column('employee_job_history',
-        sa.Column('created_by_id', sa.Integer(), nullable=True)
-    )
+    if 'notes' not in columns:
+        op.add_column('employee_job_history', 
+            sa.Column('notes', sa.Text(), nullable=True)
+        )
     
-    # Add foreign key constraint for created_by_id
-    op.create_foreign_key(
-        'fk_employee_job_history_created_by',
-        'employee_job_history', 'users',
-        ['created_by_id'], ['id']
-    )
+    # Add created_by_id column if it doesn't exist
+    if 'created_by_id' not in columns:
+        op.add_column('employee_job_history',
+            sa.Column('created_by_id', sa.Integer(), nullable=True)
+        )
+        
+        # Add foreign key constraint for created_by_id
+        op.create_foreign_key(
+            'fk_employee_job_history_created_by',
+            'employee_job_history', 'users',
+            ['created_by_id'], ['id']
+        )
 
 
 def downgrade():

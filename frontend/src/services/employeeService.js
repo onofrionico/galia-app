@@ -1,6 +1,6 @@
 import api from './api'
 
-export const employeeService = {
+const employeeService = {
   async getEmployees(params = {}) {
     const response = await api.get('/employees', { params })
     return response.data
@@ -41,3 +41,5 @@ export const employeeService = {
     return response.data
   },
 }
+
+export default employeeService

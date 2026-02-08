@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { employeeService } from '../services/employeeService'
+import employeeService from '../services/employeeService'
 import { jobPositionService } from '../services/jobPositionService'
 import { Search, UserPlus, Filter, X, Mail, Phone, Briefcase, Calendar } from 'lucide-react'
 
