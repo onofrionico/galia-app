@@ -1,7 +1,7 @@
 """Add notes and created_by_id to employee_job_history
 
 Revision ID: add_notes_job_history
-Revises: add_employee_mgmt
+Revises: fix_employee_table
 Create Date: 2026-02-08 11:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_notes_job_history'
-down_revision = 'add_employee_mgmt'
+down_revision = 'fix_employee_table'
 branch_labels = None
 depends_on = None
 
