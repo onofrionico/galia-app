@@ -1,15 +1,15 @@
 from functools import wraps
 from flask import jsonify
-from flask_login import current_user
 
 def admin_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
+    def decorated_function(current_user, *args, **kwargs):
+        # current_user viene del decorador @token_required
+        if not current_user:
             return jsonify({'error': 'Autenticación requerida'}), 401
         
-        if not current_user.is_admin():
+        if current_user.role != 'admin':
             return jsonify({'error': 'Permisos de administrador requeridos'}), 403
         
-        return f(*args, **kwargs)
+        return f(current_user, *args, **kwargs)
     return decorated_function
