@@ -19,6 +19,7 @@ import Payroll from './pages/Payroll'
 import PayrollDetail from './pages/PayrollDetail'
 import MyPayrolls from './pages/MyPayrolls'
 import MyPayrollDetail from './pages/MyPayrollDetail'
+import ImportTimeTracking from './pages/ImportTimeTracking'
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="/schedules" element={<Schedules />} />
             <Route path="/my-schedule" element={<MySchedule />} />
             <Route path="/time-tracking" element={<TimeTracking />} />
+            <Route path="/import-time-tracking" element={<ImportTimeTracking />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />
