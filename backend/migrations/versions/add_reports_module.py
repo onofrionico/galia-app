@@ -1,7 +1,7 @@
 """Add reports module tables (report_goals, dashboard_snapshots) and update expense_categories
 
 Revision ID: add_reports_module
-Revises: 
+Revises: update_expenses_model
 Create Date: 2026-02-14
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_reports_module'
-down_revision = None
+down_revision = 'update_expenses_model'
 branch_labels = None
 depends_on = None
 
