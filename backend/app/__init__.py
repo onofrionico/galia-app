@@ -11,10 +11,15 @@ def create_app(config_name='development'):
     print(f"[CORS CONFIG] Allowed origins: {app.config['CORS_ORIGINS']}")
     
     CORS(app, 
-         resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}},
-         supports_credentials=True,
-         allow_headers=["Content-Type", "Authorization"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         resources={r"/api/*": {
+             "origins": app.config['CORS_ORIGINS'],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }},
+         supports_credentials=True)
     
     # Middleware para loguear todas las requests
     @app.before_request
@@ -23,6 +28,11 @@ def create_app(config_name='development'):
         print(f"[REQUEST] Origin: {request.headers.get('Origin', 'No Origin header')}")
         print(f"[REQUEST] Authorization: {request.headers.get('Authorization', 'No Auth header')[:50] if request.headers.get('Authorization') else 'No Auth header'}")
         print(f"[REQUEST] Content-Type: {request.headers.get('Content-Type', 'No Content-Type')}")
+        
+        # Manejar preflight OPTIONS requests explícitamente
+        if request.method == 'OPTIONS':
+            response = app.make_default_options_response()
+            return response
     
     @app.after_request
     def log_response_info(response):
