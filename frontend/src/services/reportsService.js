@@ -1,9 +1,18 @@
 import api from './api'
 
 export const reportsService = {
-  getDashboard: async (period = 'mensual', date = null) => {
-    const params = { period }
-    if (date) params.date = date
+  getDashboard: async (period = 'mensual', date = null, startDate = null, endDate = null) => {
+    const params = {}
+    
+    // Prioridad: rango de fechas > período
+    if (startDate && endDate) {
+      params.start_date = startDate
+      params.end_date = endDate
+    } else {
+      params.period = period || 'mensual'
+      if (date) params.date = date
+    }
+    
     const response = await api.get('/reports/dashboard', { params })
     return response.data
   },

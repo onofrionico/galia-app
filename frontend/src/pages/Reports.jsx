@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, 
   Users, Target, Settings, Calendar, RefreshCw, ChevronDown,
-  AlertTriangle, CheckCircle, Clock, BarChart3, PieChart
+  AlertTriangle, CheckCircle, Clock, BarChart3, PieChart, Scale
 } from 'lucide-react'
 import { reportsService } from '@/services/reportsService'
 
@@ -10,26 +10,42 @@ const Reports = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [dashboard, setDashboard] = useState(null)
+  const [filterMode, setFilterMode] = useState('period') // 'period' o 'range'
   const [period, setPeriod] = useState('mensual')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [showGoalsModal, setShowGoalsModal] = useState(false)
   const [goals, setGoals] = useState([])
   const [activeTab, setActiveTab] = useState('dashboard')
 
   useEffect(() => {
-    loadDashboard()
-  }, [period])
+    if (filterMode === 'period') {
+      loadDashboard()
+    }
+  }, [period, filterMode])
 
   const loadDashboard = async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await reportsService.getDashboard(period)
+      let data
+      if (filterMode === 'range' && startDate && endDate) {
+        data = await reportsService.getDashboard(null, null, startDate, endDate)
+      } else {
+        data = await reportsService.getDashboard(period)
+      }
       setDashboard(data)
     } catch (err) {
       console.error('Error loading dashboard:', err)
       setError('Error al cargar el dashboard')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApplyDateRange = () => {
+    if (startDate && endDate) {
+      loadDashboard()
     }
   }
 
@@ -167,51 +183,115 @@ const Reports = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard de Reportes</h1>
-          {dashboard?.period && (
-            <p className="text-sm text-gray-500 mt-1">
-              {new Date(dashboard.period.start_date).toLocaleDateString('es-AR')} - {new Date(dashboard.period.end_date).toLocaleDateString('es-AR')}
-            </p>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Selector de período */}
-          <div className="relative">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="diario">Hoy</option>
-              <option value="semanal">Esta Semana</option>
-              <option value="mensual">Este Mes</option>
-              <option value="trimestral">Este Trimestre</option>
-              <option value="anual">Este Año</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard de Reportes</h1>
+            {dashboard?.period && (
+              <p className="text-sm text-gray-500 mt-1">
+                {new Date(dashboard.period.start_date).toLocaleDateString('es-AR')} - {new Date(dashboard.period.end_date).toLocaleDateString('es-AR')}
+                {dashboard.period.type === 'custom' && <span className="ml-2 text-blue-600">(Rango personalizado)</span>}
+              </p>
+            )}
           </div>
           
-          <button
-            onClick={loadDashboard}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Actualizar"
-          >
-            <RefreshCw size={20} />
-          </button>
-          
-          <button
-            onClick={() => {
-              loadGoals()
-              setShowGoalsModal(true)
-            }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            <Target size={16} />
-            <span className="hidden sm:inline">Metas</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadDashboard}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Actualizar"
+            >
+              <RefreshCw size={20} />
+            </button>
+            
+            <button
+              onClick={() => {
+                loadGoals()
+                setShowGoalsModal(true)
+              }}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <Target size={16} />
+              <span className="hidden sm:inline">Metas</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Toggle modo de filtro */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setFilterMode('period')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  filterMode === 'period' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Período
+              </button>
+              <button
+                onClick={() => setFilterMode('range')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  filterMode === 'range' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Rango de Fechas
+              </button>
+            </div>
+
+            {filterMode === 'period' ? (
+              /* Selector de período */
+              <div className="relative">
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="diario">Hoy</option>
+                  <option value="semanal">Esta Semana</option>
+                  <option value="mensual">Este Mes</option>
+                  <option value="trimestral">Este Trimestre</option>
+                  <option value="anual">Este Año</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
+            ) : (
+              /* Selector de rango de fechas */
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Desde:</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Hasta:</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyDateRange}
+                  disabled={!startDate || !endDate}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Calendar size={16} />
+                  Aplicar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -486,6 +566,128 @@ const Reports = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Punto de Equilibrio */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Scale size={20} className="text-indigo-600" />
+              Punto de Equilibrio
+            </h3>
+            
+            {dashboard.punto_equilibrio && (
+              <div className="space-y-4">
+                {/* Estado visual */}
+                <div className={`p-4 rounded-lg ${
+                  dashboard.punto_equilibrio.estado === 'por_encima' 
+                    ? 'bg-green-50 border border-green-200' 
+                    : dashboard.punto_equilibrio.estado === 'por_debajo'
+                    ? 'bg-red-50 border border-red-200'
+                    : dashboard.punto_equilibrio.estado === 'en_equilibrio'
+                    ? 'bg-amber-50 border border-amber-200'
+                    : 'bg-gray-50 border border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      {dashboard.punto_equilibrio.estado === 'por_encima' && '✓ Por encima del equilibrio'}
+                      {dashboard.punto_equilibrio.estado === 'por_debajo' && '⚠ Por debajo del equilibrio'}
+                      {dashboard.punto_equilibrio.estado === 'en_equilibrio' && '≈ En punto de equilibrio'}
+                      {dashboard.punto_equilibrio.estado === 'sin_datos' && 'Sin datos suficientes'}
+                      {dashboard.punto_equilibrio.estado === 'inalcanzable' && '✗ Margen insuficiente'}
+                    </span>
+                    <span className={`text-lg font-bold ${
+                      dashboard.punto_equilibrio.estado === 'por_encima' 
+                        ? 'text-green-600' 
+                        : dashboard.punto_equilibrio.estado === 'por_debajo'
+                        ? 'text-red-600'
+                        : 'text-amber-600'
+                    }`}>
+                      {dashboard.punto_equilibrio.cobertura_actual_porcentaje}%
+                    </span>
+                  </div>
+                  
+                  {/* Barra de progreso */}
+                  <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${
+                        dashboard.punto_equilibrio.estado === 'por_encima' 
+                          ? 'bg-green-500' 
+                          : dashboard.punto_equilibrio.estado === 'por_debajo'
+                          ? 'bg-red-500'
+                          : 'bg-amber-500'
+                      }`}
+                      style={{ width: `${Math.min(dashboard.punto_equilibrio.cobertura_actual_porcentaje, 150)}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span className="font-medium">100% = Equilibrio</span>
+                    <span>150%</span>
+                  </div>
+                </div>
+                
+                {/* Métricas detalladas */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Punto de Equilibrio</p>
+                    <p className="text-lg font-bold text-indigo-600">
+                      {dashboard.punto_equilibrio.punto_equilibrio_pesos 
+                        ? formatCurrency(dashboard.punto_equilibrio.punto_equilibrio_pesos)
+                        : 'N/A'}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Costos Fijos</p>
+                    <p className="text-lg font-bold text-gray-700">
+                      {formatCurrency(dashboard.punto_equilibrio.costos_fijos || 0)}
+                    </p>
+                    <p className="text-xs text-gray-400">Indirectos + Sueldos</p>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Costos Variables</p>
+                    <p className="text-lg font-bold text-gray-700">
+                      {formatCurrency(dashboard.punto_equilibrio.costos_variables || 0)}
+                    </p>
+                    <p className="text-xs text-gray-400">Gastos Directos</p>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Margen Contribución</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {dashboard.punto_equilibrio.margen_contribucion_porcentaje || 0}%
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Diferencia */}
+                {dashboard.punto_equilibrio.estado !== 'sin_datos' && dashboard.punto_equilibrio.estado !== 'inalcanzable' && (
+                  <div className={`p-4 rounded-lg text-center ${
+                    dashboard.punto_equilibrio.diferencia >= 0 
+                      ? 'bg-green-50' 
+                      : 'bg-red-50'
+                  }`}>
+                    {dashboard.punto_equilibrio.diferencia >= 0 ? (
+                      <>
+                        <p className="text-sm text-gray-600">Excedente sobre punto de equilibrio</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          +{formatCurrency(dashboard.punto_equilibrio.excedente)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600">Ventas faltantes para alcanzar equilibrio</p>
+                        <p className="text-2xl font-bold text-red-600">
+                          {formatCurrency(dashboard.punto_equilibrio.ventas_faltantes)}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

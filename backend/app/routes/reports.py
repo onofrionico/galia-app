@@ -62,12 +62,31 @@ def get_period_dates(period_type, reference_date=None):
 @token_required
 @admin_required
 def get_dashboard(current_user):
-    """Obtener métricas principales del dashboard"""
+    """Obtener métricas principales del dashboard
+    
+    Query params:
+    - period: diario, semanal, mensual, trimestral, anual (usado si no se especifican fechas)
+    - date: fecha de referencia para el período (YYYY-MM-DD)
+    - start_date: fecha inicio del rango (YYYY-MM-DD) - tiene prioridad sobre period
+    - end_date: fecha fin del rango (YYYY-MM-DD) - tiene prioridad sobre period
+    """
     period_type = request.args.get('period', 'mensual')
     date_str = request.args.get('date')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
     
-    reference_date = parse_date(date_str) if date_str else date.today()
-    start_date, end_date = get_period_dates(period_type, reference_date)
+    # Prioridad: rango de fechas explícito > período relativo
+    if start_date_str and end_date_str:
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+        if not start_date or not end_date:
+            return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+        period_type = 'custom'
+    else:
+        reference_date = parse_date(date_str) if date_str else date.today()
+        start_date, end_date = get_period_dates(period_type, reference_date)
     
     # Calcular período anterior para comparación
     period_length = (end_date - start_date).days + 1
@@ -132,6 +151,12 @@ def get_dashboard(current_user):
             'margen_bruto': total_ingresos - expenses_data['directos'],
             'margen_bruto_porcentaje': round((total_ingresos - expenses_data['directos']) / total_ingresos * 100, 1) if total_ingresos > 0 else 0
         },
+        'punto_equilibrio': calculate_break_even_point(
+            total_ingresos, 
+            expenses_data['directos'],
+            expenses_data['indirectos'],
+            payroll_data['total']
+        ),
         'goals': goals
     }), 200
 
@@ -226,6 +251,83 @@ def get_payroll_metrics(start_date, end_date):
     return {
         'total': total,
         'horas': horas
+    }
+
+
+def calculate_break_even_point(ventas, costos_directos, costos_indirectos, sueldos):
+    """
+    Calcula el punto de equilibrio.
+    
+    Punto de Equilibrio = Costos Fijos / Margen de Contribución
+    
+    Donde:
+    - Costos Fijos = Gastos Indirectos + Sueldos
+    - Costos Variables = Gastos Directos (mercadería, insumos)
+    - Margen de Contribución = 1 - (Costos Variables / Ventas)
+    
+    Returns:
+        dict con punto de equilibrio en pesos y porcentaje de cobertura actual
+    """
+    costos_fijos = costos_indirectos + sueldos
+    costos_variables = costos_directos
+    
+    # Si no hay ventas, no podemos calcular el margen de contribución
+    if ventas <= 0:
+        return {
+            'punto_equilibrio_pesos': 0,
+            'costos_fijos': costos_fijos,
+            'costos_variables': costos_variables,
+            'margen_contribucion_porcentaje': 0,
+            'cobertura_actual_porcentaje': 0,
+            'estado': 'sin_datos',
+            'diferencia': -costos_fijos
+        }
+    
+    # Ratio de costos variables sobre ventas
+    ratio_costos_variables = costos_variables / ventas
+    
+    # Margen de contribución = 1 - ratio_costos_variables
+    margen_contribucion = 1 - ratio_costos_variables
+    
+    # Si el margen de contribución es 0 o negativo, no hay punto de equilibrio alcanzable
+    if margen_contribucion <= 0:
+        return {
+            'punto_equilibrio_pesos': None,
+            'costos_fijos': costos_fijos,
+            'costos_variables': costos_variables,
+            'margen_contribucion_porcentaje': round(margen_contribucion * 100, 1),
+            'cobertura_actual_porcentaje': 0,
+            'estado': 'inalcanzable',
+            'diferencia': ventas - costos_fijos - costos_variables
+        }
+    
+    # Punto de equilibrio en pesos
+    punto_equilibrio = costos_fijos / margen_contribucion
+    
+    # Porcentaje de cobertura actual (ventas / punto de equilibrio)
+    cobertura = (ventas / punto_equilibrio * 100) if punto_equilibrio > 0 else 0
+    
+    # Diferencia respecto al punto de equilibrio
+    diferencia = ventas - punto_equilibrio
+    
+    # Estado: por_debajo, en_equilibrio, por_encima
+    if diferencia < -100:
+        estado = 'por_debajo'
+    elif diferencia > 100:
+        estado = 'por_encima'
+    else:
+        estado = 'en_equilibrio'
+    
+    return {
+        'punto_equilibrio_pesos': round(punto_equilibrio, 2),
+        'costos_fijos': round(costos_fijos, 2),
+        'costos_variables': round(costos_variables, 2),
+        'margen_contribucion_porcentaje': round(margen_contribucion * 100, 1),
+        'cobertura_actual_porcentaje': round(cobertura, 1),
+        'estado': estado,
+        'diferencia': round(diferencia, 2),
+        'ventas_faltantes': round(abs(diferencia), 2) if diferencia < 0 else 0,
+        'excedente': round(diferencia, 2) if diferencia > 0 else 0
     }
 
 

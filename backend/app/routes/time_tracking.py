@@ -2,8 +2,12 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.time_tracking import TimeTracking
 from app.models.work_block import WorkBlock
-from datetime import datetime, date
+from app.models.employee import Employee
+from app.models.shift import Shift
+from datetime import datetime, date, timedelta
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
+from calendar import monthrange
 import logging
 from app.utils.jwt_utils import token_required
 
@@ -262,3 +266,167 @@ def record_hours(current_user):
         db.session.rollback()
         logger.error(f"Error en record_hours: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/calendar', methods=['GET'])
+@token_required
+def get_calendar_data(current_user):
+    """
+    Obtiene datos de horas trabajadas para el calendario.
+    Parámetros:
+    - year: año (requerido)
+    - month: mes (requerido)
+    - employee_id: filtrar por empleado (opcional)
+    - shift_id: filtrar por turno programado (opcional)
+    """
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    employee_id = request.args.get('employee_id', type=int)
+    shift_schedule_id = request.args.get('shift_schedule_id', type=int)
+    
+    if not year or not month:
+        return jsonify({'error': 'Año y mes son requeridos'}), 400
+    
+    if month < 1 or month > 12:
+        return jsonify({'error': 'Mes inválido'}), 400
+    
+    start_date = date(year, month, 1)
+    last_day = monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
+    
+    query = db.session.query(TimeTracking).join(Employee)
+    
+    if employee_id:
+        query = query.filter(TimeTracking.employee_id == employee_id)
+    
+    if shift_schedule_id:
+        employee_ids_in_shift = db.session.query(Shift.employee_id).filter(
+            Shift.schedule_id == shift_schedule_id
+        ).distinct().subquery()
+        query = query.filter(TimeTracking.employee_id.in_(employee_ids_in_shift))
+    
+    query = query.filter(
+        TimeTracking.tracking_date >= start_date,
+        TimeTracking.tracking_date <= end_date
+    )
+    
+    records = query.all()
+    
+    calendar_data = {}
+    for day in range(1, last_day + 1):
+        day_date = date(year, month, day)
+        calendar_data[day_date.isoformat()] = {
+            'date': day_date.isoformat(),
+            'total_hours': 0,
+            'total_minutes': 0,
+            'employee_count': 0,
+            'employees': []
+        }
+    
+    for record in records:
+        day_key = record.tracking_date.isoformat()
+        if day_key in calendar_data:
+            record_data = record.to_dict()
+            calendar_data[day_key]['total_hours'] += record_data['total_hours']
+            calendar_data[day_key]['total_minutes'] += record_data['total_minutes']
+            calendar_data[day_key]['employee_count'] += 1
+            calendar_data[day_key]['employees'].append({
+                'employee_id': record.employee_id,
+                'employee_name': record.employee.full_name,
+                'hours': record_data['total_hours'],
+                'minutes': record_data['total_minutes']
+            })
+    
+    for day_key in calendar_data:
+        extra_hours = calendar_data[day_key]['total_minutes'] // 60
+        calendar_data[day_key]['total_hours'] += extra_hours
+        calendar_data[day_key]['total_minutes'] = calendar_data[day_key]['total_minutes'] % 60
+    
+    return jsonify({
+        'year': year,
+        'month': month,
+        'days': list(calendar_data.values())
+    }), 200
+
+
+@bp.route('/calendar/day-detail', methods=['GET'])
+@token_required
+def get_day_detail(current_user):
+    """
+    Obtiene el detalle de horas trabajadas para un día específico.
+    Muestra empleados y sus bloques de trabajo por hora.
+    """
+    date_str = request.args.get('date')
+    employee_id = request.args.get('employee_id', type=int)
+    shift_schedule_id = request.args.get('shift_schedule_id', type=int)
+    
+    if not date_str:
+        return jsonify({'error': 'Fecha requerida'}), 400
+    
+    try:
+        target_date = datetime.fromisoformat(date_str).date()
+    except ValueError:
+        return jsonify({'error': 'Formato de fecha inválido'}), 400
+    
+    query = db.session.query(TimeTracking).join(Employee)
+    
+    if employee_id:
+        query = query.filter(TimeTracking.employee_id == employee_id)
+    
+    if shift_schedule_id:
+        employee_ids_in_shift = db.session.query(Shift.employee_id).filter(
+            Shift.schedule_id == shift_schedule_id
+        ).distinct().subquery()
+        query = query.filter(TimeTracking.employee_id.in_(employee_ids_in_shift))
+    
+    query = query.filter(TimeTracking.tracking_date == target_date)
+    records = query.all()
+    
+    hours_breakdown = {hour: [] for hour in range(24)}
+    employees_summary = []
+    
+    for record in records:
+        employee_data = {
+            'employee_id': record.employee_id,
+            'employee_name': record.employee.full_name,
+            'work_blocks': [],
+            'total_hours': 0,
+            'total_minutes': 0
+        }
+        
+        for block in record.work_blocks:
+            start_hour = block.start_time.hour
+            end_hour = block.end_time.hour if block.end_time.minute > 0 else block.end_time.hour
+            
+            block_data = {
+                'start_time': block.start_time.strftime('%H:%M'),
+                'end_time': block.end_time.strftime('%H:%M')
+            }
+            employee_data['work_blocks'].append(block_data)
+            
+            for hour in range(start_hour, min(end_hour + 1, 24)):
+                if not any(e['employee_id'] == record.employee_id for e in hours_breakdown[hour]):
+                    hours_breakdown[hour].append({
+                        'employee_id': record.employee_id,
+                        'employee_name': record.employee.full_name,
+                        'start_time': block.start_time.strftime('%H:%M'),
+                        'end_time': block.end_time.strftime('%H:%M')
+                    })
+        
+        record_dict = record.to_dict()
+        employee_data['total_hours'] = record_dict['total_hours']
+        employee_data['total_minutes'] = record_dict['total_minutes']
+        employees_summary.append(employee_data)
+    
+    hours_with_work = {
+        hour: employees 
+        for hour, employees in hours_breakdown.items() 
+        if employees
+    }
+    
+    return jsonify({
+        'date': target_date.isoformat(),
+        'employees_summary': employees_summary,
+        'hours_breakdown': hours_with_work,
+        'total_employees': len(employees_summary)
+    }), 200

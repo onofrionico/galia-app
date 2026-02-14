@@ -1,18 +1,37 @@
 import { useState } from 'react'
-import { Calendar, BarChart3 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Calendar, BarChart3, Clock } from 'lucide-react'
 import ScheduleList from '@/components/schedules/ScheduleList'
 import ScheduleGrid from '@/components/schedules/ScheduleGrid'
 import CreateScheduleModal from '@/components/schedules/CreateScheduleModal'
 import CoverageCalendar from '@/components/schedules/CoverageCalendar'
+import WorkedHoursCalendar from '@/components/schedules/WorkedHoursCalendar'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
+import api from '@/services/api'
 
 const Schedules = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('schedules') // 'schedules' or 'coverage'
+  const [activeTab, setActiveTab] = useState('schedules') // 'schedules', 'coverage', or 'worked-hours'
   const [coverageDates, setCoverageDates] = useState({
     start: format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
     end: format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  })
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-list'],
+    queryFn: async () => {
+      const response = await api.get('/employees', { params: { limit: 1000 } })
+      return response.data.employees || []
+    }
+  })
+
+  const { data: schedules = [] } = useQuery({
+    queryKey: ['schedules-list'],
+    queryFn: async () => {
+      const response = await api.get('/schedules')
+      return response.data
+    }
   })
 
   if (selectedSchedule) {
@@ -49,9 +68,20 @@ const Schedules = () => {
           <BarChart3 className="h-4 md:h-5 w-4 md:w-5" />
           <span>Cobertura</span>
         </button>
+        <button
+          onClick={() => setActiveTab('worked-hours')}
+          className={`flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 md:py-3 border-b-2 transition-colors whitespace-nowrap text-sm md:text-base ${
+            activeTab === 'worked-hours'
+              ? 'border-primary text-primary font-semibold'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Clock className="h-4 md:h-5 w-4 md:w-5" />
+          <span>Horas Trabajadas</span>
+        </button>
       </div>
 
-      {activeTab === 'schedules' ? (
+      {activeTab === 'schedules' && (
         <>
           <ScheduleList
             onSelectSchedule={setSelectedSchedule}
@@ -63,7 +93,9 @@ const Schedules = () => {
             onClose={() => setShowCreateModal(false)}
           />
         </>
-      ) : (
+      )}
+
+      {activeTab === 'coverage' && (
         <div className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-2 gap-3 md:gap-4">
             <div>
@@ -95,6 +127,13 @@ const Schedules = () => {
             endDate={coverageDates.end}
           />
         </div>
+      )}
+
+      {activeTab === 'worked-hours' && (
+        <WorkedHoursCalendar
+          employees={employees}
+          schedules={schedules}
+        />
       )}
     </div>
   )
