@@ -7,7 +7,9 @@ class ExpenseCategory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.String(255))
+    expense_type = db.Column(db.String(20), nullable=False, default='indirecto')  # 'directo' o 'indirecto'
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     expenses = db.relationship('Expense', backref='category_rel', lazy='dynamic')
     
@@ -16,7 +18,9 @@ class ExpenseCategory(db.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'is_active': self.is_active
+            'expense_type': self.expense_type,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 class Expense(db.Model):
