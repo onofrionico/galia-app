@@ -30,7 +30,6 @@ class Employee(db.Model):
     job_position = db.relationship('JobPosition', back_populates='employees', foreign_keys=[current_job_position_id])
     job_history = db.relationship('EmployeeJobHistory', back_populates='employee', lazy='dynamic', cascade='all, delete-orphan')
     shifts = db.relationship('Shift', backref='employee', lazy='dynamic', cascade='all, delete-orphan')
-    sales = db.relationship('Sale', backref='employee', lazy='dynamic')
     payrolls = db.relationship('Payroll', backref='employee', lazy='dynamic', cascade='all, delete-orphan')
     created_by = db.relationship('User', foreign_keys=[created_by_id])
     updated_by = db.relationship('User', foreign_keys=[updated_by_id])

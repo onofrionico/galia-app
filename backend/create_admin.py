@@ -18,9 +18,19 @@ with app.app_context():
     
     employee = Employee(
         user_id=admin.id,
-        full_name='Administrador',
-        hourly_rate=0,
-        hire_date=date.today()
+        first_name='Admin',
+        last_name='Sistema',
+        dni='00000000',
+        cuil='20-00000000-0',
+        birth_date=date(1990, 1, 1),
+        phone='0000000000',
+        address='Sistema',
+        employment_relationship='dependencia',
+        emergency_contact_name='N/A',
+        emergency_contact_phone='0000000000',
+        emergency_contact_relationship='N/A',
+        hire_date=date.today(),
+        status='activo'
     )
     db.session.add(employee)
     db.session.commit()

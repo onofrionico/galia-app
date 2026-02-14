@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = 'enhance_payroll_001'
-down_revision = None
+down_revision = 'b020c4aff4de'
 branch_labels = None
 depends_on = None
 
