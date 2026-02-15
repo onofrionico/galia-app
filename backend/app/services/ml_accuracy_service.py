@@ -188,6 +188,9 @@ class MLAccuracyService:
         ).group_by(
             StaffingMetrics.day_of_week
         ).all()
+
+        if not query:
+            return {'success': False, 'error': 'No data available'}
         
         days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
         
@@ -220,9 +223,18 @@ class MLAccuracyService:
         historical = MLAccuracyService.get_accuracy_metrics(start_date=start_date, end_date=end_date)
         
         if not recent['success'] or not historical['success']:
+            recommendation = (
+                recent.get('error')
+                or historical.get('error')
+                or 'Insufficient data for comparison'
+            )
+
             return {
                 'should_retrain': False,
-                'reason': 'Insufficient data for comparison'
+                'recent_mape': recent.get('sales_count', {}).get('mape') if recent.get('success') else None,
+                'historical_mape': historical.get('sales_count', {}).get('mape') if historical.get('success') else None,
+                'degradation_percentage': 0,
+                'recommendation': recommendation
             }
         
         recent_mape = recent['sales_count']['mape']

@@ -167,16 +167,16 @@ const MLDashboard = () => {
                   : '✅ Modelo Estable'}
               </h3>
               <p className="text-sm text-gray-700 mb-3">
-                {stats.retrain_recommendation.recommendation}
+                {stats.retrain_recommendation.recommendation || stats.retrain_recommendation.reason || 'Sin información disponible'}
               </p>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-gray-600">MAPE Reciente</p>
-                  <p className="font-semibold">{stats.retrain_recommendation.recent_mape}%</p>
+                  <p className="font-semibold">{stats.retrain_recommendation.recent_mape != null ? `${stats.retrain_recommendation.recent_mape}%` : '-'}</p>
                 </div>
                 <div>
                   <p className="text-gray-600">MAPE Histórico</p>
-                  <p className="font-semibold">{stats.retrain_recommendation.historical_mape}%</p>
+                  <p className="font-semibold">{stats.retrain_recommendation.historical_mape != null ? `${stats.retrain_recommendation.historical_mape}%` : '-'}</p>
                 </div>
                 <div>
                   <p className="text-gray-600">Degradación</p>
@@ -185,8 +185,10 @@ const MLDashboard = () => {
                       ? 'text-red-600' 
                       : 'text-green-600'
                   }`}>
-                    {stats.retrain_recommendation.degradation_percentage > 0 ? '+' : ''}
-                    {stats.retrain_recommendation.degradation_percentage}%
+                    {stats.retrain_recommendation.degradation_percentage != null
+                      ? `${stats.retrain_recommendation.degradation_percentage > 0 ? '+' : ''}${stats.retrain_recommendation.degradation_percentage}%`
+                      : '-'
+                    }
                   </p>
                 </div>
               </div>
@@ -288,26 +290,32 @@ const MLDashboard = () => {
       )}
 
       {/* Accuracy by Day of Week */}
-      {byDay?.success && (
+      {byDay && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Precisión por Día de la Semana</h3>
             <Calendar className="h-5 w-5 text-purple-600" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-            {byDay.by_day.map((item) => (
-              <div
-                key={item.day_of_week}
-                className="text-center p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-              >
-                <p className="text-sm font-semibold text-gray-700 mb-2">{item.day_name}</p>
-                <p className={`text-2xl font-bold ${getAccuracyColor(item.avg_error_percentage)}`}>
-                  {item.avg_error_percentage}%
-                </p>
-                <p className="text-xs text-gray-500 mt-1">n={item.sample_size}</p>
-              </div>
-            ))}
-          </div>
+          {byDay.success && Array.isArray(byDay.by_day) && byDay.by_day.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+              {byDay.by_day.map((item) => (
+                <div
+                  key={item.day_of_week}
+                  className="text-center p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                >
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{item.day_name}</p>
+                  <p className={`text-2xl font-bold ${getAccuracyColor(item.avg_error_percentage)}`}>
+                    {item.avg_error_percentage}%
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">n={item.sample_size}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-sm text-gray-600">No hay datos de precisión disponibles todavía.</p>
+            </div>
+          )}
         </div>
       )}
 
