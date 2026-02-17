@@ -13,7 +13,9 @@ import {
   Briefcase,
   Brain,
   Wallet,
-  Upload
+  Upload,
+  Settings,
+  UserCircle
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -21,6 +23,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: false },
+    { to: '/profile', icon: UserCircle, label: 'Mi Perfil', adminOnly: false },
     { to: '/my-schedule', icon: Clock, label: 'Mi Horario', adminOnly: false, employeeOnly: true },
     { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios', adminOnly: false, employeeOnly: true },
     { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas', adminOnly: false, employeeOnly: true },
@@ -33,6 +36,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/employees', icon: Users, label: 'Empleados', adminOnly: true },
     { to: '/job-positions', icon: Briefcase, label: 'Puestos', adminOnly: true },
     { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', adminOnly: true },
+    { to: '/settings', icon: Settings, label: 'Ajustes', adminOnly: true },
   ]
 
   const filteredNavItems = navItems.filter(item => {
