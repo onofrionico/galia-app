@@ -10,15 +10,15 @@ class Employee(db.Model):
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
     dni = db.Column(db.String(8), unique=True, nullable=False, index=True)
-    cuil = db.Column(db.String(13), unique=True, nullable=False, index=True)
-    birth_date = db.Column(db.Date, nullable=False)
-    phone = db.Column(db.String(20), nullable=False)
-    address = db.Column(db.Text, nullable=False)
+    cuil = db.Column(db.String(13), unique=True, nullable=True, index=True)
+    birth_date = db.Column(db.Date, nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    address = db.Column(db.Text, nullable=True)
     profile_photo_url = db.Column(db.Text)
-    employment_relationship = db.Column(db.String(20), nullable=False)
-    emergency_contact_name = db.Column(db.String(100), nullable=False)
-    emergency_contact_phone = db.Column(db.String(20), nullable=False)
-    emergency_contact_relationship = db.Column(db.String(50), nullable=False)
+    employment_relationship = db.Column(db.String(20), nullable=True, default='dependencia')
+    emergency_contact_name = db.Column(db.String(100), nullable=True)
+    emergency_contact_phone = db.Column(db.String(20), nullable=True)
+    emergency_contact_relationship = db.Column(db.String(50), nullable=True)
     hire_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default='activo', index=True)
     current_job_position_id = db.Column(db.Integer, db.ForeignKey('job_positions.id'))
@@ -40,6 +40,8 @@ class Employee(db.Model):
     
     @property
     def age(self):
+        if not self.birth_date:
+            return None
         today = date.today()
         return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
     
@@ -49,13 +51,13 @@ class Employee(db.Model):
         if not self.dni or not self.dni.isdigit() or len(self.dni) not in [7, 8]:
             errors.append('DNI debe tener 7 u 8 dígitos numéricos')
         
-        if not self._validate_cuil():
+        if self.cuil and not self._validate_cuil():
             errors.append('CUIL inválido')
         
-        if self.age < 18:
+        if self.birth_date and self.age < 18:
             errors.append('El empleado debe tener al menos 18 años')
         
-        if self.employment_relationship not in ['dependencia', 'monotributo']:
+        if self.employment_relationship and self.employment_relationship not in ['dependencia', 'monotributo']:
             errors.append('Tipo de relación laboral inválido')
         
         if self.status not in ['activo', 'inactivo', 'suspendido', 'vacaciones', 'licencia']:
@@ -64,7 +66,9 @@ class Employee(db.Model):
         return errors
     
     def _validate_cuil(self):
-        if not self.cuil or len(self.cuil) != 13:
+        if not self.cuil:
+            return True
+        if len(self.cuil) != 13:
             return False
         
         cuil_clean = self.cuil.replace('-', '')

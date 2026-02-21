@@ -16,7 +16,7 @@ export const validateDNI = (dni) => {
 }
 
 export const validateCUIL = (cuil) => {
-  if (!cuil) return { valid: false, error: 'CUIL es requerido' }
+  if (!cuil) return { valid: true, error: null }
   
   const cuilClean = cuil.replace(/\D/g, '')
   
@@ -58,7 +58,7 @@ export const formatCUIL = (value) => {
 }
 
 export const validateAge = (birthDate) => {
-  if (!birthDate) return { valid: false, error: 'Fecha de nacimiento es requerida' }
+  if (!birthDate) return { valid: true, error: null }
   
   const today = new Date()
   const birth = new Date(birthDate)
@@ -90,7 +90,7 @@ export const validateEmail = (email) => {
 }
 
 export const validatePhone = (phone) => {
-  if (!phone) return { valid: false, error: 'Teléfono es requerido' }
+  if (!phone) return { valid: true, error: null }
   
   const phoneClean = phone.replace(/\D/g, '')
   

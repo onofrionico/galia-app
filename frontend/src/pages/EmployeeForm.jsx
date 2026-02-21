@@ -103,22 +103,24 @@ const EmployeeForm = () => {
     const dniValidation = validateDNI(formData.dni)
     if (!dniValidation.valid) errors.dni = dniValidation.error
 
-    const cuilValidation = validateCUIL(formData.cuil)
-    if (!cuilValidation.valid) errors.cuil = cuilValidation.error
+    if (formData.cuil && formData.cuil.trim()) {
+      const cuilValidation = validateCUIL(formData.cuil)
+      if (!cuilValidation.valid) errors.cuil = cuilValidation.error
+    }
 
-    const ageValidation = validateAge(formData.birth_date)
-    if (!ageValidation.valid) errors.birth_date = ageValidation.error
+    if (formData.birth_date) {
+      const ageValidation = validateAge(formData.birth_date)
+      if (!ageValidation.valid) errors.birth_date = ageValidation.error
+    }
 
     const emailValidation = validateEmail(formData.email)
     if (!emailValidation.valid) errors.email = emailValidation.error
 
-    const phoneValidation = validatePhone(formData.phone)
-    if (!phoneValidation.valid) errors.phone = phoneValidation.error
+    if (formData.phone && formData.phone.trim()) {
+      const phoneValidation = validatePhone(formData.phone)
+      if (!phoneValidation.valid) errors.phone = phoneValidation.error
+    }
 
-    if (!formData.address.trim()) errors.address = 'Dirección es requerida'
-    if (!formData.emergency_contact_name.trim()) errors.emergency_contact_name = 'Nombre de contacto de emergencia es requerido'
-    if (!formData.emergency_contact_phone.trim()) errors.emergency_contact_phone = 'Teléfono de emergencia es requerido'
-    if (!formData.emergency_contact_relationship.trim()) errors.emergency_contact_relationship = 'Relación es requerida'
     if (!formData.hire_date) errors.hire_date = 'Fecha de ingreso es requerida'
     if (!formData.job_position_id) errors.job_position_id = 'Puesto es requerido'
     
@@ -251,7 +253,7 @@ const EmployeeForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CUIL <span className="text-red-500">*</span>
+                  CUIL
                 </label>
                 <input
                   type="text"
@@ -272,7 +274,7 @@ const EmployeeForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de Nacimiento <span className="text-red-500">*</span>
+                  Fecha de Nacimiento
                 </label>
                 <input
                   type="date"
@@ -309,7 +311,7 @@ const EmployeeForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono <span className="text-red-500">*</span>
+                  Teléfono
                 </label>
                 <input
                   type="tel"
@@ -328,7 +330,7 @@ const EmployeeForm = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección <span className="text-red-500">*</span>
+                  Dirección
                 </label>
                 <input
                   type="text"
@@ -377,7 +379,7 @@ const EmployeeForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Relación Laboral <span className="text-red-500">*</span>
+                  Tipo de Relación Laboral
                 </label>
                 <select
                   name="employment_relationship"
@@ -465,7 +467,7 @@ const EmployeeForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre Completo <span className="text-red-500">*</span>
+                  Nombre Completo
                 </label>
                 <input
                   type="text"
@@ -483,7 +485,7 @@ const EmployeeForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono <span className="text-red-500">*</span>
+                  Teléfono
                 </label>
                 <input
                   type="tel"
@@ -501,7 +503,7 @@ const EmployeeForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Relación <span className="text-red-500">*</span>
+                  Relación
                 </label>
                 <input
                   type="text"
