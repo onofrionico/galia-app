@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'make_employee_fields_optional'
-down_revision = None  # Will be set by alembic
+down_revision = 'merge_expense_branches'
 
 def upgrade():
     # Make fields nullable except for required ones
