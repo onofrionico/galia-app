@@ -16,6 +16,12 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://localhost:5175').split(',')
+    
+    FUDO_API_BASE_URL = os.environ.get('FUDO_API_BASE_URL', 'https://integrations.fu.do/fudo/v1')
+    FUDO_CLIENT_ID = os.environ.get('FUDO_CLIENT_ID')
+    FUDO_CLIENT_SECRET = os.environ.get('FUDO_CLIENT_SECRET')
+    FUDO_WEBHOOK_SECRET = os.environ.get('FUDO_WEBHOOK_SECRET')
+    FUDO_SYNC_ENABLED = os.environ.get('FUDO_SYNC_ENABLED', 'False').lower() == 'true'
 
 class DevelopmentConfig(Config):
     DEBUG = True

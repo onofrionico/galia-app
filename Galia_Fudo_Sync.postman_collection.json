@@ -1,0 +1,302 @@
+{
+	"info": {
+		"_postman_id": "fudo-sync-collection-001",
+		"name": "Galia - Fudo Sync API",
+		"description": "Collection for Fudo synchronization endpoints in Galia application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Sync Operations",
+			"item": [
+				{
+					"name": "Sync All",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"days_back\": 7\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fudo/sync/all",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"sync",
+								"all"
+							]
+						},
+						"description": "Synchronize all data from Fudo (sales, expenses, and payments). Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Sales",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"days_back\": 7\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fudo/sync/sales",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"sync",
+								"sales"
+							]
+						},
+						"description": "Synchronize only sales data from Fudo. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Expenses",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"days_back\": 7\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fudo/sync/expenses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"sync",
+								"expenses"
+							]
+						},
+						"description": "Synchronize only expenses data from Fudo. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Payments",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"days_back\": 7\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fudo/sync/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"sync",
+								"payments"
+							]
+						},
+						"description": "Synchronize only payments data from Fudo. Requires authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Logs & Monitoring",
+			"item": [
+				{
+					"name": "Get Sync Logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/fudo/sync/logs?limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"sync",
+								"logs"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Number of logs to retrieve (default: 50)"
+								}
+							]
+						},
+						"description": "Retrieve synchronization logs. Requires authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Configuration & Testing",
+			"item": [
+				{
+					"name": "Test Connection",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/fudo/test/connection",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"test",
+								"connection"
+							]
+						},
+						"description": "Test connection to Fudo API. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Config Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/fudo/config/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"config",
+								"status"
+							]
+						},
+						"description": "Get Fudo configuration status. Requires authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Order Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Fudo-Signature",
+								"value": "{{webhook_signature}}",
+								"description": "HMAC SHA256 signature of the request body"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": \"ORDER-CONFIRMED\",\n    \"order\": {\n        \"id\": \"123456\",\n        \"status\": \"confirmed\",\n        \"total\": 1500.00,\n        \"items\": [\n            {\n                \"name\": \"Product 1\",\n                \"quantity\": 2,\n                \"price\": 750.00\n            }\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fudo/webhook/order",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fudo",
+								"webhook",
+								"order"
+							]
+						},
+						"description": "Webhook endpoint for Fudo order events. Supports: ORDER-CONFIRMED, ORDER-CLOSED, ORDER-REJECTED, ORDER-READY-TO-DELIVER, ORDER-DELIVERY-SENT. Does not require authentication but requires valid signature."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "webhook_signature",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
