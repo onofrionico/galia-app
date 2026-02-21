@@ -65,6 +65,7 @@ def create_app(config_name='development'):
     app.register_blueprint(csv_import.csv_import_bp)
     app.register_blueprint(fudo.fudo_bp)
     app.register_blueprint(holidays.holidays_bp)
+    app.register_blueprint(fudo.fudo_bp)
     
     @app.route('/health')
     def health():
