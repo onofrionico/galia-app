@@ -88,10 +88,7 @@ def create_employee(current_user):
         print(f"[CREATE EMPLOYEE] Datos recibidos: {list(data.keys())}")
         
         required_fields = [
-            'first_name', 'last_name', 'dni', 'cuil', 'birth_date', 
-            'phone', 'address', 'email', 'employment_relationship',
-            'emergency_contact_name', 'emergency_contact_phone', 
-            'emergency_contact_relationship', 'hire_date', 'job_position_id', 'password'
+            'first_name', 'last_name', 'dni', 'email', 'hire_date', 'job_position_id', 'password'
         ]
         
         for field in required_fields:
@@ -104,18 +101,19 @@ def create_employee(current_user):
         if Employee.query.filter_by(dni=data['dni']).first():
             return jsonify({'error': 'El DNI ya está registrado'}), 400
         
-        if Employee.query.filter_by(cuil=data['cuil']).first():
+        if data.get('cuil') and Employee.query.filter_by(cuil=data['cuil']).first():
             return jsonify({'error': 'El CUIL ya está registrado'}), 400
         
         try:
-            birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
             hire_date = datetime.strptime(data['hire_date'], '%Y-%m-%d').date()
+            birth_date = None
+            if data.get('birth_date'):
+                birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+                age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
+                if age < 18:
+                    return jsonify({'error': 'El empleado debe tener al menos 18 años'}), 400
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
-        
-        age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
-        if age < 18:
-            return jsonify({'error': 'El empleado debe tener al menos 18 años'}), 400
         
         job_position = JobPosition.query.get(data['job_position_id'])
         if not job_position:
@@ -135,15 +133,15 @@ def create_employee(current_user):
             first_name=data['first_name'],
             last_name=data['last_name'],
             dni=data['dni'],
-            cuil=data['cuil'],
+            cuil=data.get('cuil'),
             birth_date=birth_date,
-            phone=data['phone'],
-            address=data['address'],
+            phone=data.get('phone'),
+            address=data.get('address'),
             profile_photo_url=data.get('profile_photo_url'),
-            employment_relationship=data['employment_relationship'],
-            emergency_contact_name=data['emergency_contact_name'],
-            emergency_contact_phone=data['emergency_contact_phone'],
-            emergency_contact_relationship=data['emergency_contact_relationship'],
+            employment_relationship=data.get('employment_relationship', 'dependencia'),
+            emergency_contact_name=data.get('emergency_contact_name'),
+            emergency_contact_phone=data.get('emergency_contact_phone'),
+            emergency_contact_relationship=data.get('emergency_contact_relationship'),
             hire_date=hire_date,
             status='activo',
             current_job_position_id=data['job_position_id'],
