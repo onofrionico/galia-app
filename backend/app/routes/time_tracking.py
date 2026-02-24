@@ -10,6 +10,7 @@ from sqlalchemy import func
 from calendar import monthrange
 import logging
 from app.utils.jwt_utils import token_required
+from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
@@ -320,8 +321,11 @@ def get_calendar_data(current_user):
             'total_hours': 0,
             'total_minutes': 0,
             'employee_count': 0,
-            'employees': []
+            'employees': [],
+            'daily_cost': 0.0
         }
+    
+    total_cost = 0.0
     
     for record in records:
         day_key = record.tracking_date.isoformat()
@@ -336,6 +340,21 @@ def get_calendar_data(current_user):
                 'hours': record_data['total_hours'],
                 'minutes': record_data['total_minutes']
             })
+            
+            if record.employee.job_position and record.employee.job_position.hourly_rate:
+                employee_total_hours = calculate_total_hours_from_dict(record_data['total_hours'], record_data['total_minutes'])
+                hourly_rate = record.employee.job_position.hourly_rate
+                employee_cost = calculate_employee_cost(
+                    employee_total_hours, 
+                    hourly_rate,
+                    work_date=record.tracking_date,
+                    job_position=record.employee.job_position
+                )
+                calendar_data[day_key]['daily_cost'] += employee_cost
+                total_cost += employee_cost
+                logger.info(f"Added cost for {record.employee.full_name} on {day_key}: ${employee_cost:.2f} (total now: ${total_cost:.2f})")
+            else:
+                logger.warning(f"Employee {record.employee.full_name} (ID: {record.employee_id}) missing job_position or hourly_rate")
     
     for day_key in calendar_data:
         extra_hours = calendar_data[day_key]['total_minutes'] // 60
@@ -345,7 +364,8 @@ def get_calendar_data(current_user):
     return jsonify({
         'year': year,
         'month': month,
-        'days': list(calendar_data.values())
+        'days': list(calendar_data.values()),
+        'total_cost': round(total_cost, 2)
     }), 200
 
 
