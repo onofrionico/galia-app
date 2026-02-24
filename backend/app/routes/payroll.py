@@ -8,6 +8,11 @@ from app.models.work_block import WorkBlock
 from app.models.shift import Shift
 from app.models.user import User
 from app.utils.jwt_utils import token_required
+from app.utils.payroll_utils import (
+    calculate_hours_from_time_tracking,
+    calculate_scheduled_hours,
+    calculate_employee_cost
+)
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract
 from decimal import Decimal
@@ -31,79 +36,6 @@ def admin_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
-def calculate_hours_from_time_tracking(employee_id, month, year):
-    start_date = datetime(year, month, 1).date()
-    if month == 12:
-        end_date = datetime(year + 1, 1, 1).date()
-    else:
-        end_date = datetime(year, month + 1, 1).date()
-    
-    time_records = TimeTracking.query.filter(
-        TimeTracking.employee_id == employee_id,
-        TimeTracking.tracking_date >= start_date,
-        TimeTracking.tracking_date < end_date
-    ).all()
-    
-    total_hours = Decimal('0.00')
-    daily_records = []
-    
-    for record in time_records:
-        day_hours = Decimal('0.00')
-        blocks = []
-        
-        for block in record.work_blocks:
-            start = datetime.combine(datetime.today(), block.start_time)
-            end = datetime.combine(datetime.today(), block.end_time)
-            
-            if end < start:
-                end += timedelta(days=1)
-            
-            duration = end - start
-            block_hours = Decimal(str(duration.total_seconds() / 3600))
-            day_hours += block_hours
-            
-            blocks.append({
-                'id': block.id,
-                'start_time': block.start_time.strftime('%H:%M'),
-                'end_time': block.end_time.strftime('%H:%M'),
-                'hours': float(block_hours)
-            })
-        
-        total_hours += day_hours
-        daily_records.append({
-            'date': record.tracking_date.isoformat(),
-            'hours': float(day_hours),
-            'blocks': blocks
-        })
-    
-    return float(total_hours), daily_records
-
-def calculate_scheduled_hours(employee_id, month, year):
-    start_date = datetime(year, month, 1).date()
-    if month == 12:
-        end_date = datetime(year + 1, 1, 1).date()
-    else:
-        end_date = datetime(year, month + 1, 1).date()
-    
-    shifts = Shift.query.filter(
-        Shift.employee_id == employee_id,
-        Shift.shift_date >= start_date,
-        Shift.shift_date < end_date
-    ).all()
-    
-    total_hours = sum(float(shift.hours) for shift in shifts)
-    
-    scheduled_records = []
-    for shift in shifts:
-        scheduled_records.append({
-            'date': shift.shift_date.isoformat(),
-            'start_time': shift.start_time.strftime('%H:%M'),
-            'end_time': shift.end_time.strftime('%H:%M'),
-            'hours': float(shift.hours)
-        })
-    
-    return total_hours, scheduled_records
-
 @payroll_bp.route('/calculate/<int:employee_id>/<int:year>/<int:month>', methods=['GET'])
 @token_required
 @admin_required
@@ -117,7 +49,7 @@ def calculate_payroll(current_user, employee_id, year, month):
     scheduled_hours, scheduled_records = calculate_scheduled_hours(employee_id, month, year)
     
     hourly_rate = float(employee.job_position.hourly_rate)
-    gross_salary = worked_hours * hourly_rate
+    gross_salary = calculate_employee_cost(worked_hours, hourly_rate)
     hours_difference = worked_hours - scheduled_hours
     
     return jsonify({
@@ -166,7 +98,7 @@ def generate_payroll(current_user):
     scheduled_hours, _ = calculate_scheduled_hours(employee_id, month, year)
     
     hourly_rate = float(employee.job_position.hourly_rate)
-    gross_salary = worked_hours * hourly_rate
+    gross_salary = calculate_employee_cost(worked_hours, hourly_rate)
     
     payroll = Payroll(
         employee_id=employee_id,

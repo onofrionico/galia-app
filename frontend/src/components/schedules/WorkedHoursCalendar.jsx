@@ -14,7 +14,7 @@ import {
   parseISO
 } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Clock, Users, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Users, Calendar, DollarSign } from 'lucide-react'
 import api from '@/services/api'
 import DayDetailModal from './DayDetailModal'
 
@@ -38,7 +38,9 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
       
       const response = await api.get('/time-tracking/calendar', { params })
       return response.data
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: true
   })
 
   const monthStart = startOfMonth(currentDate)
@@ -120,7 +122,7 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
       </div>
 
       {/* Resumen del mes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="flex items-center space-x-2 text-gray-600 mb-2">
             <Clock className="h-5 w-5" />
@@ -141,6 +143,15 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
             <span className="text-sm font-medium">Días con Actividad</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{daysWithWork}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center space-x-2 text-gray-600 mb-2">
+            <DollarSign className="h-5 w-5" />
+            <span className="text-sm font-medium">Gasto Total del Mes</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">
+            ${(calendarData?.total_cost ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
         </div>
       </div>
 
@@ -208,14 +219,19 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
                     </span>
 
                     {hasWork && isCurrentMonth && (
-                      <div className="mt-1">
+                      <div className="mt-1 space-y-0.5">
                         <div className="text-xs font-semibold text-blue-700">
                           {formatHours(dayData.total_hours, dayData.total_minutes)}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center mt-0.5">
+                        <div className="text-xs text-gray-500 flex items-center">
                           <Users className="h-3 w-3 mr-1" />
                           {dayData.employee_count}
                         </div>
+                        {dayData.daily_cost > 0 && (
+                          <div className="text-xs font-medium text-green-700">
+                            ${dayData.daily_cost.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </button>
