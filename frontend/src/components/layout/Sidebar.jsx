@@ -13,7 +13,8 @@ import {
   Briefcase,
   Brain,
   Wallet,
-  Upload
+  Upload,
+  User
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -24,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/my-schedule', icon: Clock, label: 'Mi Horario', adminOnly: false, employeeOnly: true },
     { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios', adminOnly: false, employeeOnly: true },
     { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas', adminOnly: false, employeeOnly: true },
+    { to: '/profile', icon: User, label: 'Mi Perfil', adminOnly: false },
     { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: true },
     { to: '/import-time-tracking', icon: Upload, label: 'Importar Horas', adminOnly: true },
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: true },

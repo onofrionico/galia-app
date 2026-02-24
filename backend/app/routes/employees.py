@@ -178,6 +178,85 @@ def create_employee(current_user):
         db.session.rollback()
         return jsonify({'error': f'Error al crear empleado: {str(e)}'}), 500
 
+@bp.route('/me', methods=['GET'])
+@token_required
+def get_my_profile(current_user):
+    if not current_user.employee:
+        return jsonify({'error': 'No se encontró perfil de empleado'}), 404
+    
+    employee = current_user.employee
+    return jsonify(employee.to_dict(include_sensitive=True, include_history=True)), 200
+
+@bp.route('/me', methods=['PUT'])
+@token_required
+def update_my_profile(current_user):
+    if not current_user.employee:
+        return jsonify({'error': 'No se encontró perfil de empleado'}), 404
+    
+    employee = current_user.employee
+    data = request.get_json()
+    
+    print(f"[UPDATE PROFILE] Usuario: {current_user.email}, Datos recibidos: {data}")
+    
+    allowed_fields = ['phone', 'address', 'emergency_contact_name', 
+                     'emergency_contact_phone', 'emergency_contact_relationship',
+                     'profile_photo_url', 'cuil', 'birth_date', 'email']
+    
+    for key in data.keys():
+        if key not in allowed_fields:
+            print(f"[UPDATE PROFILE ERROR] Campo no autorizado: {key}")
+            return jsonify({'error': f'No autorizado para modificar el campo: {key}'}), 403
+    
+    if 'email' in data and data['email'] != employee.user.email:
+        if User.query.filter_by(email=data['email']).first():
+            print(f"[UPDATE PROFILE ERROR] Email ya registrado: {data['email']}")
+            return jsonify({'error': 'El email ya está registrado'}), 400
+        employee.user.email = data['email']
+    
+    if 'phone' in data:
+        employee.phone = data['phone']
+    if 'address' in data:
+        employee.address = data['address']
+    if 'profile_photo_url' in data:
+        employee.profile_photo_url = data['profile_photo_url']
+    if 'emergency_contact_name' in data:
+        employee.emergency_contact_name = data['emergency_contact_name']
+    if 'emergency_contact_phone' in data:
+        employee.emergency_contact_phone = data['emergency_contact_phone']
+    if 'emergency_contact_relationship' in data:
+        employee.emergency_contact_relationship = data['emergency_contact_relationship']
+    
+    if 'cuil' in data:
+        if data['cuil'] and Employee.query.filter(Employee.cuil == data['cuil'], Employee.id != employee.id).first():
+            print(f"[UPDATE PROFILE ERROR] CUIL ya registrado: {data['cuil']}")
+            return jsonify({'error': 'El CUIL ya está registrado'}), 400
+        employee.cuil = data['cuil'] if data['cuil'] else None
+    
+    if 'birth_date' in data and data['birth_date']:
+        try:
+            birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+            age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
+            if age < 18:
+                print(f"[UPDATE PROFILE ERROR] Edad menor a 18: {age}")
+                return jsonify({'error': 'Debe tener al menos 18 años'}), 400
+            employee.birth_date = birth_date
+        except ValueError as e:
+            print(f"[UPDATE PROFILE ERROR] Formato de fecha inválido: {str(e)}")
+            return jsonify({'error': 'Formato de fecha inválido'}), 400
+    
+    employee.updated_by_id = current_user.id
+    employee.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        print(f"[UPDATE PROFILE] Perfil actualizado exitosamente para {current_user.email}")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[UPDATE PROFILE ERROR] Error en commit: {str(e)}")
+        return jsonify({'error': f'Error al actualizar perfil: {str(e)}'}), 500
+    
+    return jsonify(employee.to_dict(include_sensitive=True, include_history=True)), 200
+
 @bp.route('/<int:employee_id>', methods=['PUT'])
 @token_required
 def update_employee(current_user, employee_id):
@@ -194,7 +273,7 @@ def update_employee(current_user, employee_id):
     if is_own_profile and not is_admin:
         allowed_fields = ['phone', 'address', 'emergency_contact_name', 
                          'emergency_contact_phone', 'emergency_contact_relationship',
-                         'profile_photo_url']
+                         'profile_photo_url', 'cuil', 'birth_date', 'email']
         for key in data.keys():
             if key not in allowed_fields:
                 return jsonify({'error': f'No autorizado para modificar el campo: {key}'}), 403
@@ -221,9 +300,22 @@ def update_employee(current_user, employee_id):
     if 'emergency_contact_relationship' in data:
         employee.emergency_contact_relationship = data['emergency_contact_relationship']
     
+    if 'cuil' in data:
+        if data['cuil'] and Employee.query.filter(Employee.cuil == data['cuil'], Employee.id != employee_id).first():
+            return jsonify({'error': 'El CUIL ya está registrado'}), 400
+        employee.cuil = data['cuil']
+    
+    if 'birth_date' in data:
+        try:
+            birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+            age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
+            if age < 18:
+                return jsonify({'error': 'Debe tener al menos 18 años'}), 400
+            employee.birth_date = birth_date
+        except ValueError:
+            return jsonify({'error': 'Formato de fecha inválido'}), 400
+    
     if is_admin:
-        if 'birth_date' in data:
-            employee.birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
         if 'employment_relationship' in data:
             employee.employment_relationship = data['employment_relationship']
         if 'status' in data:

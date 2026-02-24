@@ -40,6 +40,16 @@ const employeeService = {
     const response = await api.get(`/employees/${id}/schedule`)
     return response.data
   },
+
+  async getMyProfile() {
+    const response = await api.get('/employees/me')
+    return response.data
+  },
+
+  async updateMyProfile(profileData) {
+    const response = await api.put('/employees/me', profileData)
+    return response.data
+  },
 }
 
 export default employeeService
