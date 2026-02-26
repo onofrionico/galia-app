@@ -133,15 +133,15 @@ def create_employee(current_user):
             first_name=data['first_name'],
             last_name=data['last_name'],
             dni=data['dni'],
-            cuil=data.get('cuil'),
+            cuil=data.get('cuil') or None,
             birth_date=birth_date,
-            phone=data.get('phone'),
-            address=data.get('address'),
-            profile_photo_url=data.get('profile_photo_url'),
+            phone=data.get('phone') or None,
+            address=data.get('address') or None,
+            profile_photo_url=data.get('profile_photo_url') or None,
             employment_relationship=data.get('employment_relationship', 'dependencia'),
-            emergency_contact_name=data.get('emergency_contact_name'),
-            emergency_contact_phone=data.get('emergency_contact_phone'),
-            emergency_contact_relationship=data.get('emergency_contact_relationship'),
+            emergency_contact_name=data.get('emergency_contact_name') or None,
+            emergency_contact_phone=data.get('emergency_contact_phone') or None,
+            emergency_contact_relationship=data.get('emergency_contact_relationship') or None,
             hire_date=hire_date,
             status='activo',
             current_job_position_id=data['job_position_id'],
@@ -303,7 +303,7 @@ def update_employee(current_user, employee_id):
     if 'cuil' in data:
         if data['cuil'] and Employee.query.filter(Employee.cuil == data['cuil'], Employee.id != employee_id).first():
             return jsonify({'error': 'El CUIL ya está registrado'}), 400
-        employee.cuil = data['cuil']
+        employee.cuil = data['cuil'] or None
     
     if 'birth_date' in data:
         try:
