@@ -22,6 +22,7 @@ import MyPayrollDetail from './pages/MyPayrollDetail'
 import ImportTimeTracking from './pages/ImportTimeTracking'
 import Profile from './pages/Profile'
 import HolidaysPage from './pages/HolidaysPage'
+import ExpenseCategories from './pages/ExpenseCategories'
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
             <Route path="/import-time-tracking" element={<ImportTimeTracking />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/expenses" element={<Expenses />} />
+            <Route path="/expense-categories" element={<ExpenseCategories />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/employees/new" element={<EmployeeForm />} />

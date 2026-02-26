@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Upload, Download, Plus, Search, Filter, X, ChevronLeft, ChevronRight,
   FileText, AlertCircle, CheckCircle, DollarSign, TrendingDown, Building2,
-  CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet
+  CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet, Tag
 } from 'lucide-react';
 import api from '../services/api';
+import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -56,6 +57,7 @@ const Expenses = () => {
   });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showClassifierModal, setShowClassifierModal] = useState(false);
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
@@ -297,6 +299,11 @@ const Expenses = () => {
     return date.toLocaleDateString('es-AR');
   };
 
+  const handleClassified = () => {
+    fetchExpenses();
+    fetchStats();
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
@@ -309,6 +316,13 @@ const Expenses = () => {
           >
             <Plus className="w-4 h-4 mr-1" />
             Nuevo Gasto
+          </button>
+          <button
+            onClick={() => setShowClassifierModal(true)}
+            className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+          >
+            <Tag className="w-4 h-4 mr-1" />
+            Clasificar Gastos
           </button>
           <button
             onClick={() => setShowImportModal(true)}
@@ -920,6 +934,13 @@ const Expenses = () => {
           </div>
         </div>
       )}
+
+      {/* Expense Classifier Modal */}
+      <ExpenseClassifierModal
+        isOpen={showClassifierModal}
+        onClose={() => setShowClassifierModal(false)}
+        onClassified={handleClassified}
+      />
     </div>
   );
 };

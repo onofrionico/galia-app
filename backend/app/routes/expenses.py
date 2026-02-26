@@ -430,3 +430,78 @@ def get_filter_options(current_user):
 def get_categories(current_user):
     categories = ExpenseCategory.query.filter_by(is_active=True).all()
     return jsonify([category.to_dict() for category in categories]), 200
+
+
+@bp.route('/unclassified', methods=['GET'])
+@token_required
+@admin_required
+def get_unclassified_expenses(current_user):
+    """Get expenses for classification (unclassified or all)"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 100, type=int)
+    only_unclassified = request.args.get('only_unclassified', 'true').lower() == 'true'
+    
+    query = Expense.query.filter(Expense.cancelado == False)
+    
+    if only_unclassified:
+        query = query.filter(Expense.category_id.is_(None))
+    
+    total = query.count()
+    expenses = query.order_by(Expense.fecha.desc(), Expense.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return jsonify({
+        'expenses': [expense.to_dict() for expense in expenses.items],
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'pages': expenses.pages
+    }), 200
+
+
+@bp.route('/classify', methods=['POST'])
+@token_required
+@admin_required
+def classify_expenses(current_user):
+    """Classify multiple expenses at once"""
+    data = request.get_json()
+    
+    if not data.get('classifications'):
+        return jsonify({'error': 'Se requiere el campo classifications'}), 400
+    
+    classifications = data['classifications']
+    updated_count = 0
+    errors = []
+    
+    for classification in classifications:
+        expense_id = classification.get('expense_id')
+        category_id = classification.get('category_id')
+        
+        if not expense_id or not category_id:
+            continue
+        
+        try:
+            expense = Expense.query.get(expense_id)
+            if expense:
+                category = ExpenseCategory.query.get(category_id)
+                if category and category.is_active:
+                    expense.category_id = category_id
+                    updated_count += 1
+                else:
+                    errors.append(f'Categoría {category_id} no encontrada o inactiva')
+            else:
+                errors.append(f'Gasto {expense_id} no encontrado')
+        except Exception as e:
+            errors.append(f'Error al clasificar gasto {expense_id}: {str(e)}')
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': f'{updated_count} gastos clasificados correctamente',
+            'updated_count': updated_count,
+            'errors': errors
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al guardar clasificaciones: {str(e)}'}), 500

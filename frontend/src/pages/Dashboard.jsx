@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { timeTrackingService } from '@/services/timeTrackingService'
 import { employeeScheduleService } from '@/services/employeeScheduleService'
+import { reportsService } from '@/services/reportsService'
+import employeeService from '@/services/employeeService'
 import { Clock, Calendar, AlertCircle, TrendingUp, Users, DollarSign, TrendingDown } from 'lucide-react'
 
 const Dashboard = () => {
@@ -11,14 +13,51 @@ const Dashboard = () => {
   const [weeklyHours, setWeeklyHours] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // Estados para dashboard de administrador
+  const [dashboardData, setDashboardData] = useState({
+    ventas: { total: 0, cantidad: 0 },
+    gastos: { total: 0 },
+    rentabilidad: { resultado_neto: 0 }
+  })
+  const [activeEmployees, setActiveEmployees] = useState(0)
 
   useEffect(() => {
     if (!isAdmin()) {
       loadEmployeeDashboard()
     } else {
-      setLoading(false)
+      loadAdminDashboard()
     }
   }, [user])
+
+  const loadAdminDashboard = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Cargar datos del día (ventas hoy)
+      const todayData = await reportsService.getDashboard('diario')
+      
+      // Cargar datos del mes (gastos del mes)
+      const monthData = await reportsService.getDashboard('mensual')
+
+      // Combinar datos: ventas del día, gastos del mes, balance del mes
+      setDashboardData({
+        ventas: todayData.ventas,
+        gastos: monthData.gastos,
+        rentabilidad: monthData.rentabilidad
+      })
+
+      // Cargar empleados activos
+      const employeesData = await employeeService.getEmployees({ status: 'activo', limit: 1 })
+      setActiveEmployees(employeesData.total || 0)
+    } catch (err) {
+      console.error('Error loading admin dashboard:', err)
+      setError('Error al cargar información del dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadEmployeeDashboard = async () => {
     try {
@@ -201,44 +240,64 @@ const Dashboard = () => {
   return (
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xs md:text-sm font-medium text-gray-500">Ventas Hoy</h3>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">$0</p>
+      
+      {error && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 md:p-4 flex items-start gap-3">
+          <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={18} />
+          <div className="text-xs md:text-sm text-yellow-700">{error}</div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs md:text-sm font-medium text-gray-500">Ventas Hoy</h3>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                  ${dashboardData.ventas?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                </p>
+              </div>
+              <DollarSign className="text-green-600" size={24} />
             </div>
-            <DollarSign className="text-green-600" size={24} />
+          </div>
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs md:text-sm font-medium text-gray-500">Empleados Activos</h3>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">{activeEmployees}</p>
+              </div>
+              <Users className="text-blue-600" size={24} />
+            </div>
+          </div>
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs md:text-sm font-medium text-gray-500">Gastos del Mes</h3>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                  ${dashboardData.gastos?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                </p>
+              </div>
+              <TrendingDown className="text-red-600" size={24} />
+            </div>
+          </div>
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs md:text-sm font-medium text-gray-500">Balance</h3>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                  ${dashboardData.rentabilidad?.resultado_neto?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                </p>
+              </div>
+              <TrendingUp className="text-indigo-600" size={24} />
+            </div>
           </div>
         </div>
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xs md:text-sm font-medium text-gray-500">Empleados Activos</h3>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <Users className="text-blue-600" size={24} />
-          </div>
-        </div>
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xs md:text-sm font-medium text-gray-500">Gastos del Mes</h3>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">$0</p>
-            </div>
-            <TrendingDown className="text-red-600" size={24} />
-          </div>
-        </div>
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xs md:text-sm font-medium text-gray-500">Balance</h3>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">$0</p>
-            </div>
-            <TrendingUp className="text-indigo-600" size={24} />
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

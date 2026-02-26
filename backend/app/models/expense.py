@@ -72,7 +72,10 @@ class Expense(db.Model):
             'numero_comprobante': self.numero_comprobante,
             'creado_por': self.creado_por,
             'cancelado': self.cancelado,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'category_id': self.category_id,
+            'category_name': self.category_rel.name if self.category_rel else None,
+            'category_type': self.category_rel.expense_type if self.category_rel else None
         }
     
     @staticmethod
