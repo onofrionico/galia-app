@@ -14,6 +14,7 @@ class JobPosition(db.Model):
     standard_hours_per_month = db.Column(db.Integer)
     overtime_rate_multiplier = db.Column(db.Numeric(3, 2), default=1.5)
     weekend_rate_multiplier = db.Column(db.Numeric(3, 2), default=1.0)
+    sunday_rate_multiplier = db.Column(db.Numeric(3, 2), default=1.0)
     holiday_rate_multiplier = db.Column(db.Numeric(3, 2), default=1.0)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -45,6 +46,9 @@ class JobPosition(db.Model):
         if self.weekend_rate_multiplier and self.weekend_rate_multiplier < 1.0:
             errors.append('Multiplicador de fin de semana debe ser >= 1.0')
         
+        if self.sunday_rate_multiplier and self.sunday_rate_multiplier < 1.0:
+            errors.append('Multiplicador de domingo debe ser >= 1.0')
+        
         if self.holiday_rate_multiplier and self.holiday_rate_multiplier < 1.0:
             errors.append('Multiplicador de feriados debe ser >= 1.0')
         
@@ -62,6 +66,7 @@ class JobPosition(db.Model):
             'standard_hours_per_month': self.standard_hours_per_month,
             'overtime_rate_multiplier': float(self.overtime_rate_multiplier) if self.overtime_rate_multiplier else None,
             'weekend_rate_multiplier': float(self.weekend_rate_multiplier) if self.weekend_rate_multiplier else None,
+            'sunday_rate_multiplier': float(self.sunday_rate_multiplier) if self.sunday_rate_multiplier else None,
             'holiday_rate_multiplier': float(self.holiday_rate_multiplier) if self.holiday_rate_multiplier else None,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),

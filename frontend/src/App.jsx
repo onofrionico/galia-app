@@ -21,6 +21,7 @@ import MyPayrolls from './pages/MyPayrolls'
 import MyPayrollDetail from './pages/MyPayrollDetail'
 import ImportTimeTracking from './pages/ImportTimeTracking'
 import Profile from './pages/Profile'
+import HolidaysPage from './pages/HolidaysPage'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
             <Route path="/payroll/:id" element={<PayrollDetail />} />
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
+            <Route path="/holidays" element={<HolidaysPage />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

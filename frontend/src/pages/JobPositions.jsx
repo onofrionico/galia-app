@@ -20,6 +20,7 @@ const JobPositions = () => {
     standard_hours_per_month: '',
     overtime_rate_multiplier: '1.5',
     weekend_rate_multiplier: '1.25',
+    sunday_rate_multiplier: '2.0',
     holiday_rate_multiplier: '2.0'
   })
 
@@ -51,9 +52,10 @@ const JobPositions = () => {
         hourly_rate: position.hourly_rate || '',
         standard_hours_per_week: position.standard_hours_per_week || '',
         standard_hours_per_month: position.standard_hours_per_month || '',
-        overtime_rate_multiplier: position.overtime_rate_multiplier || '1.5',
-        weekend_rate_multiplier: position.weekend_rate_multiplier || '1.25',
-        holiday_rate_multiplier: position.holiday_rate_multiplier || '2.0'
+        overtime_rate_multiplier: position.overtime_rate_multiplier ?? '1.5',
+        weekend_rate_multiplier: position.weekend_rate_multiplier ?? '1.25',
+        sunday_rate_multiplier: position.sunday_rate_multiplier ?? '2.0',
+        holiday_rate_multiplier: position.holiday_rate_multiplier ?? '2.0'
       })
     } else {
       setEditingPosition(null)
@@ -67,6 +69,7 @@ const JobPositions = () => {
         standard_hours_per_month: '',
         overtime_rate_multiplier: '1.5',
         weekend_rate_multiplier: '1.25',
+        sunday_rate_multiplier: '2.0',
         holiday_rate_multiplier: '2.0'
       })
     }
@@ -99,19 +102,25 @@ const JobPositions = () => {
         standard_hours_per_month: formData.standard_hours_per_month ? parseInt(formData.standard_hours_per_month) : null,
         overtime_rate_multiplier: parseFloat(formData.overtime_rate_multiplier),
         weekend_rate_multiplier: parseFloat(formData.weekend_rate_multiplier),
+        sunday_rate_multiplier: parseFloat(formData.sunday_rate_multiplier),
         holiday_rate_multiplier: parseFloat(formData.holiday_rate_multiplier)
       }
 
+      console.log('Submitting job position data:', dataToSend)
+
       if (editingPosition) {
+        console.log('Updating position ID:', editingPosition.id)
         await jobPositionService.updateJobPosition(editingPosition.id, dataToSend)
       } else {
+        console.log('Creating new position')
         await jobPositionService.createJobPosition(dataToSend)
       }
 
       await loadPositions()
       handleCloseModal()
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar puesto')
+      console.error('Error saving job position:', err)
+      setError(err.response?.data?.error || err.message || 'Error al guardar puesto')
     } finally {
       setSaving(false)
     }
@@ -287,7 +296,13 @@ const JobPositions = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form 
+              onSubmit={handleSubmit} 
+              onInvalid={(e) => {
+                console.log('Form validation error:', e.target.name, e.target.validationMessage)
+              }}
+              className="p-6 space-y-6"
+            >
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700">
                   {error}
@@ -411,7 +426,7 @@ const JobPositions = () => {
 
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium text-gray-900 mb-3">Multiplicadores de Tarifa</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Horas Extras
@@ -430,7 +445,7 @@ const JobPositions = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fin de Semana
+                      Fin de Semana (Sáb)
                     </label>
                     <input
                       type="number"
@@ -443,6 +458,22 @@ const JobPositions = () => {
                       placeholder="1.25"
                     />
                     <p className="text-xs text-gray-500 mt-1">Ej: 1.25 = 25% adicional</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Domingo
+                    </label>
+                    <input
+                      type="number"
+                      name="sunday_rate_multiplier"
+                      value={formData.sunday_rate_multiplier}
+                      onChange={handleChange}
+                      min="1"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="2.0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Prioridad sobre Fin de Semana</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
