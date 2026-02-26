@@ -13,7 +13,7 @@ def create_app(config_name='development'):
     CORS(app, 
          resources={r"/api/*": {
              "origins": app.config['CORS_ORIGINS'],
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization"],
              "expose_headers": ["Content-Type", "Authorization"],
              "supports_credentials": True,
@@ -45,7 +45,7 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     migrate.init_app(app, db)
     
-    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import
+    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays
     app.register_blueprint(auth.bp)
     app.register_blueprint(schedules.bp)
     app.register_blueprint(shifts.bp)
@@ -63,6 +63,7 @@ def create_app(config_name='development'):
     app.register_blueprint(time_tracking.bp)
     app.register_blueprint(payroll.payroll_bp)
     app.register_blueprint(csv_import.csv_import_bp)
+    app.register_blueprint(holidays.holidays_bp)
     
     @app.route('/health')
     def health():

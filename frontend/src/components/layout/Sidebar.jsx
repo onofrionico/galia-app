@@ -14,7 +14,8 @@ import {
   Brain,
   Wallet,
   Upload,
-  User
+  User,
+  CalendarDays
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -34,6 +35,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
     { to: '/employees', icon: Users, label: 'Empleados', adminOnly: true },
     { to: '/job-positions', icon: Briefcase, label: 'Puestos', adminOnly: true },
+    { to: '/holidays', icon: CalendarDays, label: 'Feriados', adminOnly: true },
     { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', adminOnly: true },
   ]
 

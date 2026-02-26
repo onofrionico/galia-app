@@ -143,7 +143,12 @@ def is_holiday(work_date):
 def calculate_employee_cost(hours_worked, hourly_rate, work_date=None, job_position=None):
     """
     Calcula el costo total de un empleado basado en horas trabajadas y tarifa horaria.
-    Aplica multiplicadores de fin de semana y feriados si corresponde.
+    Aplica multiplicadores según el día de la semana y feriados.
+    
+    Prioridad de multiplicadores:
+    1. Feriado (holiday_rate_multiplier)
+    2. Domingo (sunday_rate_multiplier)
+    3. Fin de semana - sábado (weekend_rate_multiplier)
     
     Args:
         hours_worked: Horas trabajadas (float o int)
@@ -163,10 +168,16 @@ def calculate_employee_cost(hours_worked, hourly_rate, work_date=None, job_posit
         if isinstance(work_date, str):
             work_date = datetime.fromisoformat(work_date).date()
         
+        # Prioridad 1: Feriado
         if is_holiday(work_date) and job_position.holiday_rate_multiplier:
             multiplier = float(job_position.holiday_rate_multiplier)
             base_cost *= multiplier
-        elif is_weekend(work_date) and job_position.weekend_rate_multiplier:
+        # Prioridad 2: Domingo
+        elif is_weekend(work_date) and job_position.sunday_rate_multiplier:
+            multiplier = float(job_position.sunday_rate_multiplier)
+            base_cost *= multiplier
+        # Prioridad 3: Fin de semana (sábado u otros días de fin de semana)
+        elif work_date.weekday() in [5, 6] and job_position.weekend_rate_multiplier:
             multiplier = float(job_position.weekend_rate_multiplier)
             base_cost *= multiplier
     

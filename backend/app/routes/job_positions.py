@@ -56,6 +56,7 @@ def create_job_position(current_user):
         standard_hours_per_month=data.get('standard_hours_per_month'),
         overtime_rate_multiplier=data.get('overtime_rate_multiplier', 1.5),
         weekend_rate_multiplier=data.get('weekend_rate_multiplier', 1.0),
+        sunday_rate_multiplier=data.get('sunday_rate_multiplier', 1.0),
         holiday_rate_multiplier=data.get('holiday_rate_multiplier', 1.0),
         is_active=True,
         created_by_id=current_user.id
@@ -98,6 +99,8 @@ def update_job_position(current_user, position_id):
         position.overtime_rate_multiplier = data['overtime_rate_multiplier']
     if 'weekend_rate_multiplier' in data:
         position.weekend_rate_multiplier = data['weekend_rate_multiplier']
+    if 'sunday_rate_multiplier' in data:
+        position.sunday_rate_multiplier = data['sunday_rate_multiplier']
     if 'holiday_rate_multiplier' in data:
         position.holiday_rate_multiplier = data['holiday_rate_multiplier']
     
