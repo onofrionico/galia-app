@@ -184,7 +184,7 @@ class ScheduleService:
         for shift in shifts:
             employee = shift.employee
             hours = float(shift.hours)
-            rate = float(employee.hourly_rate)
+            rate = float(employee.job_position.hourly_rate) if employee.job_position and employee.job_position.hourly_rate else 0.0
             
             if employee.id not in hours_by_employee:
                 hours_by_employee[employee.id] = {

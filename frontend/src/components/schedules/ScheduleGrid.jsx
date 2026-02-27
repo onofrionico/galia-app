@@ -85,14 +85,14 @@ const ScheduleGrid = ({ schedule, onBack }) => {
 
   // Calcular horas y costos en tiempo real
   const realTimeCalculations = useMemo(() => {
-    if (!scheduleData?.shifts || !employees) return { totalHours: 0, totalCost: 0, employeeStats: {} }
+    if (!scheduleData?.shifts || !employeesData?.employees) return { totalHours: 0, totalCost: 0, employeeStats: {} }
 
     let totalHours = 0
     let totalCost = 0
     const employeeStats = {}
 
     scheduleData.shifts.forEach(shift => {
-      const employee = employees.find(e => e.id === shift.employee_id)
+      const employee = employeesData.employees.find(e => e.id === shift.employee_id)
       if (!employee) return
 
       const hours = parseFloat(shift.hours || 0)
@@ -110,7 +110,7 @@ const ScheduleGrid = ({ schedule, onBack }) => {
     })
 
     return { totalHours, totalCost, employeeStats }
-  }, [scheduleData?.shifts, employees])
+  }, [scheduleData?.shifts, employeesData?.employees])
 
   const handleAddShift = (date, employee) => {
     setSelectedDate(format(date, 'yyyy-MM-dd'))
