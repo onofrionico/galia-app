@@ -55,7 +55,7 @@ const ScheduleGrid = ({ schedule, onBack }) => {
     },
   })
 
-  if (isLoading) {
+  if (isLoading || !scheduleData) {
     return <div className="p-8 text-center">Cargando...</div>
   }
 
