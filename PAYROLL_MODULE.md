@@ -11,6 +11,7 @@ El módulo de nómina permite a los administradores gestionar los sueldos mensua
 - **Comparación** entre horas trabajadas vs horas programadas en la grilla
 - **Visualización de diferencias** (positivas o negativas)
 - **Tarifa horaria** obtenida del puesto de trabajo del empleado
+- **IMPORTANTE**: El cálculo de horas debe usar el precio/tarifa vigente en el momento en que se registraron las horas trabajadas (no la tarifa actual)
 
 ### 2. Gestión de Nóminas
 - **Generación de nóminas** por empleado y período (mes/año)
@@ -18,6 +19,8 @@ El módulo de nómina permite a los administradores gestionar los sueldos mensua
 - **Validación de nóminas** para bloquear modificaciones
 - **Observaciones** personalizadas por nómina
 - **Recálculo** de horas y sueldos antes de validar
+- **NUEVO**: Las nóminas en estado Borrador deben poder eliminarse completamente
+- **NUEVO**: Solo las nóminas validadas son permanentes y no eliminables
 
 ### 3. Edición de Bloques de Trabajo
 - **Visualización detallada** de todos los bloques de trabajo del mes
@@ -72,6 +75,7 @@ El módulo de nómina permite a los administradores gestionar los sueldos mensua
 - `POST /api/v1/payroll/{id}/validate` - Validar nómina
 - `PUT /api/v1/payroll/work-blocks/{block_id}` - Editar bloque
 - `DELETE /api/v1/payroll/work-blocks/{block_id}` - Eliminar bloque
+- **NUEVO**: `DELETE /api/v1/payroll/{id}` - Eliminar nómina (solo si status = 'draft')
 
 #### Resúmenes
 - `GET /api/v1/payroll/summary/{year}/{month}` - Resumen mensual
@@ -195,6 +199,8 @@ Esto agregará las nuevas columnas al modelo `payrolls`:
 4. **Tarifa Horaria**: Se obtiene del `JobPosition` del empleado
 5. **Validación**: Una vez validada, la nómina queda bloqueada para edición
 6. **PDFs**: Se almacenan en `backend/payroll_pdfs/`
+7. **CRÍTICO**: El cálculo de horas debe usar la tarifa histórica vigente en el momento del registro, no la tarifa actual del puesto
+8. **Eliminación**: Solo las nóminas en estado 'draft' pueden eliminarse; las validadas son permanentes
 
 ## Próximas Mejoras Sugeridas
 
@@ -205,3 +211,5 @@ Esto agregará las nuevas columnas al modelo `payrolls`:
 - Integración con sistemas contables
 - Reportes de costos laborales
 - Proyecciones de sueldos futuros
+- **IMPLEMENTADO**: Eliminación de nóminas en borrador
+- **PENDIENTE**: Sistema de tarifas históricas para cálculo correcto de sueldos

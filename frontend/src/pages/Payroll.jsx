@@ -92,6 +92,22 @@ const Payroll = () => {
     }
   };
 
+  const handleDeletePayroll = async (payrollId, employeeName) => {
+    if (!window.confirm(`¿Está seguro de eliminar la nómina en borrador de ${employeeName}?`)) {
+      return;
+    }
+    
+    try {
+      await payrollService.deletePayroll(payrollId);
+      alert('Nómina eliminada exitosamente');
+      loadData();
+    } catch (error) {
+      console.error('Error deleting payroll:', error);
+      const errorMsg = error.response?.data?.message || 'Error al eliminar la nómina';
+      alert(errorMsg);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
       draft: 'bg-yellow-100 text-yellow-800',
@@ -355,12 +371,23 @@ const Payroll = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleViewDetail(payroll.id)}
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                      >
-                        Ver Detalle
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleViewDetail(payroll.id)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                        >
+                          Ver Detalle
+                        </button>
+                        {payroll.status === 'draft' && (
+                          <button
+                            onClick={() => handleDeletePayroll(payroll.id, payroll.employee_name)}
+                            className="text-red-600 hover:text-red-800 font-medium text-sm"
+                            title="Eliminar borrador"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

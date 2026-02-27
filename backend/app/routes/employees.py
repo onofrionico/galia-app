@@ -25,10 +25,15 @@ def get_employees(current_user):
     job_position_id = request.args.get('job_position_id', '')
     hire_date_from = request.args.get('hire_date_from', '')
     hire_date_to = request.args.get('hire_date_to', '')
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
     
     query = Employee.query.join(User, Employee.user_id == User.id)
+    
+    # Por defecto, filtrar empleados inactivos
+    if not include_inactive and not status:
+        query = query.filter(Employee.status == 'activo')
     
     if search:
         search_filter = f'%{search}%'
@@ -41,8 +46,12 @@ def get_employees(current_user):
             )
         )
     
+    # Si se especifica un status, usarlo (tiene prioridad sobre include_inactive)
     if status:
         query = query.filter(Employee.status == status)
+    elif include_inactive:
+        # Si include_inactive es True y no hay status, mostrar todos
+        pass
     
     if job_position_id:
         query = query.filter(Employee.current_job_position_id == int(job_position_id))

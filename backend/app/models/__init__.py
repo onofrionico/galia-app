@@ -13,6 +13,8 @@ from app.models.notification import Notification, ScheduleChangeLog
 from app.models.staffing_metrics import StaffingMetrics, StaffingPrediction
 from app.models.ml_tracking import MLModelVersion, MLPredictionAccuracy, Holiday, PredictionAlert
 from app.models.report_goal import ReportGoal, DashboardSnapshot
+from app.models.store_hours import StoreHours
+from app.models.vacation_period import VacationPeriod
 
 __all__ = [
     'User',
@@ -33,5 +35,7 @@ __all__ = [
     'StaffingMetrics',
     'StaffingPrediction',
     'ReportGoal',
-    'DashboardSnapshot'
+    'DashboardSnapshot',
+    'StoreHours',
+    'VacationPeriod'
 ]

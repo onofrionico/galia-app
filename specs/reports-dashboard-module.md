@@ -216,6 +216,7 @@ Como **administrador/gerente**, necesito exportar reportes en diferentes formato
 - ¿Cómo se calculan las metas cuando hay días sin operación (feriados, vacaciones)?
 - ¿Cómo se manejan las ventas anuladas o canceladas en los reportes?
 - ¿Qué pasa si un empleado no tiene ventas asociadas (trabaja en cocina)?
+- **CRÍTICO**: ¿Cómo prevenir que empleados accedan a módulos restringidos mediante URLs directas?
 
 ---
 
@@ -649,6 +650,8 @@ INSERT INTO expense_categories (name, type, description) VALUES
 - **SC-RP-007**: Indicadores visuales de alerta aparecen cuando métricas están por debajo del 80% de la meta
 - **SC-RP-008**: Datos del dashboard son consistentes con datos de ventas, gastos y sueldos registrados
 - **SC-RP-009**: 90% de usuarios pueden interpretar el dashboard sin explicación adicional
+- **SC-RP-010**: **CRÍTICO** - 100% de las rutas protegidas rechazan acceso no autorizado con error 403
+- **SC-RP-011**: **CRÍTICO** - Empleados no pueden acceder a ningún módulo restringido mediante URLs directas
 
 ---
 
@@ -765,6 +768,15 @@ graph TD
 - Configurar meta rentabilidad: 30%
 - Tener rentabilidad actual: 20%
 - Verificar indicador de alerta visible
+
+### Test 7: Seguridad de acceso por rol (CRÍTICO)
+- Autenticar como empleado
+- Intentar acceder a `/dashboard` vía URL directa → Error 403
+- Intentar acceder a `/api/reports/dashboard` vía API → Error 403
+- Intentar acceder a `/gastos` vía URL → Error 403
+- Intentar acceder a `/nominas` vía URL → Error 403
+- Verificar que el sidebar no muestra opciones restringidas
+- Verificar que el backend rechaza todas las peticiones no autorizadas
 
 ---
 

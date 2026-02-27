@@ -7,6 +7,8 @@ services:
     plan: starter
     buildCommand: "./build.sh"
     startCommand: "gunicorn --chdir backend --bind 0.0.0.0:$PORT run:app"
+    previewsEnabled: true
+    previewsExpireAfterDays: 7
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -27,6 +29,8 @@ services:
     env: static
     buildCommand: "cd frontend && npm install && npm run build"
     staticPublishPath: frontend/dist
+    previewsEnabled: true
+    previewsExpireAfterDays: 7
     routes:
       - type: rewrite
         source: /*
@@ -40,3 +44,9 @@ databases:
     databaseName: galia_db
     user: galia_user
     plan: basic-1gb
+  
+  # Test database for preview environments
+  - name: galia-db-test
+    databaseName: galia_db_test
+    user: galia_user_test
+    plan: free

@@ -23,6 +23,8 @@ import ImportTimeTracking from './pages/ImportTimeTracking'
 import Profile from './pages/Profile'
 import HolidaysPage from './pages/HolidaysPage'
 import ExpenseCategories from './pages/ExpenseCategories'
+import StoreHours from './pages/StoreHours'
+import VacationPeriods from './pages/VacationPeriods'
 
 function App() {
   return (
@@ -53,6 +55,8 @@ function App() {
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
             <Route path="/holidays" element={<HolidaysPage />} />
+            <Route path="/store-hours" element={<StoreHours />} />
+            <Route path="/vacation-periods" element={<VacationPeriods />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

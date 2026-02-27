@@ -18,6 +18,7 @@ const Employees = () => {
     job_position_id: '',
     hire_date_from: '',
     hire_date_to: '',
+    include_inactive: false,
     page: 1,
     limit: 10
   })
@@ -77,6 +78,7 @@ const Employees = () => {
       job_position_id: '',
       hire_date_from: '',
       hire_date_to: '',
+      include_inactive: false,
       page: 1,
       limit: 10
     })
@@ -191,6 +193,19 @@ const Employees = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="include_inactive"
+                  checked={filters.include_inactive}
+                  onChange={(e) => handleFilterChange('include_inactive', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="include_inactive" className="ml-2 text-sm text-gray-700">
+                  Incluir empleados inactivos
+                </label>
               </div>
 
               <div className="flex justify-end">

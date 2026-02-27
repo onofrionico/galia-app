@@ -12,22 +12,53 @@ Como **administrador/gerente**, necesito crear y gestionar la grilla horaria de 
 
 **Independent Test**: Puede ser completamente testeado creando una grilla horaria para una semana, asignando empleados a turnos, y verificando que el sistema calcule correctamente las horas totales y el costo estimado de sueldos.
 
+**Mejoras Identificadas**:
+- **NUEVO**: El sistema debe mostrar el horario de trabajo del local en la vista de armado de grilla
+- **NUEVO**: Debe permitir configurar horarios de trabajo por local (soporte multi-local)
+- **NUEVO**: La sumatoria de horas debe calcularse en tiempo real mientras se agregan turnos
+- **NUEVO**: Los costos deben calcularse en tiempo real mientras se agregan turnos
+- **NUEVO**: Debe mostrar empleados en vacaciones para evitar asignaciones incorrectas
+- **NUEVO**: Debe permitir ver/imprimir la grilla en formato calendario
+- **NUEVO**: Los nombres de empleados deben permanecer visibles al hacer scroll horizontal
+
 **Acceptance Scenarios**:
 
 1. **Scenario**: Crear grilla horaria semanal
    - **Given** soy un administrador autenticado con empleados registrados en el sistema
    - **When** creo una nueva grilla para la semana del 10/02/2026 y asigno turnos a diferentes empleados
    - **Then** el sistema guarda la grilla, muestra un resumen de horas por empleado, y calcula el costo total estimado
+   - **AND** veo el horario de trabajo del local como referencia
+   - **AND** la sumatoria de horas se actualiza en tiempo real
+   - **AND** los costos se calculan automáticamente mientras agrego turnos
 
 2. **Scenario**: Modificar grilla existente
    - **Given** existe una grilla horaria para la próxima semana
    - **When** cambio el turno de un empleado o agrego/elimino turnos
    - **Then** el sistema actualiza la grilla, recalcula las horas y costos, y notifica los cambios
+   - **AND** los nombres de empleados permanecen visibles al hacer scroll horizontal
 
 3. **Scenario**: Visualizar costo de personal por período
    - **Given** tengo grillas horarias creadas para múltiples semanas
    - **When** consulto el costo de personal del último mes
    - **Then** el sistema muestra el total de horas trabajadas y el costo total de sueldos del período
+
+4. **Scenario**: Ver empleados en vacaciones
+   - **Given** estoy armando una grilla horaria
+   - **When** intento asignar un turno
+   - **Then** veo claramente qué empleados están de vacaciones en ese período
+   - **AND** el sistema me alerta si intento asignar a alguien de vacaciones
+
+5. **Scenario**: Exportar grilla en formato calendario
+   - **Given** tengo una grilla horaria completa
+   - **When** selecciono ver/imprimir en formato calendario
+   - **Then** veo la grilla en formato calendario visual
+   - **AND** puedo imprimirla o exportarla
+
+6. **Scenario**: Configurar horario del local
+   - **Given** soy administrador
+   - **When** configuro el horario de trabajo del local (ej: Lun-Vie 8-20, Sáb-Dom 9-22)
+   - **Then** este horario se muestra como referencia al armar grillas
+   - **AND** puedo configurar diferentes horarios para múltiples locales
 
 ---
 
@@ -231,6 +262,8 @@ Como **administrador/gerente**, necesito registrar y hacer seguimiento de la evo
 - ¿Qué sucede si se elimina un empleado que tiene turnos asignados en el futuro?
 - ¿Cómo se manejan los diferentes métodos de pago en las ventas (efectivo, tarjeta, transferencia)?
 - ¿Hay límites de acceso por horario para los empleados (solo pueden registrar ventas durante su turno)?
+- **CRÍTICO**: ¿Cómo prevenir que empleados accedan a módulos restringidos mediante URLs directas?
+- **CRÍTICO**: ¿Cómo asegurar que el backend valide permisos en todas las rutas, no solo el frontend?
 
 ## Requirements *(mandatory)*
 
@@ -251,6 +284,14 @@ Como **administrador/gerente**, necesito registrar y hacer seguimiento de la evo
 - **FR-010**: Sistema DEBE permitir modificar grillas existentes y mantener histórico de cambios
 - **FR-011**: Empleados DEBEN poder visualizar sus horarios asignados para períodos futuros
 - **FR-012**: Sistema DEBE notificar a empleados cuando se modifique su horario
+- **FR-013**: Sistema DEBE mostrar el horario de trabajo del local en la vista de armado de grilla
+- **FR-014**: Sistema DEBE permitir configurar horarios de trabajo por local (multi-local)
+- **FR-015**: Sistema DEBE calcular y mostrar en tiempo real la sumatoria de horas mientras se agregan turnos
+- **FR-016**: Sistema DEBE calcular y mostrar en tiempo real los costos mientras se agregan turnos
+- **FR-017**: Sistema DEBE mostrar visualmente qué empleados están de vacaciones en el período
+- **FR-018**: Sistema DEBE permitir exportar/imprimir grilla en formato calendario
+- **FR-019**: Sistema DEBE mantener nombres de empleados visibles al hacer scroll horizontal (columna fija)
+- **FR-020**: Sistema DEBE filtrar empleados inactivos de las opciones de asignación de turnos
 
 #### Registro de Ventas
 - **FR-013**: Sistema DEBE permitir a empleados registrar ventas con monto y método de pago
@@ -295,6 +336,10 @@ Como **administrador/gerente**, necesito registrar y hacer seguimiento de la evo
 - **FR-042**: Sistema DEBE realizar backups automáticos de la base de datos
 - **FR-043**: Sistema DEBE registrar logs de auditoría para operaciones críticas (ventas, liquidaciones, cambios de grilla)
 - **FR-044**: Sistema DEBE proteger información sensible (contraseñas, datos financieros)
+- **FR-045**: **CRÍTICO** - Sistema DEBE validar permisos en BACKEND para todas las rutas, no solo ocultar elementos del frontend
+- **FR-046**: **CRÍTICO** - Empleados NO deben poder acceder a ventas/gastos/nóminas/horarios/reportes mediante URLs directas
+- **FR-047**: Sistema DEBE retornar error 403 (Forbidden) cuando un usuario sin permisos intenta acceder a recursos restringidos
+- **FR-048**: Sistema DEBE implementar middleware de autorización en todas las rutas protegidas del backend
 
 ### Key Entities
 
@@ -302,9 +347,13 @@ Como **administrador/gerente**, necesito registrar y hacer seguimiento de la evo
 
 - **Empleado**: Extiende Usuario con información laboral. Atributos: tarifa horaria actual, fecha de ingreso, histórico de tarifas, relación con Usuario.
 
-- **Grilla Horaria**: Representa la planificación de turnos. Atributos: período (fecha inicio, fecha fin), estado (borrador/publicada), fecha de creación, creador.
+- **Grilla Horaria**: Representa la planificación de turnos. Atributos: período (fecha inicio, fecha fin), estado (borrador/publicada), fecha de creación, creador, total_horas_calculadas, costo_total_estimado.
 
-- **Turno**: Representa un turno asignado a un empleado. Atributos: empleado asignado, fecha, hora inicio, hora fin, horas totales, relación con Grilla Horaria.
+- **Turno**: Representa un turno asignado a un empleado. Atributos: empleado asignado, fecha, hora inicio, hora fin, horas totales, costo_estimado, relación con Grilla Horaria.
+
+- **Horario de Local**: Configuración de horarios de trabajo. Atributos: local_id, nombre_local, días_semana, hora_apertura, hora_cierre, es_activo.
+
+- **Período de Vacaciones**: Registra vacaciones de empleados. Atributos: empleado_id, fecha_inicio, fecha_fin, estado (solicitado/aprobado/rechazado), notas.
 
 - **Venta**: Representa una transacción de venta. Atributos: monto total, método de pago, fecha y hora, empleado que registró, estado, notas.
 

@@ -51,6 +51,8 @@ Representa a cada persona que trabaja en la cafetería.
 - No se permite eliminación física, solo lógica (cambio de status)
 - Un empleado inactivo no puede tener turnos asignados
 - La foto de perfil debe ser validada (formato, tamaño máximo 5MB)
+- **IMPORTANTE**: Los empleados inactivos NO deben aparecer en las grillas de selección ni listados por defecto
+- La desactivación de empleados debe manejar correctamente todas las relaciones (turnos, nóminas, etc.) sin generar errores
 
 ### 2. JobPosition (Puesto de Trabajo)
 
@@ -154,6 +156,7 @@ Mantiene el historial de cambios de puesto de cada empleado.
 - `hire_date_to`: Filtrar por fecha de ingreso hasta
 - `page`: Número de página
 - `limit`: Cantidad de resultados por página
+- **NUEVO**: `include_inactive`: Boolean (default: false) - Por defecto solo muestra empleados activos
 
 **Response**:
 ```json
@@ -193,7 +196,8 @@ Mantiene el historial de cambios de puesto de cada empleado.
 **Reglas**:
 - Si se cambia job_position_id, se actualiza EmployeeJobHistory
 - Si se cambia status a 'inactivo', se eliminan turnos futuros
-- No se puede cambiar DNI, CUIL una vez creado
+- **MODIFICADO**: El CUIL debe ser editable para corregir errores de carga (con validación de formato y unicidad)
+- No se puede cambiar DNI una vez creado (mantener restricción solo en DNI)
 
 #### Desactivar Empleado (PATCH /api/employees/:id/deactivate)
 **Permisos**: Solo Gerente
@@ -475,6 +479,8 @@ CREATE INDEX idx_employee_job_history_active ON employee_job_history(employee_id
 - Desactivar empleado
 - Verificar que los turnos fueron eliminados
 - Verificar que el usuario no puede acceder al sistema
+- **NUEVO**: Verificar que no se generan errores en cascada al desactivar
+- **NUEVO**: Verificar que el empleado desactivado no aparece en grillas de selección
 
 ### Test 5: Cambiar puesto de empleado
 - Cambiar el puesto de un empleado
@@ -509,6 +515,9 @@ CREATE INDEX idx_employee_job_history_active ON employee_job_history(employee_id
 - ✅ No se pueden eliminar empleados, solo desactivar
 - ✅ Email es único en el sistema
 - ✅ Interfaz es responsive y fácil de usar
+- **NUEVO**: ✅ Empleados inactivos no aparecen en grillas de selección por defecto
+- **NUEVO**: ✅ La desactivación de empleados funciona sin errores
+- **NUEVO**: ✅ El CUIL es editable para correcciones (con validación)
 
 ## Próximos Pasos
 

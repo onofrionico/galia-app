@@ -116,7 +116,32 @@ def generate_payroll(current_user):
     db.session.add(payroll)
     db.session.commit()
     
-    return jsonify(payroll.to_dict()), 201
+    return jsonify(payroll.to_dict()), 200
+
+@payroll_bp.route('/<int:payroll_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_payroll(current_user, payroll_id):
+    """Eliminar una nómina (solo si está en estado 'draft')"""
+    payroll = Payroll.query.get_or_404(payroll_id)
+    
+    # Solo permitir eliminar nóminas en borrador
+    if payroll.status != 'draft':
+        return jsonify({
+            'error': 'No se puede eliminar',
+            'message': 'Solo las nóminas en estado borrador pueden ser eliminadas'
+        }), 400
+    
+    try:
+        db.session.delete(payroll)
+        db.session.commit()
+        return jsonify({
+            'message': 'Nómina eliminada exitosamente',
+            'payroll_id': payroll_id
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al eliminar nómina: {str(e)}'}), 500
 
 @payroll_bp.route('/', methods=['GET'])
 @token_required

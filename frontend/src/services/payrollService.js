@@ -76,6 +76,11 @@ const payrollService = {
     return response.data;
   },
 
+  deletePayroll: async (payrollId) => {
+    const response = await api.delete(`/payroll/${payrollId}`);
+    return response.data;
+  },
+
   // Employee endpoints
   async getMyPayrolls(params = {}) {
     const response = await api.get('/payroll/my-payrolls', { params });
