@@ -17,17 +17,31 @@ depends_on = None
 
 
 def upgrade():
-    # Add expense_type column
-    op.add_column('expense_categories', 
-        sa.Column('expense_type', sa.String(20), nullable=False, server_default='indirecto')
-    )
+    # Check if columns exist before adding them
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('expense_categories')]
     
-    # Add created_at column
-    op.add_column('expense_categories',
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP'))
-    )
+    # Add expense_type column if it doesn't exist
+    if 'expense_type' not in columns:
+        op.add_column('expense_categories', 
+            sa.Column('expense_type', sa.String(20), nullable=False, server_default='indirecto')
+        )
+    
+    # Add created_at column if it doesn't exist
+    if 'created_at' not in columns:
+        op.add_column('expense_categories',
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP'))
+        )
 
 
 def downgrade():
-    op.drop_column('expense_categories', 'created_at')
-    op.drop_column('expense_categories', 'expense_type')
+    # Check if columns exist before dropping them
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('expense_categories')]
+    
+    if 'created_at' in columns:
+        op.drop_column('expense_categories', 'created_at')
+    if 'expense_type' in columns:
+        op.drop_column('expense_categories', 'expense_type')
