@@ -110,7 +110,7 @@ const ScheduleGrid = ({ schedule, onBack }) => {
     })
 
     return { totalHours, totalCost, employeeStats }
-  }, [scheduleData?.shifts, employeesData?.employees])
+  }, [scheduleData, employeesData])
 
   const handleAddShift = (date, employee) => {
     setSelectedDate(format(date, 'yyyy-MM-dd'))
