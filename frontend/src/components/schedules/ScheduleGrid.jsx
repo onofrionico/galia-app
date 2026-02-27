@@ -55,34 +55,6 @@ const ScheduleGrid = ({ schedule, onBack }) => {
     },
   })
 
-  if (isLoading || !scheduleData) {
-    return <div className="p-8 text-center">Cargando...</div>
-  }
-
-  const dates = eachDayOfInterval({
-    start: parseISO(scheduleData.start_date),
-    end: parseISO(scheduleData.end_date),
-  })
-
-  const getShiftsForEmployeeAndDate = (employeeId, date) => {
-    return scheduleData.shifts?.filter(
-      (shift) =>
-        shift.employee_id === employeeId &&
-        shift.shift_date === format(date, 'yyyy-MM-dd')
-    ) || []
-  }
-
-  // Verificar si un empleado está de vacaciones en una fecha
-  const isEmployeeOnVacation = (employeeId, date) => {
-    const dateStr = format(date, 'yyyy-MM-dd')
-    return vacationPeriods.some(vp => 
-      vp.employee_id === employeeId &&
-      vp.status === 'aprobado' &&
-      dateStr >= vp.start_date &&
-      dateStr <= vp.end_date
-    )
-  }
-
   // Calcular horas y costos en tiempo real
   const realTimeCalculations = useMemo(() => {
     if (!scheduleData?.shifts || !employeesData?.employees) return { totalHours: 0, totalCost: 0, employeeStats: {} }
@@ -111,6 +83,34 @@ const ScheduleGrid = ({ schedule, onBack }) => {
 
     return { totalHours, totalCost, employeeStats }
   }, [scheduleData, employeesData])
+
+  if (isLoading || !scheduleData) {
+    return <div className="p-8 text-center">Cargando...</div>
+  }
+
+  const dates = eachDayOfInterval({
+    start: parseISO(scheduleData.start_date),
+    end: parseISO(scheduleData.end_date),
+  })
+
+  const getShiftsForEmployeeAndDate = (employeeId, date) => {
+    return scheduleData.shifts?.filter(
+      (shift) =>
+        shift.employee_id === employeeId &&
+        shift.shift_date === format(date, 'yyyy-MM-dd')
+    ) || []
+  }
+
+  // Verificar si un empleado está de vacaciones en una fecha
+  const isEmployeeOnVacation = (employeeId, date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return vacationPeriods.some(vp => 
+      vp.employee_id === employeeId &&
+      vp.status === 'aprobado' &&
+      dateStr >= vp.start_date &&
+      dateStr <= vp.end_date
+    )
+  }
 
   const handleAddShift = (date, employee) => {
     setSelectedDate(format(date, 'yyyy-MM-dd'))
