@@ -3,12 +3,16 @@ from decimal import Decimal
 from app.models.time_tracking import TimeTracking
 from app.models.shift import Shift
 from app.models.ml_tracking import Holiday
+from app.models.absence_request import AbsenceRequest
 
 
 def calculate_hours_from_time_tracking(employee_id, month, year):
     """
     Calcula las horas trabajadas de un empleado en un mes específico
-    basándose en los registros de time tracking.
+    basándose en los registros de time tracking y ausencias aprobadas.
+    
+    Las ausencias aprobadas se contabilizan como horas trabajadas según
+    los turnos programados para esas fechas.
     
     Args:
         employee_id: ID del empleado
@@ -63,6 +67,46 @@ def calculate_hours_from_time_tracking(employee_id, month, year):
             'hours': float(day_hours),
             'blocks': blocks
         })
+    
+    approved_absences = AbsenceRequest.query.filter(
+        AbsenceRequest.employee_id == employee_id,
+        AbsenceRequest.status == 'approved',
+        AbsenceRequest.start_date <= end_date - timedelta(days=1),
+        AbsenceRequest.end_date >= start_date
+    ).all()
+    
+    for absence in approved_absences:
+        current_date = max(absence.start_date, start_date)
+        absence_end = min(absence.end_date, end_date - timedelta(days=1))
+        
+        while current_date <= absence_end:
+            existing_record = next((r for r in daily_records if r['date'] == current_date.isoformat()), None)
+            
+            if not existing_record:
+                shifts = Shift.query.filter_by(
+                    employee_id=employee_id,
+                    shift_date=current_date
+                ).all()
+                
+                if shifts:
+                    absence_hours = sum(float(shift.hours) for shift in shifts)
+                    total_hours += Decimal(str(absence_hours))
+                    
+                    daily_records.append({
+                        'date': current_date.isoformat(),
+                        'hours': absence_hours,
+                        'blocks': [{
+                            'id': None,
+                            'start_time': shifts[0].start_time.strftime('%H:%M'),
+                            'end_time': shifts[0].end_time.strftime('%H:%M'),
+                            'hours': absence_hours,
+                            'is_absence': True
+                        }]
+                    })
+            
+            current_date += timedelta(days=1)
+    
+    daily_records.sort(key=lambda x: x['date'])
     
     return float(total_hours), daily_records
 
