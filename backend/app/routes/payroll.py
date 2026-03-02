@@ -301,6 +301,74 @@ def delete_work_block(current_user, block_id):
     
     return jsonify({'message': 'Bloque eliminado exitosamente'})
 
+@payroll_bp.route('/employees-status/<int:year>/<int:month>', methods=['GET'])
+@token_required
+@admin_required
+def get_employees_payroll_status(current_user, year, month):
+    """
+    Lista empleados activos con horas registradas en el período,
+    mostrando si tienen nómina generada y su estado
+    """
+    
+    start_date = datetime(year, month, 1).date()
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1).date()
+    else:
+        end_date = datetime(year, month + 1, 1).date()
+    
+    # Obtener empleados activos
+    active_employees = Employee.query.filter_by(status='activo').all()
+    
+    employees_status = []
+    
+    for employee in active_employees:
+        # Verificar si tiene horas registradas en el período
+        time_records = TimeTracking.query.filter(
+            TimeTracking.employee_id == employee.id,
+            TimeTracking.tracking_date >= start_date,
+            TimeTracking.tracking_date < end_date
+        ).first()
+        
+        # Solo incluir empleados con horas registradas
+        if time_records:
+            # Buscar nómina existente
+            payroll = Payroll.query.filter_by(
+                employee_id=employee.id,
+                month=month,
+                year=year
+            ).first()
+            
+            # Calcular horas trabajadas
+            worked_hours, _ = calculate_hours_from_time_tracking(employee.id, month, year)
+            
+            employee_data = {
+                'employee_id': employee.id,
+                'employee_name': employee.full_name,
+                'dni': employee.dni,
+                'job_position': employee.job_position.name if employee.job_position else None,
+                'hours_worked': worked_hours,
+                'has_payroll': payroll is not None,
+                'payroll_id': payroll.id if payroll else None,
+                'payroll_status': payroll.status if payroll else None,
+                'payroll_validated_at': payroll.validated_at.isoformat() if payroll and payroll.validated_at else None,
+                'gross_salary': float(payroll.gross_salary) if payroll else None,
+                'pdf_generated': payroll.pdf_generated if payroll else False
+            }
+            
+            employees_status.append(employee_data)
+    
+    # Ordenar por nombre
+    employees_status.sort(key=lambda x: x['employee_name'])
+    
+    return jsonify({
+        'year': year,
+        'month': month,
+        'employees': employees_status,
+        'total_employees': len(employees_status),
+        'with_payroll': sum(1 for e in employees_status if e['has_payroll']),
+        'without_payroll': sum(1 for e in employees_status if not e['has_payroll'])
+    })
+
 @payroll_bp.route('/summary/<int:year>/<int:month>', methods=['GET'])
 @token_required
 @admin_required

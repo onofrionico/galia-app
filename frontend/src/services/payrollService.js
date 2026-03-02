@@ -62,6 +62,11 @@ const payrollService = {
     return response.data;
   },
 
+  getEmployeesPayrollStatus: async (year, month) => {
+    const response = await api.get(`/payroll/employees-status/${year}/${month}`);
+    return response.data;
+  },
+
   generatePDF: async (payrollId) => {
     const response = await api.post(`/payroll/${payrollId}/generate-pdf`, {}, {
       responseType: 'blob'

@@ -45,7 +45,7 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     migrate.init_app(app, db)
     
-    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods
+    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods, absence_requests
     app.register_blueprint(auth.bp)
     app.register_blueprint(schedules.bp)
     app.register_blueprint(shifts.bp)
@@ -66,6 +66,7 @@ def create_app(config_name='development'):
     app.register_blueprint(holidays.holidays_bp)
     app.register_blueprint(store_hours.bp)
     app.register_blueprint(vacation_periods.bp)
+    app.register_blueprint(absence_requests.absence_bp)
     
     @app.route('/health')
     def health():

@@ -15,6 +15,7 @@ from app.models.ml_tracking import MLModelVersion, MLPredictionAccuracy, Holiday
 from app.models.report_goal import ReportGoal, DashboardSnapshot
 from app.models.store_hours import StoreHours
 from app.models.vacation_period import VacationPeriod
+from app.models.absence_request import AbsenceRequest
 
 __all__ = [
     'User',
@@ -37,5 +38,6 @@ __all__ = [
     'ReportGoal',
     'DashboardSnapshot',
     'StoreHours',
-    'VacationPeriod'
+    'VacationPeriod',
+    'AbsenceRequest'
 ]

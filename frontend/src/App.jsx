@@ -25,6 +25,8 @@ import HolidaysPage from './pages/HolidaysPage'
 import ExpenseCategories from './pages/ExpenseCategories'
 import StoreHours from './pages/StoreHours'
 import VacationPeriods from './pages/VacationPeriods'
+import MyAbsenceRequests from './pages/MyAbsenceRequests'
+import AbsenceRequestsAdmin from './pages/AbsenceRequestsAdmin'
 
 function App() {
   return (
@@ -54,6 +56,8 @@ function App() {
             <Route path="/payroll/:id" element={<PayrollDetail />} />
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
+            <Route path="/my-absence-requests" element={<MyAbsenceRequests />} />
+            <Route path="/absence-requests" element={<AbsenceRequestsAdmin />} />
             <Route path="/holidays" element={<HolidaysPage />} />
             <Route path="/store-hours" element={<StoreHours />} />
             <Route path="/vacation-periods" element={<VacationPeriods />} />

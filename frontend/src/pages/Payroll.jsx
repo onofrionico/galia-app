@@ -18,8 +18,7 @@ import {
 
 const Payroll = () => {
   const navigate = useNavigate();
-  const [payrolls, setPayrolls] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [employeesStatus, setEmployeesStatus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [historical, setHistorical] = useState([]);
@@ -27,10 +26,9 @@ const Payroll = () => {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
   
   const [showNewPayrollModal, setShowNewPayrollModal] = useState(false);
+  const [selectedEmployeeForPayroll, setSelectedEmployeeForPayroll] = useState(null);
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -39,29 +37,19 @@ const Payroll = () => {
 
   useEffect(() => {
     loadData();
-  }, [selectedYear, selectedMonth, selectedEmployee, selectedStatus]);
+  }, [selectedYear, selectedMonth]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       
-      const filters = {
-        year: selectedYear,
-        month: selectedMonth
-      };
-      if (selectedEmployee) filters.employee_id = selectedEmployee;
-      if (selectedStatus) filters.status = selectedStatus;
-      
-      const [payrollsData, employeesData, summaryData, historicalData] = await Promise.all([
-        payrollService.getPayrolls(filters),
-        employeeService.getEmployees(),
+      const [employeesData, summaryData, historicalData] = await Promise.all([
+        payrollService.getEmployeesPayrollStatus(selectedYear, selectedMonth),
         payrollService.getMonthlySummary(selectedYear, selectedMonth),
         payrollService.getHistoricalSummary(6)
       ]);
       
-      setPayrolls(payrollsData);
-      // Ensure employees is always an array
-      setEmployees(Array.isArray(employeesData) ? employeesData : (employeesData?.employees || []));
+      setEmployeesStatus(employeesData.employees || []);
       setSummary(summaryData);
       setHistorical(historicalData);
     } catch (error) {
@@ -207,12 +195,12 @@ const Payroll = () => {
       <div className="bg-white rounded-lg shadow mb-6">
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filtros
+            <Calendar className="w-5 h-5" />
+            Seleccionar Período
           </h2>
         </div>
         <div className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
               <select
@@ -236,33 +224,6 @@ const Payroll = () => {
                 {months.map((month, idx) => (
                   <option key={idx} value={idx + 1}>{month}</option>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Empleado</label>
-              <select
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Todos</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Todos</option>
-                <option value="draft">Borrador</option>
-                <option value="validated">Validado</option>
               </select>
             </div>
           </div>
@@ -303,20 +264,14 @@ const Payroll = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">
-            Nóminas - {months[selectedMonth - 1]} {selectedYear}
+            Empleados con Horas Registradas - {months[selectedMonth - 1]} {selectedYear}
           </h2>
         </div>
 
-        {payrolls.length === 0 ? (
+        {employeesStatus.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p>No hay nóminas generadas para este período</p>
-            <button
-              onClick={() => setShowNewPayrollModal(true)}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Generar primera nómina
-            </button>
+            <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <p>No hay empleados con horas registradas en este período</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -324,43 +279,50 @@ const Payroll = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Empleado</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Puesto</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Horas Trabajadas</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Horas Grilla</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Diferencia</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Sueldo Bruto</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase">Nómina Generada</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase">Estado</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Sueldo Bruto</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase">PDF</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {payrolls.map((payroll) => (
-                  <tr key={payroll.id} className="hover:bg-gray-50">
+                {employeesStatus.map((employee) => (
+                  <tr key={employee.employee_id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {payroll.employee_name}
+                      {employee.employee_name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {employee.job_position || 'Sin puesto'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
-                      {payroll.hours_worked.toFixed(2)}
+                      {employee.hours_worked.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
-                      {payroll.scheduled_hours.toFixed(2)}
+                    <td className="px-4 py-3 text-center">
+                      {employee.has_payroll ? (
+                        <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-yellow-600 mx-auto" />
+                      )}
                     </td>
-                    <td className={`px-4 py-3 text-sm text-right font-medium ${
-                      payroll.hours_difference > 0 ? 'text-green-600' : 
-                      payroll.hours_difference < 0 ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {payroll.hours_difference > 0 ? '+' : ''}{payroll.hours_difference.toFixed(2)}
+                    <td className="px-4 py-3 text-center">
+                      {employee.has_payroll ? (
+                        getStatusBadge(employee.payroll_status)
+                      ) : (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          Sin generar
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-semibold">
-                      ${payroll.gross_salary.toFixed(2)}
+                      {employee.gross_salary ? `$${employee.gross_salary.toFixed(2)}` : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {getStatusBadge(payroll.status)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {payroll.pdf_generated ? (
+                      {employee.pdf_generated ? (
                         <button
-                          onClick={() => handleDownloadPDF(payroll.id, payroll.employee_name)}
+                          onClick={() => handleDownloadPDF(employee.payroll_id, employee.employee_name)}
                           className="text-blue-600 hover:text-blue-800"
                           title="Descargar PDF"
                         >
@@ -371,23 +333,35 @@ const Payroll = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleViewDetail(payroll.id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                        >
-                          Ver Detalle
-                        </button>
-                        {payroll.status === 'draft' && (
+                      {employee.has_payroll ? (
+                        <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => handleDeletePayroll(payroll.id, payroll.employee_name)}
-                            className="text-red-600 hover:text-red-800 font-medium text-sm"
-                            title="Eliminar borrador"
+                            onClick={() => handleViewDetail(employee.payroll_id)}
+                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                           >
-                            Eliminar
+                            Ver Detalle
                           </button>
-                        )}
-                      </div>
+                          {employee.payroll_status === 'draft' && (
+                            <button
+                              onClick={() => handleDeletePayroll(employee.payroll_id, employee.employee_name)}
+                              className="text-red-600 hover:text-red-800 font-medium text-sm"
+                              title="Eliminar borrador"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedEmployeeForPayroll(employee);
+                            setShowNewPayrollModal(true);
+                          }}
+                          className="text-green-600 hover:text-green-800 font-medium text-sm"
+                        >
+                          Generar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -395,48 +369,77 @@ const Payroll = () => {
             </table>
 
             <div className="md:hidden divide-y">
-              {payrolls.map((payroll) => (
-                <div key={payroll.id} className="p-4">
+              {employeesStatus.map((employee) => (
+                <div key={employee.employee_id} className="p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-medium text-gray-900">{payroll.employee_name}</div>
-                    {getStatusBadge(payroll.status)}
+                    <div>
+                      <div className="font-medium text-gray-900">{employee.employee_name}</div>
+                      <div className="text-sm text-gray-600">{employee.job_position || 'Sin puesto'}</div>
+                    </div>
+                    {employee.has_payroll ? (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    )}
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Horas trabajadas:</span>
-                      <span className="font-medium">{payroll.hours_worked.toFixed(2)}</span>
+                      <span className="font-medium">{employee.hours_worked.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Horas grilla:</span>
-                      <span className="font-medium">{payroll.scheduled_hours.toFixed(2)}</span>
+                      <span className="text-gray-600">Estado nómina:</span>
+                      {employee.has_payroll ? (
+                        getStatusBadge(employee.payroll_status)
+                      ) : (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          Sin generar
+                        </span>
+                      )}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Diferencia:</span>
-                      <span className={`font-medium ${
-                        payroll.hours_difference > 0 ? 'text-green-600' : 
-                        payroll.hours_difference < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {payroll.hours_difference > 0 ? '+' : ''}{payroll.hours_difference.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Sueldo bruto:</span>
-                      <span className="font-semibold text-lg">${payroll.gross_salary.toFixed(2)}</span>
-                    </div>
+                    {employee.gross_salary && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Sueldo bruto:</span>
+                        <span className="font-semibold text-lg">${employee.gross_salary.toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => handleViewDetail(payroll.id)}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
-                    >
-                      Ver Detalle
-                    </button>
-                    {payroll.pdf_generated && (
+                    {employee.has_payroll ? (
+                      <>
+                        <button
+                          onClick={() => handleViewDetail(employee.payroll_id)}
+                          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+                        >
+                          Ver Detalle
+                        </button>
+                        {employee.pdf_generated && (
+                          <button
+                            onClick={() => handleDownloadPDF(employee.payroll_id, employee.employee_name)}
+                            className="bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        {employee.payroll_status === 'draft' && (
+                          <button
+                            onClick={() => handleDeletePayroll(employee.payroll_id, employee.employee_name)}
+                            className="bg-red-100 text-red-700 px-3 py-2 rounded text-sm hover:bg-red-200"
+                            title="Eliminar borrador"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </>
+                    ) : (
                       <button
-                        onClick={() => handleDownloadPDF(payroll.id, payroll.employee_name)}
-                        className="bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200"
+                        onClick={() => {
+                          setSelectedEmployeeForPayroll(employee);
+                          setShowNewPayrollModal(true);
+                        }}
+                        className="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
                       >
-                        <Download className="w-4 h-4" />
+                        Generar Nómina
                       </button>
                     )}
                   </div>
@@ -449,10 +452,16 @@ const Payroll = () => {
 
       {showNewPayrollModal && (
         <NewPayrollModal
-          employees={employees}
-          onClose={() => setShowNewPayrollModal(false)}
+          preselectedEmployee={selectedEmployeeForPayroll}
+          defaultYear={selectedYear}
+          defaultMonth={selectedMonth}
+          onClose={() => {
+            setShowNewPayrollModal(false);
+            setSelectedEmployeeForPayroll(null);
+          }}
           onSuccess={() => {
             setShowNewPayrollModal(false);
+            setSelectedEmployeeForPayroll(null);
             loadData();
           }}
         />
@@ -461,10 +470,11 @@ const Payroll = () => {
   );
 };
 
-const NewPayrollModal = ({ employees, onClose, onSuccess }) => {
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
+const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClose, onSuccess }) => {
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(preselectedEmployee?.employee_id || '');
+  const [year, setYear] = useState(defaultYear || new Date().getFullYear());
+  const [month, setMonth] = useState(defaultMonth || new Date().getMonth() + 1);
   const [notes, setNotes] = useState('');
   const [calculation, setCalculation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -474,6 +484,18 @@ const NewPayrollModal = ({ employees, onClose, onSuccess }) => {
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const data = await employeeService.getEmployees();
+        setEmployees(Array.isArray(data) ? data : (data?.employees || []));
+      } catch (error) {
+        console.error('Error loading employees:', error);
+      }
+    };
+    loadEmployees();
+  }, []);
 
   const handleCalculate = async () => {
     if (!selectedEmployee) {
@@ -523,19 +545,25 @@ const NewPayrollModal = ({ employees, onClose, onSuccess }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Empleado *</label>
-              <select
-                value={selectedEmployee}
-                onChange={(e) => {
-                  setSelectedEmployee(e.target.value);
-                  setCalculation(null);
-                }}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Seleccionar empleado</option>
-                {employees.filter(e => e.status === 'activo').map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                ))}
-              </select>
+              {preselectedEmployee ? (
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
+                  {preselectedEmployee.employee_name}
+                </div>
+              ) : (
+                <select
+                  value={selectedEmployee}
+                  onChange={(e) => {
+                    setSelectedEmployee(e.target.value);
+                    setCalculation(null);
+                  }}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">Seleccionar empleado</option>
+                  {employees.filter(e => e.status === 'activo').map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.full_name}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
