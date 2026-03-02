@@ -6,14 +6,14 @@ from app.models.employee import Employee
 from app.models.user import User
 from app.models.shift import Shift
 from app.utils.jwt_utils import token_required
+from app.utils.s3_utils import s3_service
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
-from pathlib import Path
+from io import BytesIO
 
 absence_bp = Blueprint('absence_requests', __name__, url_prefix='/api/v1/absence-requests')
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', '..', 'absence_attachments')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -69,18 +69,14 @@ def create_absence_request(current_user):
             if request.content_length and request.content_length > MAX_FILE_SIZE:
                 return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB'}), 400
             
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"{employee.id}_{timestamp}_{filename}"
-            file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-            
-            file.save(file_path)
-            
-            absence_request.attachment_path = file_path
-            absence_request.attachment_filename = filename
-            absence_request.attachment_mimetype = file.content_type
+            try:
+                s3_result = s3_service.upload_file(file, employee.id, file.filename)
+                
+                absence_request.attachment_path = s3_result['s3_key']
+                absence_request.attachment_filename = s3_result['original_filename']
+                absence_request.attachment_mimetype = s3_result['content_type']
+            except Exception as e:
+                return jsonify({'error': f'Error al subir archivo: {str(e)}'}), 500
     
     db.session.add(absence_request)
     db.session.commit()
@@ -137,8 +133,11 @@ def delete_my_absence_request(current_user, request_id):
     if absence_request.status != 'pending':
         return jsonify({'error': 'Solo se pueden eliminar solicitudes pendientes'}), 400
     
-    if absence_request.attachment_path and os.path.exists(absence_request.attachment_path):
-        os.remove(absence_request.attachment_path)
+    if absence_request.attachment_path:
+        try:
+            s3_service.delete_file(absence_request.attachment_path)
+        except Exception as e:
+            print(f"Error deleting S3 file: {str(e)}")
     
     db.session.delete(absence_request)
     db.session.commit()
@@ -255,15 +254,22 @@ def download_attachment(current_user, request_id):
         if not employee or absence_request.employee_id != employee.id:
             return jsonify({'error': 'No tiene permiso para descargar este archivo'}), 403
     
-    if not absence_request.attachment_path or not os.path.exists(absence_request.attachment_path):
+    if not absence_request.attachment_path:
         return jsonify({'error': 'Archivo no encontrado'}), 404
     
-    return send_file(
-        absence_request.attachment_path,
-        mimetype=absence_request.attachment_mimetype,
-        as_attachment=True,
-        download_name=absence_request.attachment_filename
-    )
+    try:
+        file_content, content_type, filename = s3_service.download_file(absence_request.attachment_path)
+        
+        return send_file(
+            BytesIO(file_content),
+            mimetype=content_type,
+            as_attachment=True,
+            download_name=filename
+        )
+    except FileNotFoundError:
+        return jsonify({'error': 'Archivo no encontrado en S3'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Error al descargar archivo: {str(e)}'}), 500
 
 @absence_bp.route('/pending-count', methods=['GET'])
 @token_required

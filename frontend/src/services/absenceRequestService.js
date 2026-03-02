@@ -50,7 +50,8 @@ export const absenceRequestService = {
       responseType: 'blob'
     })
     
-    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const contentType = response.headers['content-type'] || 'application/octet-stream'
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }))
     const link = document.createElement('a')
     link.href = url
     
