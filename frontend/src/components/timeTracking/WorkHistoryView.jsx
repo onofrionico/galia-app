@@ -251,29 +251,32 @@ const WorkHistoryView = () => {
 
                     {record.work_blocks && record.work_blocks.length > 0 && (
                       <div className="space-y-2 pl-4">
-                        {record.work_blocks.map((block, idx) => (
-                          <div key={idx} className="flex items-center gap-3 text-sm">
-                            <span className="text-gray-500">Bloque {idx + 1}:</span>
-                            <span className="font-mono font-bold text-gray-900">
-                              {formatTime(block.start_time)} - {formatTime(block.end_time)}
-                            </span>
-                            {block.start_time !== block.end_time && (
-                              <span className="text-gray-500">
-                                ({(() => {
-                                  const [sHour, sMin] = block.start_time.split(':').map(Number)
-                                  const [eHour, eMin] = block.end_time.split(':').map(Number)
-                                  let h = eHour - sHour
-                                  let m = eMin - sMin
-                                  if (m < 0) {
-                                    h--
-                                    m += 60
-                                  }
-                                  return `${h}h ${m}m`
-                                })()})
+                        {record.work_blocks.map((block, idx) => {
+                          const isOngoing = block.start_time === block.end_time
+                          return (
+                            <div key={idx} className="flex items-center gap-3 text-sm">
+                              <span className="text-gray-500">Bloque {idx + 1}:</span>
+                              <span className="font-mono font-bold text-gray-900">
+                                {formatTime(block.start_time)} - {isOngoing ? 'En curso' : formatTime(block.end_time)}
                               </span>
-                            )}
-                          </div>
-                        ))}
+                              {!isOngoing && (
+                                <span className="text-gray-500">
+                                  ({(() => {
+                                    const [sHour, sMin] = block.start_time.split(':').map(Number)
+                                    const [eHour, eMin] = block.end_time.split(':').map(Number)
+                                    let h = eHour - sHour
+                                    let m = eMin - sMin
+                                    if (m < 0) {
+                                      h--
+                                      m += 60
+                                    }
+                                    return `${h}h ${m}m`
+                                  })()})
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>

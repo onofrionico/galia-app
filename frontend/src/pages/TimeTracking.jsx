@@ -180,22 +180,29 @@ const TimeTracking = () => {
         <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
           {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 ? (
             <>
-              {todayRecord.work_blocks.map((block, idx) => (
-                <div key={idx} className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-600 mb-1">Bloque {idx + 1}</p>
-                      <p className="text-base md:text-lg font-mono font-bold text-gray-900">
-                        {formatTimeFromString(block.start_time)} - {formatTimeFromString(block.end_time)}
-                      </p>
-                    </div>
-                    {block.start_time !== block.end_time && (
+              {todayRecord.work_blocks.map((block, idx) => {
+                const isOngoing = block.start_time === block.end_time
+                return (
+                  <div key={idx} className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <p className="text-xs md:text-sm text-gray-600 mb-1">Bloque {idx + 1}</p>
+                        <p className="text-base md:text-lg font-mono font-bold text-gray-900">
+                          {formatTimeFromString(block.start_time)} - {isOngoing ? 'En curso' : formatTimeFromString(block.end_time)}
+                        </p>
+                      </div>
                       <div className="text-left sm:text-right">
                         <p className="text-xs text-gray-500 mb-1">Duración</p>
                         <p className="text-base md:text-lg font-semibold text-green-600">
                           {(() => {
                             const [sHour, sMin] = block.start_time.split(':').map(Number)
-                            const [eHour, eMin] = block.end_time.split(':').map(Number)
+                            let eHour, eMin
+                            if (isOngoing) {
+                              eHour = currentTime.getHours()
+                              eMin = currentTime.getMinutes()
+                            } else {
+                              [eHour, eMin] = block.end_time.split(':').map(Number)
+                            }
                             let h = eHour - sHour
                             let m = eMin - sMin
                             if (m < 0) {
@@ -206,10 +213,10 @@ const TimeTracking = () => {
                           })()}
                         </p>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </>
           ) : (
             <p className="text-gray-500 text-center py-4">Sin registros de hoy</p>

@@ -167,6 +167,10 @@ const AdminTimeTracking = () => {
     return `${h}h ${m}m`
   }
 
+  const hasOngoingBlock = (record) => {
+    return record.work_blocks && record.work_blocks.some(block => block.start_time === block.end_time)
+  }
+
   const getEmployeeName = (employeeId) => {
     const employee = employees.find(e => e.id === employeeId)
     return employee ? employee.full_name : 'Desconocido'
@@ -370,17 +374,29 @@ const AdminTimeTracking = () => {
           <div className="text-center py-8 text-gray-500">No se encontraron registros</div>
         ) : (
           <div className="space-y-4">
-            {records.map((record) => (
-              <div key={record.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">
-                      {record.employee_name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      DNI: {record.employee_dni} | Fecha: {formatDate(record.tracking_date)}
-                    </p>
-                  </div>
+            {records.map((record) => {
+              const isOngoing = hasOngoingBlock(record)
+              return (
+                <div key={record.id} className={`border rounded-lg p-4 ${
+                  isOngoing ? 'border-green-400 bg-green-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-lg text-gray-900">
+                          {record.employee_name}
+                        </h3>
+                        {isOngoing && (
+                          <span className="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-full flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            En turno
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        DNI: {record.employee_dni} | Fecha: {formatDate(record.tracking_date)}
+                      </p>
+                    </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Total</p>
                     <p className="text-lg font-semibold text-green-600">
@@ -423,12 +439,21 @@ const AdminTimeTracking = () => {
                       ) : (
                         <>
                           <div className="flex-1">
-                            <p className="font-mono font-semibold text-gray-900">
-                              {block.start_time.substring(0, 5)} - {block.end_time.substring(0, 5)}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Duración: {calculateDuration(block.start_time, block.end_time)}
-                            </p>
+                            {(() => {
+                              const isOngoing = block.start_time === block.end_time
+                              return (
+                                <>
+                                  <p className="font-mono font-semibold text-gray-900">
+                                    {block.start_time.substring(0, 5)} - {isOngoing ? 'En curso' : block.end_time.substring(0, 5)}
+                                  </p>
+                                  {!isOngoing && (
+                                    <p className="text-sm text-gray-600">
+                                      Duración: {calculateDuration(block.start_time, block.end_time)}
+                                    </p>
+                                  )}
+                                </>
+                              )
+                            })()}
                           </div>
                           <div className="flex gap-2">
                             <button
@@ -452,7 +477,8 @@ const AdminTimeTracking = () => {
                   ))}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
