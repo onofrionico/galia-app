@@ -172,6 +172,17 @@ const AdminTimeTracking = () => {
     return employee ? employee.full_name : 'Desconocido'
   }
 
+  const formatDate = (dateString) => {
+    // Parse the date string as local date to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -367,7 +378,7 @@ const AdminTimeTracking = () => {
                       {record.employee_name}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      DNI: {record.employee_dni} | Fecha: {new Date(record.tracking_date).toLocaleDateString('es-AR')}
+                      DNI: {record.employee_dni} | Fecha: {formatDate(record.tracking_date)}
                     </p>
                   </div>
                   <div className="text-right">
