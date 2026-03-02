@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from functools import wraps
 from app.extensions import db
 from app.models.time_tracking import TimeTracking
 from app.models.work_block import WorkBlock
@@ -15,6 +16,14 @@ from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hou
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(current_user, *args, **kwargs):
+        if not current_user.is_admin:
+            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
+        return f(current_user, *args, **kwargs)
+    return decorated
 
 ARGENTINA_TZ = pytz.timezone('America/Argentina/Buenos_Aires')
 
@@ -457,3 +466,197 @@ def get_day_detail(current_user):
         'hours_breakdown': hours_with_work,
         'total_employees': len(employees_summary)
     }), 200
+
+
+@bp.route('/admin/records', methods=['GET'])
+@token_required
+@admin_required
+def get_all_records(current_user):
+    """
+    Admin endpoint: Obtiene todos los registros de horas trabajadas con filtros opcionales.
+    Parámetros:
+    - employee_id: filtrar por empleado (opcional)
+    - start_date: fecha de inicio (opcional)
+    - end_date: fecha de fin (opcional)
+    - month: mes (opcional, requiere year)
+    - year: año (opcional, requiere month)
+    """
+    employee_id = request.args.get('employee_id', type=int)
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+    
+    query = TimeTracking.query.join(Employee)
+    
+    if employee_id:
+        query = query.filter(TimeTracking.employee_id == employee_id)
+    
+    if month and year:
+        start = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        end = date(year, month, last_day)
+        query = query.filter(TimeTracking.tracking_date >= start, TimeTracking.tracking_date <= end)
+    elif start_date or end_date:
+        try:
+            if start_date:
+                start = datetime.fromisoformat(start_date).date()
+                query = query.filter(TimeTracking.tracking_date >= start)
+            if end_date:
+                end = datetime.fromisoformat(end_date).date()
+                query = query.filter(TimeTracking.tracking_date <= end)
+        except (ValueError, AttributeError):
+            return jsonify({'error': 'Formato de fecha inválido'}), 400
+    
+    records = query.order_by(TimeTracking.tracking_date.desc()).all()
+    
+    result = []
+    for record in records:
+        record_dict = record.to_dict()
+        record_dict['employee_name'] = record.employee.full_name
+        record_dict['employee_dni'] = record.employee.dni
+        result.append(record_dict)
+    
+    return jsonify(result), 200
+
+
+@bp.route('/admin/record/<int:employee_id>', methods=['POST'])
+@token_required
+@admin_required
+def admin_create_record(current_user):
+    """
+    Admin endpoint: Crea un registro de horas trabajadas para un empleado.
+    """
+    data = request.get_json()
+    
+    employee = Employee.query.get_or_404(employee_id)
+    
+    required_fields = ['date', 'check_in', 'check_out']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Todos los campos son requeridos'}), 400
+    
+    try:
+        tracking_date = datetime.fromisoformat(data['date']).date()
+        check_in_time = datetime.strptime(data['check_in'], '%H:%M').time()
+        check_out_time = datetime.strptime(data['check_out'], '%H:%M').time()
+    except (ValueError, AttributeError):
+        return jsonify({'error': 'Formato de fecha u hora inválido'}), 400
+    
+    if check_in_time >= check_out_time:
+        return jsonify({'error': 'La hora de salida debe ser posterior a la hora de entrada'}), 400
+    
+    try:
+        record = TimeTracking.query.filter_by(
+            employee_id=employee_id,
+            tracking_date=tracking_date
+        ).first()
+        
+        if not record:
+            record = TimeTracking(
+                employee_id=employee_id,
+                tracking_date=tracking_date
+            )
+            db.session.add(record)
+            db.session.flush()
+        
+        for existing_block in record.work_blocks:
+            if blocks_overlap(existing_block.start_time, existing_block.end_time, check_in_time, check_out_time):
+                return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
+        
+        work_block = WorkBlock(
+            time_tracking_id=record.id,
+            start_time=check_in_time,
+            end_time=check_out_time
+        )
+        db.session.add(work_block)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Horas registradas exitosamente',
+            'record': record.to_dict()
+        }), 201
+    
+    except IntegrityError as e:
+        db.session.rollback()
+        logger.error(f"IntegrityError en admin_create_record: {str(e)}")
+        return jsonify({'error': 'Error al registrar horas'}), 400
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error en admin_create_record: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/admin/work-block/<int:block_id>', methods=['PUT'])
+@token_required
+@admin_required
+def admin_update_work_block(current_user, block_id):
+    """
+    Admin endpoint: Actualiza un bloque de trabajo existente.
+    """
+    data = request.get_json()
+    
+    work_block = WorkBlock.query.get_or_404(block_id)
+    
+    try:
+        if 'start_time' in data:
+            start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+        else:
+            start_time = work_block.start_time
+            
+        if 'end_time' in data:
+            end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+        else:
+            end_time = work_block.end_time
+    except (ValueError, AttributeError):
+        return jsonify({'error': 'Formato de hora inválido'}), 400
+    
+    if start_time >= end_time:
+        return jsonify({'error': 'La hora de salida debe ser posterior a la hora de entrada'}), 400
+    
+    time_tracking = work_block.time_tracking
+    for existing_block in time_tracking.work_blocks:
+        if existing_block.id != block_id:
+            if blocks_overlap(existing_block.start_time, existing_block.end_time, start_time, end_time):
+                return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
+    
+    try:
+        work_block.start_time = start_time
+        work_block.end_time = end_time
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Bloque actualizado exitosamente',
+            'work_block': work_block.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error en admin_update_work_block: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/admin/work-block/<int:block_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def admin_delete_work_block(current_user, block_id):
+    """
+    Admin endpoint: Elimina un bloque de trabajo.
+    """
+    work_block = WorkBlock.query.get_or_404(block_id)
+    
+    try:
+        time_tracking_id = work_block.time_tracking_id
+        db.session.delete(work_block)
+        db.session.commit()
+        
+        time_tracking = TimeTracking.query.get(time_tracking_id)
+        if time_tracking and len(time_tracking.work_blocks) == 0:
+            db.session.delete(time_tracking)
+            db.session.commit()
+        
+        return jsonify({'message': 'Bloque eliminado exitosamente'}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error en admin_delete_work_block: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500

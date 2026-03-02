@@ -31,6 +31,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/my-absence-requests', icon: FileText, label: 'Mis Ausencias', adminOnly: false, employeeOnly: true },
     { to: '/profile', icon: User, label: 'Mi Perfil', adminOnly: false },
     { to: '/schedules', icon: Calendar, label: 'Horarios', adminOnly: true },
+    { to: '/admin-time-tracking', icon: Clock, label: 'Gestión de Horas', adminOnly: true },
     { to: '/import-time-tracking', icon: Upload, label: 'Importar Horas', adminOnly: true },
     { to: '/absence-requests', icon: FileText, label: 'Solicitudes de Ausencia', adminOnly: true },
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: true },

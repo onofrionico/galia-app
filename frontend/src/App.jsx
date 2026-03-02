@@ -27,6 +27,7 @@ import StoreHours from './pages/StoreHours'
 import VacationPeriods from './pages/VacationPeriods'
 import MyAbsenceRequests from './pages/MyAbsenceRequests'
 import AbsenceRequestsAdmin from './pages/AbsenceRequestsAdmin'
+import AdminTimeTracking from './pages/AdminTimeTracking'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/schedules" element={<Schedules />} />
             <Route path="/my-schedule" element={<MySchedule />} />
             <Route path="/time-tracking" element={<TimeTracking />} />
+            <Route path="/admin-time-tracking" element={<AdminTimeTracking />} />
             <Route path="/import-time-tracking" element={<ImportTimeTracking />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/expenses" element={<Expenses />} />

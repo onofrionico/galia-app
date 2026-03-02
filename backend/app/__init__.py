@@ -10,16 +10,14 @@ def create_app(config_name='development'):
     # Log CORS configuration
     print(f"[CORS CONFIG] Allowed origins: {app.config['CORS_ORIGINS']}")
     
-    CORS(app, 
-         resources={r"/api/*": {
-             "origins": app.config['CORS_ORIGINS'],
-             "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization"],
-             "expose_headers": ["Content-Type", "Authorization"],
-             "supports_credentials": True,
-             "max_age": 3600
-         }},
-         supports_credentials=True)
+    # Simplified CORS configuration
+    CORS(app,
+         origins=app.config['CORS_ORIGINS'],
+         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+         expose_headers=["Content-Type", "Authorization"],
+         supports_credentials=True,
+         max_age=3600)
     
     # Middleware para loguear todas las requests
     @app.before_request
