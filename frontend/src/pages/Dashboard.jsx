@@ -185,26 +185,33 @@ const Dashboard = () => {
                 <div className="bg-blue-50 rounded-lg p-3 md:p-4">
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Entrada</p>
                   <p className="text-xl md:text-2xl font-bold text-blue-600">
-                    {todayRecord?.check_in ? formatTime(todayRecord.check_in) : '—'}
+                    {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 
+                      ? formatTime(todayRecord.work_blocks[0].start_time) 
+                      : '—'}
                   </p>
                 </div>
 
                 <div className="bg-green-50 rounded-lg p-3 md:p-4">
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Salida</p>
                   <p className="text-xl md:text-2xl font-bold text-green-600">
-                    {todayRecord?.check_out ? formatTime(todayRecord.check_out) : '—'}
+                    {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 
+                      ? formatTime(todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time) 
+                      : '—'}
                   </p>
                 </div>
 
                 <div className="bg-purple-50 rounded-lg p-3 md:p-4">
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Horas</p>
                   <p className="text-xl md:text-2xl font-bold text-purple-600">
-                    {todayRecord?.hours_worked ? todayRecord.hours_worked.toFixed(1) : '0'}h
+                    {todayRecord?.total_hours !== undefined 
+                      ? `${todayRecord.total_hours}h ${todayRecord.total_minutes || 0}m`
+                      : '0h'}
                   </p>
                 </div>
               </div>
 
-              {todayRecord?.check_in && !todayRecord?.check_out && (
+              {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 && 
+               !todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time && (
                 <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
                   <p className="text-xs md:text-sm text-green-800 font-medium">
                     ✓ Entrada registrada. No olvides registrar tu salida.
