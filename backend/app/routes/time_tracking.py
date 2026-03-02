@@ -9,11 +9,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from calendar import monthrange
 import logging
+import pytz
 from app.utils.jwt_utils import token_required
 from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
+
+ARGENTINA_TZ = pytz.timezone('America/Argentina/Buenos_Aires')
+
+def get_current_time_argentina():
+    """Obtiene la hora actual en la zona horaria de Argentina (UTC-3)"""
+    return datetime.now(ARGENTINA_TZ)
 
 def blocks_overlap(start1, end1, start2, end2):
     """Verifica si dos bloques de tiempo se superponen"""
@@ -49,7 +56,7 @@ def check_in(current_user):
             db.session.add(record)
             db.session.flush()
         
-        current_time = datetime.now().time()
+        current_time = get_current_time_argentina().time()
         
         for existing_block in record.work_blocks:
             if blocks_overlap(existing_block.start_time, existing_block.end_time, current_time, current_time):
@@ -107,7 +114,7 @@ def check_out(current_user):
         if last_block.end_time != last_block.start_time:
             return jsonify({'error': 'Ya has registrado salida para el último bloque'}), 409
         
-        last_block.end_time = datetime.now().time()
+        last_block.end_time = get_current_time_argentina().time()
         db.session.commit()
         
         return jsonify({
