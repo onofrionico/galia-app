@@ -33,6 +33,9 @@ def get_current_time_argentina():
 
 def blocks_overlap(start1, end1, start2, end2):
     """Verifica si dos bloques de tiempo se superponen"""
+    # Dos bloques se superponen si uno comienza antes de que el otro termine
+    # Usamos <= para permitir bloques adyacentes (que se tocan pero no se superponen)
+    # Por ejemplo: 09:00-13:00 y 13:00-17:00 NO se superponen
     return start1 < end2 and start2 < end1
 
 @bp.route('/check-in', methods=['POST'])
@@ -219,6 +222,48 @@ def get_monthly_records(current_user):
     
     return jsonify([record.to_dict() for record in records]), 200
 
+@bp.route('/current-week-worked', methods=['GET'])
+@token_required
+def get_current_week_worked(current_user):
+    """Get actual worked hours for the current week (Monday to Sunday)"""
+    if not current_user.employee:
+        return jsonify({'error': 'Usuario no es un empleado'}), 403
+    
+    today = date.today()
+    days_since_monday = today.weekday()
+    this_monday = today - timedelta(days=days_since_monday)
+    this_sunday = this_monday + timedelta(days=6)
+    
+    records = TimeTracking.query.filter_by(
+        employee_id=current_user.employee.id
+    ).filter(
+        TimeTracking.tracking_date >= this_monday,
+        TimeTracking.tracking_date <= this_sunday
+    ).all()
+    
+    total_hours = 0
+    total_minutes = 0
+    
+    for record in records:
+        record_dict = record.to_dict()
+        total_hours += record_dict['total_hours']
+        total_minutes += record_dict['total_minutes']
+    
+    extra_hours = total_minutes // 60
+    total_hours += extra_hours
+    total_minutes = total_minutes % 60
+    
+    total_hours_decimal = total_hours + (total_minutes / 60)
+    
+    return jsonify({
+        'start_date': this_monday.isoformat(),
+        'end_date': this_sunday.isoformat(),
+        'total_hours': total_hours,
+        'total_minutes': total_minutes,
+        'total_hours_decimal': round(total_hours_decimal, 2),
+        'record_count': len(records)
+    }), 200
+
 @bp.route('/record-hours', methods=['POST'])
 @token_required
 def record_hours(current_user):
@@ -258,9 +303,26 @@ def record_hours(current_user):
             db.session.add(record)
             db.session.flush()
         
+        logger.info(f"Recording hours for employee {current_user.employee.id} on {tracking_date}")
+        logger.info(f"New block: {check_in_time} to {check_out_time}")
+        logger.info(f"Existing blocks count: {len(record.work_blocks)}")
+        for idx, block in enumerate(record.work_blocks):
+            logger.info(f"  Block {idx + 1}: {block.start_time} to {block.end_time}")
+        
         for existing_block in record.work_blocks:
             if blocks_overlap(existing_block.start_time, existing_block.end_time, check_in_time, check_out_time):
-                return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
+                logger.warning(f"Overlap detected - Existing: {existing_block.start_time} to {existing_block.end_time}, New: {check_in_time} to {check_out_time}")
+                return jsonify({
+                    'error': 'Este bloque se superpone con otro bloque existente',
+                    'existing_block': {
+                        'start_time': existing_block.start_time.strftime('%H:%M'),
+                        'end_time': existing_block.end_time.strftime('%H:%M')
+                    },
+                    'new_block': {
+                        'start_time': check_in_time.strftime('%H:%M'),
+                        'end_time': check_out_time.strftime('%H:%M')
+                    }
+                }), 409
         
         work_block = WorkBlock(
             time_tracking_id=record.id,

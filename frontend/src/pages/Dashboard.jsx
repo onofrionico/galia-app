@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [todayRecord, setTodayRecord] = useState(null)
   const [upcomingShift, setUpcomingShift] = useState(null)
   const [weeklyHours, setWeeklyHours] = useState(0)
+  const [scheduledHours, setScheduledHours] = useState(40)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
@@ -74,10 +75,16 @@ const Dashboard = () => {
         setUpcomingShift(upcomingShiftsData.shifts[0])
       }
 
-      // Cargar horas de la semana actual
+      // Cargar horas trabajadas de la semana actual (desde time tracking)
+      const workedHours = await timeTrackingService.getCurrentWeekWorked()
+      if (workedHours && workedHours.total_hours_decimal !== undefined) {
+        setWeeklyHours(workedHours.total_hours_decimal)
+      }
+
+      // Cargar horas programadas de la semana actual (desde schedule)
       const currentWeek = await employeeScheduleService.getMyCurrentWeek()
       if (currentWeek && currentWeek.total_hours) {
-        setWeeklyHours(currentWeek.total_hours)
+        setScheduledHours(currentWeek.total_hours)
       }
     } catch (err) {
       console.error('Error loading employee dashboard:', err)
@@ -223,11 +230,11 @@ const Dashboard = () => {
               <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-indigo-600 h-2 rounded-full transition-all"
-                  style={{ width: `${Math.min((weeklyHours / 40) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((weeklyHours / scheduledHours) * 100, 100)}%` }}
                 ></div>
               </div>
               <p className="text-xs md:text-sm text-gray-500 mt-2">
-                Meta: 40 horas/semana
+                Meta: {scheduledHours.toFixed(1)} horas/semana
               </p>
             </div>
           </>

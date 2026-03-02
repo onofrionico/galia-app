@@ -85,6 +85,7 @@ class EmployeeScheduleService:
         """Get employee's upcoming shifts for the next N days"""
         start_date = date.today()
         end_date = start_date + timedelta(days=days_ahead)
+        current_time = datetime.now().time()
         
         shifts = Shift.query.join(Schedule).filter(
             and_(
@@ -95,14 +96,25 @@ class EmployeeScheduleService:
             )
         ).order_by(Shift.shift_date, Shift.start_time).all()
         
-        total_hours = sum(float(shift.hours) for shift in shifts)
+        # Filter out shifts from today that have already started
+        upcoming_shifts = []
+        for shift in shifts:
+            if shift.shift_date == start_date:
+                # For today's shifts, only include if start_time hasn't passed
+                if shift.start_time and shift.start_time > current_time:
+                    upcoming_shifts.append(shift)
+            else:
+                # Include all future shifts
+                upcoming_shifts.append(shift)
+        
+        total_hours = sum(float(shift.hours) for shift in upcoming_shifts)
         
         return {
             'start_date': start_date.isoformat(),
             'end_date': end_date.isoformat(),
-            'shifts': [shift.to_dict() for shift in shifts],
+            'shifts': [shift.to_dict() for shift in upcoming_shifts],
             'total_hours': total_hours,
-            'shift_count': len(shifts)
+            'shift_count': len(upcoming_shifts)
         }
     
     @staticmethod

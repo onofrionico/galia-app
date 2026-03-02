@@ -66,5 +66,10 @@ export const timeTrackingService = {
   adminDeleteWorkBlock: async (blockId) => {
     const response = await api.delete(`/time-tracking/admin/work-block/${blockId}`)
     return response.data
+  },
+
+  getCurrentWeekWorked: async () => {
+    const response = await api.get('/time-tracking/current-week-worked')
+    return response.data
   }
 }
