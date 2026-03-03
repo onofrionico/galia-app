@@ -4,6 +4,13 @@ import { Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import WeeklyScheduleView from '../components/schedules/WeeklyScheduleView'
 import MonthlyScheduleView from '../components/schedules/MonthlyScheduleView'
 
+const formatDateLocal = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const MySchedule = () => {
   const [view, setView] = useState('weekly')
   const [weeklySchedule, setWeeklySchedule] = useState(null)
@@ -23,7 +30,7 @@ const MySchedule = () => {
     try {
       if (view === 'weekly') {
         const startDate = getWeekStart(currentDate)
-        const data = await employeeScheduleService.getMyWeeklySchedule(startDate.toISOString().split('T')[0])
+        const data = await employeeScheduleService.getMyWeeklySchedule(formatDateLocal(startDate))
         setWeeklySchedule(data)
       } else {
         const year = currentDate.getFullYear()

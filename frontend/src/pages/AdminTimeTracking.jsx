@@ -3,6 +3,13 @@ import { timeTrackingService } from '../services/timeTrackingService'
 import employeeService from '../services/employeeService'
 import { Clock, Edit2, Trash2, Plus, Search, Calendar, AlertCircle, Check } from 'lucide-react'
 
+const formatDateLocal = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const AdminTimeTracking = () => {
   const [records, setRecords] = useState([])
   const [employees, setEmployees] = useState([])
@@ -21,7 +28,7 @@ const AdminTimeTracking = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createData, setCreateData] = useState({
     employee_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateLocal(new Date()),
     check_in: '09:00',
     check_out: '17:00'
   })
@@ -91,7 +98,7 @@ const AdminTimeTracking = () => {
       setShowCreateForm(false)
       setCreateData({
         employee_id: '',
-        date: new Date().toISOString().split('T')[0],
+        date: formatDateLocal(new Date()),
         check_in: '09:00',
         check_out: '17:00'
       })

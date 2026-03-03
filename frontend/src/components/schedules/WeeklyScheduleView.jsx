@@ -4,8 +4,12 @@ const WeeklyScheduleView = ({ schedule }) => {
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   
   const parseDate = (dateStr) => {
+    // Parse date string as local date to avoid timezone issues
     const [year, month, day] = dateStr.split('-').map(Number)
-    return new Date(year, month - 1, day)
+    const date = new Date(year, month - 1, day)
+    // Set to noon to avoid any DST or timezone boundary issues
+    date.setHours(12, 0, 0, 0)
+    return date
   }
   
   const getShiftsForDay = (dayIndex) => {
@@ -23,7 +27,12 @@ const WeeklyScheduleView = ({ schedule }) => {
     const startDate = parseDate(schedule.start_date)
     const targetDate = new Date(startDate)
     targetDate.setDate(targetDate.getDate() + dayIndex)
-    return targetDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+    
+    const day = targetDate.getDate()
+    const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    const month = monthNames[targetDate.getMonth()]
+    
+    return `${day} ${month}`
   }
 
   const isToday = (dayIndex) => {
@@ -31,6 +40,7 @@ const WeeklyScheduleView = ({ schedule }) => {
     const targetDate = new Date(startDate)
     targetDate.setDate(targetDate.getDate() + dayIndex)
     const today = new Date()
+    today.setHours(12, 0, 0, 0)
     
     return targetDate.getFullYear() === today.getFullYear() &&
            targetDate.getMonth() === today.getMonth() &&

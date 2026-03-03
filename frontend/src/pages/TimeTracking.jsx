@@ -3,6 +3,13 @@ import { timeTrackingService } from '../services/timeTrackingService'
 import { Clock, LogIn, LogOut, Calendar, AlertCircle } from 'lucide-react'
 import WorkHistoryView from '../components/timeTracking/WorkHistoryView'
 
+const formatDateLocal = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const TimeTracking = () => {
   const [todayRecord, setTodayRecord] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -11,7 +18,7 @@ const TimeTracking = () => {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastDayForm, setShowPastDayForm] = useState(false)
   const [pastDayData, setPastDayData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateLocal(new Date()),
     check_in: '09:00',
     check_out: '17:00'
   })
@@ -38,7 +45,7 @@ const TimeTracking = () => {
     setSuccess(null)
 
     try {
-      const result = await timeTrackingService.recordCheckIn(new Date().toISOString().split('T')[0])
+      const result = await timeTrackingService.recordCheckIn(formatDateLocal(new Date()))
       setTodayRecord(result.record)
       setSuccess('Entrada registrada exitosamente')
       setTimeout(() => setSuccess(null), 3000)
@@ -55,7 +62,7 @@ const TimeTracking = () => {
     setSuccess(null)
 
     try {
-      const result = await timeTrackingService.recordCheckOut(new Date().toISOString().split('T')[0])
+      const result = await timeTrackingService.recordCheckOut(formatDateLocal(new Date()))
       setTodayRecord(result.record)
       setSuccess('Salida registrada exitosamente')
       setTimeout(() => setSuccess(null), 3000)
@@ -116,7 +123,7 @@ const TimeTracking = () => {
       setSuccess('Horas registradas exitosamente')
       setShowPastDayForm(false)
       setPastDayData({
-        date: new Date().toISOString().split('T')[0],
+        date: formatDateLocal(new Date()),
         check_in: '09:00',
         check_out: '17:00'
       })
@@ -295,7 +302,7 @@ const TimeTracking = () => {
               <input
                 type="date"
                 value={pastDayData.date}
-                max={new Date().toISOString().split('T')[0]}
+                max={formatDateLocal(new Date())}
                 onChange={(e) => setPastDayData({ ...pastDayData, date: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
               />
