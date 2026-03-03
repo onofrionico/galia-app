@@ -23,8 +23,8 @@ const WorkHistoryView = () => {
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekEnd.getDate() + 6)
 
-        const startStr = weekStart.toISOString().split('T')[0]
-        const endStr = weekEnd.toISOString().split('T')[0]
+        const startStr = formatDateLocal(weekStart)
+        const endStr = formatDateLocal(weekEnd)
 
         const data = await timeTrackingService.getRecords(startStr, endStr)
         setRecords(data)
@@ -39,6 +39,13 @@ const WorkHistoryView = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const getWeekStart = (date) => {

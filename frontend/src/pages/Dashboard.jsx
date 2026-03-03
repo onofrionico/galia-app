@@ -111,6 +111,34 @@ const Dashboard = () => {
     })
   }
 
+  const isShiftInProgress = (shift) => {
+    if (!shift || !shift.shift_date || !shift.start_time) return false
+    
+    const today = new Date()
+    const [year, month, day] = shift.shift_date.split('-').map(Number)
+    const shiftDate = new Date(year, month - 1, day)
+    
+    // Check if shift is today
+    if (shiftDate.toDateString() !== today.toDateString()) return false
+    
+    // Parse shift start time
+    const [startHour, startMin] = shift.start_time.split(':').map(Number)
+    
+    const currentMinutes = today.getHours() * 60 + today.getMinutes()
+    const startMinutes = startHour * 60 + startMin
+    
+    // Shift is in progress if current time is after start time and it's today
+    // We check if there's an end_time in the shift schedule to verify we haven't passed it
+    if (shift.end_time) {
+      const [endHour, endMin] = shift.end_time.split(':').map(Number)
+      const endMinutes = endHour * 60 + endMin
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+    }
+    
+    // If no end_time, just check if we've passed the start time
+    return currentMinutes >= startMinutes
+  }
+
   // Dashboard para Empleados
   if (!isAdmin()) {
     return (
@@ -134,7 +162,14 @@ const Dashboard = () => {
             {upcomingShift ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-900">Próximo Turno</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-semibold text-gray-900">Próximo Turno</h2>
+                    {isShiftInProgress(upcomingShift) && (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                        En curso
+                      </span>
+                    )}
+                  </div>
                   <Calendar className="text-orange-600" size={24} />
                 </div>
 
@@ -195,7 +230,10 @@ const Dashboard = () => {
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Salida</p>
                   <p className="text-xl md:text-2xl font-bold text-green-600">
                     {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 
-                      ? formatTime(todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time) 
+                      ? (todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time !== 
+                         todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time
+                          ? formatTime(todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time)
+                          : '—')
                       : '—'}
                   </p>
                 </div>
@@ -203,7 +241,7 @@ const Dashboard = () => {
                 <div className="bg-purple-50 rounded-lg p-3 md:p-4">
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Horas</p>
                   <p className="text-xl md:text-2xl font-bold text-purple-600">
-                    {todayRecord?.total_hours !== undefined 
+                    {todayRecord?.total_hours !== undefined && todayRecord.total_hours > 0
                       ? `${todayRecord.total_hours}h ${todayRecord.total_minutes || 0}m`
                       : '0h'}
                   </p>
@@ -211,7 +249,8 @@ const Dashboard = () => {
               </div>
 
               {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 && 
-               !todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time && (
+               todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time === 
+               todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time && (
                 <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
                   <p className="text-xs md:text-sm text-green-800 font-medium">
                     ✓ Entrada registrada. No olvides registrar tu salida.

@@ -70,7 +70,10 @@ def check_in(current_user):
         
         current_time = get_current_time_argentina().time()
         
+        # Check if there's an active block (end_time == start_time means in progress)
         for existing_block in record.work_blocks:
+            if existing_block.end_time == existing_block.start_time:
+                return jsonify({'error': 'Ya existe un bloque de trabajo activo. Debe registrar la salida primero.'}), 409
             if blocks_overlap(existing_block.start_time, existing_block.end_time, current_time, current_time):
                 return jsonify({'error': 'Ya existe un bloque de trabajo en este horario'}), 409
         
@@ -310,6 +313,9 @@ def record_hours(current_user):
             logger.info(f"  Block {idx + 1}: {block.start_time} to {block.end_time}")
         
         for existing_block in record.work_blocks:
+            # Skip blocks in progress (end_time == start_time)
+            if existing_block.end_time == existing_block.start_time:
+                continue
             if blocks_overlap(existing_block.start_time, existing_block.end_time, check_in_time, check_out_time):
                 logger.warning(f"Overlap detected - Existing: {existing_block.start_time} to {existing_block.end_time}, New: {check_in_time} to {check_out_time}")
                 return jsonify({
@@ -493,6 +499,10 @@ def get_day_detail(current_user):
         }
         
         for block in record.work_blocks:
+            # Skip blocks in progress (end_time == start_time)
+            if block.end_time == block.start_time:
+                continue
+                
             start_hour = block.start_time.hour
             end_hour = block.end_time.hour if block.end_time.minute > 0 else block.end_time.hour
             
@@ -622,6 +632,9 @@ def admin_create_record(current_user):
             db.session.flush()
         
         for existing_block in record.work_blocks:
+            # Skip blocks in progress (end_time == start_time)
+            if existing_block.end_time == existing_block.start_time:
+                continue
             if blocks_overlap(existing_block.start_time, existing_block.end_time, check_in_time, check_out_time):
                 return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
         
@@ -672,12 +685,16 @@ def admin_update_work_block(current_user, block_id):
     except (ValueError, AttributeError):
         return jsonify({'error': 'Formato de hora inválido'}), 400
     
-    if start_time >= end_time:
+    # Only validate if it's not a block in progress (end_time != start_time)
+    if end_time != start_time and start_time >= end_time:
         return jsonify({'error': 'La hora de salida debe ser posterior a la hora de entrada'}), 400
     
     time_tracking = work_block.time_tracking
     for existing_block in time_tracking.work_blocks:
         if existing_block.id != block_id:
+            # Skip blocks in progress (end_time == start_time)
+            if existing_block.end_time == existing_block.start_time or end_time == start_time:
+                continue
             if blocks_overlap(existing_block.start_time, existing_block.end_time, start_time, end_time):
                 return jsonify({'error': 'Este bloque se superpone con otro bloque existente'}), 409
     

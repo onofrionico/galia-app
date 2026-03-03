@@ -25,15 +25,18 @@ class TimeTracking(db.Model):
             start = block.start_time
             end = block.end_time
             
-            hours = end.hour - start.hour
-            minutes = end.minute - start.minute
-            
-            if minutes < 0:
-                hours -= 1
-                minutes += 60
-            
-            total_hours += hours
-            total_minutes += minutes
+            # Only calculate hours for completed blocks (end_time != start_time)
+            # When end_time == start_time, the block is in progress
+            if end != start:
+                hours = end.hour - start.hour
+                minutes = end.minute - start.minute
+                
+                if minutes < 0:
+                    hours -= 1
+                    minutes += 60
+                
+                total_hours += hours
+                total_minutes += minutes
         
         total_hours += total_minutes // 60
         total_minutes = total_minutes % 60
