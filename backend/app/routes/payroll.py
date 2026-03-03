@@ -76,6 +76,7 @@ def generate_payroll(current_user):
     month = data.get('month')
     year = data.get('year')
     notes = data.get('notes', '')
+    custom_hourly_rate = data.get('hourly_rate')
     
     if not all([employee_id, month, year]):
         return jsonify({'error': 'Faltan datos requeridos'}), 400
@@ -97,7 +98,13 @@ def generate_payroll(current_user):
     worked_hours, _ = calculate_hours_from_time_tracking(employee_id, month, year)
     scheduled_hours, _ = calculate_scheduled_hours(employee_id, month, year)
     
-    hourly_rate = float(employee.job_position.hourly_rate)
+    if custom_hourly_rate is not None:
+        hourly_rate = float(custom_hourly_rate)
+        if hourly_rate <= 0:
+            return jsonify({'error': 'La tarifa horaria debe ser mayor a 0'}), 400
+    else:
+        hourly_rate = float(employee.job_position.hourly_rate)
+    
     gross_salary = calculate_employee_cost(worked_hours, hourly_rate)
     
     payroll = Payroll(

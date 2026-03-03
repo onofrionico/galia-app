@@ -479,6 +479,8 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
   const [calculation, setCalculation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [customHourlyRate, setCustomHourlyRate] = useState('');
+  const [useCustomRate, setUseCustomRate] = useState(false);
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -507,6 +509,9 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
       setLoading(true);
       const data = await payrollService.calculatePayroll(selectedEmployee, year, month);
       setCalculation(data);
+      if (!useCustomRate) {
+        setCustomHourlyRate(data.hourly_rate.toFixed(2));
+      }
     } catch (error) {
       console.error('Error calculating payroll:', error);
       alert(error.response?.data?.error || 'Error al calcular la nómina');
@@ -518,12 +523,18 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
   const handleGenerate = async () => {
     try {
       setGenerating(true);
-      await payrollService.generatePayroll({
+      const payload = {
         employee_id: selectedEmployee,
         year,
         month,
         notes
-      });
+      };
+      
+      if (useCustomRate && customHourlyRate) {
+        payload.hourly_rate = parseFloat(customHourlyRate);
+      }
+      
+      await payrollService.generatePayroll(payload);
       alert('Nómina generada exitosamente');
       onSuccess();
     } catch (error) {
@@ -631,12 +642,56 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
                   </p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Tarifa horaria:</span>
+                  <span className="text-gray-600">Tarifa horaria (puesto):</span>
                   <p className="font-semibold">${calculation.hourly_rate.toFixed(2)}</p>
                 </div>
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      id="useCustomRate"
+                      checked={useCustomRate}
+                      onChange={(e) => {
+                        setUseCustomRate(e.target.checked);
+                        if (!e.target.checked) {
+                          setCustomHourlyRate(calculation.hourly_rate.toFixed(2));
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <label htmlFor="useCustomRate" className="text-sm font-medium text-gray-700">
+                      Usar tarifa horaria personalizada
+                    </label>
+                  </div>
+                  {useCustomRate && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tarifa horaria personalizada:
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={customHourlyRate}
+                        onChange={(e) => setCustomHourlyRate(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2"
+                        placeholder="Ingrese tarifa horaria"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="col-span-2 pt-2 border-t">
-                  <span className="text-gray-600">Sueldo bruto:</span>
-                  <p className="text-2xl font-bold text-green-600">${calculation.gross_salary.toFixed(2)}</p>
+                  <span className="text-gray-600">Sueldo bruto estimado:</span>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${(useCustomRate && customHourlyRate 
+                      ? (calculation.hours_worked * parseFloat(customHourlyRate)).toFixed(2)
+                      : calculation.gross_salary.toFixed(2))}
+                  </p>
+                  {useCustomRate && customHourlyRate && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Usando tarifa personalizada: ${parseFloat(customHourlyRate).toFixed(2)}/hora
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
