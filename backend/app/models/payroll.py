@@ -36,6 +36,15 @@ class Payroll(db.Model):
         db.Index('idx_payroll_status', 'status'),
     )
     
+    @property
+    def has_active_claim(self):
+        """Check if payroll has an active (pending) claim"""
+        from app.models.payroll_claim import PayrollClaim
+        return PayrollClaim.query.filter_by(
+            payroll_id=self.id,
+            status='pending'
+        ).first() is not None
+    
     def to_dict(self, include_details=False):
         hours_diff = float(self.hours_worked) - float(self.scheduled_hours)
         
@@ -59,7 +68,8 @@ class Payroll(db.Model):
             'pdf_path': self.pdf_path,
             'notes': self.notes,
             'generated_at': self.generated_at.isoformat(),
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'has_active_claim': self.has_active_claim
         }
         
         if include_details and self.employee:

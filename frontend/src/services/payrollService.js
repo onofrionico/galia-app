@@ -107,6 +107,38 @@ const payrollService = {
       responseType: 'blob'
     });
     return response.data;
+  },
+
+  // Claim endpoints - Employee
+  async createPayrollClaim(payrollId, claimReason) {
+    const response = await api.post(`/payroll/my-payrolls/${payrollId}/claim`, {
+      claim_reason: claimReason
+    });
+    return response.data;
+  },
+
+  async getMyPayrollClaims(payrollId) {
+    const response = await api.get(`/payroll/my-payrolls/${payrollId}/claims`);
+    return response.data;
+  },
+
+  // Claim endpoints - Admin
+  async getAllClaims(params = {}) {
+    const response = await api.get('/payroll/claims', { params });
+    return response.data;
+  },
+
+  async getClaimDetail(claimId) {
+    const response = await api.get(`/payroll/claims/${claimId}`);
+    return response.data;
+  },
+
+  async respondToClaim(claimId, adminResponse, action) {
+    const response = await api.post(`/payroll/claims/${claimId}/respond`, {
+      admin_response: adminResponse,
+      action: action
+    });
+    return response.data;
   }
 };
 

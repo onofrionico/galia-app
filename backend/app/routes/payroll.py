@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, send_file
 from functools import wraps
 from app.extensions import db
 from app.models.payroll import Payroll
+from app.models.payroll_claim import PayrollClaim
 from app.models.employee import Employee
 from app.models.time_tracking import TimeTracking
 from app.models.work_block import WorkBlock
@@ -705,3 +706,148 @@ def download_my_payroll_pdf(current_user, payroll_id):
         as_attachment=True,
         download_name=os.path.basename(payroll.pdf_path)
     )
+
+@payroll_bp.route('/my-payrolls/<int:payroll_id>/claim', methods=['POST'])
+@token_required
+def create_payroll_claim(current_user, payroll_id):
+    """Crear un reclamo sobre una nómina validada"""
+    
+    employee = Employee.query.filter_by(user_id=current_user.id).first()
+    if not employee:
+        return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
+    
+    payroll = Payroll.query.get_or_404(payroll_id)
+    
+    if payroll.employee_id != employee.id:
+        return jsonify({'error': 'No tiene permiso para reclamar esta nómina'}), 403
+    
+    if payroll.status != 'validated':
+        return jsonify({'error': 'Solo se pueden reclamar nóminas validadas'}), 400
+    
+    if payroll.employee_validated_at:
+        return jsonify({'error': 'No puede reclamar una nómina que ya aceptó'}), 400
+    
+    existing_claim = PayrollClaim.query.filter_by(
+        payroll_id=payroll_id,
+        status='pending'
+    ).first()
+    
+    if existing_claim:
+        return jsonify({'error': 'Ya existe un reclamo pendiente para esta nómina'}), 400
+    
+    data = request.get_json()
+    claim_reason = data.get('claim_reason', '').strip()
+    
+    if not claim_reason:
+        return jsonify({'error': 'Debe proporcionar un motivo para el reclamo'}), 400
+    
+    claim = PayrollClaim(
+        payroll_id=payroll_id,
+        employee_id=employee.id,
+        claim_reason=claim_reason,
+        status='pending',
+        created_by=current_user.id
+    )
+    
+    db.session.add(claim)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Reclamo creado exitosamente',
+        'claim': claim.to_dict()
+    }), 201
+
+@payroll_bp.route('/my-payrolls/<int:payroll_id>/claims', methods=['GET'])
+@token_required
+def get_my_payroll_claims(current_user, payroll_id):
+    """Obtener reclamos de una nómina del empleado"""
+    
+    employee = Employee.query.filter_by(user_id=current_user.id).first()
+    if not employee:
+        return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
+    
+    payroll = Payroll.query.get_or_404(payroll_id)
+    
+    if payroll.employee_id != employee.id:
+        return jsonify({'error': 'No tiene permiso para ver estos reclamos'}), 403
+    
+    claims = PayrollClaim.query.filter_by(payroll_id=payroll_id).order_by(PayrollClaim.created_at.desc()).all()
+    
+    return jsonify([claim.to_dict() for claim in claims])
+
+# ============================================
+# ADMIN CLAIM MANAGEMENT ENDPOINTS
+# ============================================
+
+@payroll_bp.route('/claims', methods=['GET'])
+@token_required
+@admin_required
+def get_all_claims(current_user):
+    """Obtener todos los reclamos de nóminas"""
+    
+    status = request.args.get('status')
+    employee_id = request.args.get('employee_id', type=int)
+    
+    query = PayrollClaim.query
+    
+    if status:
+        query = query.filter_by(status=status)
+    if employee_id:
+        query = query.filter_by(employee_id=employee_id)
+    
+    claims = query.order_by(PayrollClaim.created_at.desc()).all()
+    
+    return jsonify([claim.to_dict() for claim in claims])
+
+@payroll_bp.route('/claims/<int:claim_id>', methods=['GET'])
+@token_required
+@admin_required
+def get_claim_detail(current_user, claim_id):
+    """Obtener detalle de un reclamo"""
+    
+    claim = PayrollClaim.query.get_or_404(claim_id)
+    
+    return jsonify(claim.to_dict())
+
+@payroll_bp.route('/claims/<int:claim_id>/respond', methods=['POST'])
+@token_required
+@admin_required
+def respond_to_claim(current_user, claim_id):
+    """Responder a un reclamo y ajustar la nómina si es necesario"""
+    
+    claim = PayrollClaim.query.get_or_404(claim_id)
+    
+    if claim.status != 'pending':
+        return jsonify({'error': 'Este reclamo ya fue procesado'}), 400
+    
+    data = request.get_json()
+    admin_response = data.get('admin_response', '').strip()
+    action = data.get('action')
+    
+    if not admin_response:
+        return jsonify({'error': 'Debe proporcionar una respuesta'}), 400
+    
+    if action not in ['approve', 'reject']:
+        return jsonify({'error': 'Acción inválida. Use "approve" o "reject"'}), 400
+    
+    claim.admin_response = admin_response
+    claim.resolved_at = datetime.utcnow()
+    claim.resolved_by = current_user.id
+    
+    if action == 'approve':
+        claim.status = 'approved'
+        payroll = claim.payroll
+        payroll.status = 'draft'
+        payroll.validated_at = None
+        payroll.validated_by = None
+        payroll.employee_validated_at = None
+        payroll.employee_validated_by = None
+    else:
+        claim.status = 'rejected'
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'Reclamo {action == "approve" and "aprobado" or "rechazado"} exitosamente',
+        'claim': claim.to_dict()
+    })

@@ -17,6 +17,7 @@ import JobPositions from './pages/JobPositions'
 import MLDashboard from './pages/MLDashboard'
 import Payroll from './pages/Payroll'
 import PayrollDetail from './pages/PayrollDetail'
+import PayrollClaims from './pages/PayrollClaims'
 import MyPayrolls from './pages/MyPayrolls'
 import MyPayrollDetail from './pages/MyPayrollDetail'
 import ImportTimeTracking from './pages/ImportTimeTracking'
@@ -56,6 +57,7 @@ function App() {
             <Route path="/ml-dashboard" element={<MLDashboard />} />
             <Route path="/payroll" element={<Payroll />} />
             <Route path="/payroll/:id" element={<PayrollDetail />} />
+            <Route path="/payroll-claims" element={<PayrollClaims />} />
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
             <Route path="/my-absence-requests" element={<MyAbsenceRequests />} />

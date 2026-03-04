@@ -9,6 +9,7 @@ from app.models.sale import Sale
 from app.models.expense import Expense, ExpenseCategory
 from app.models.supply import Supply, SupplyPrice
 from app.models.payroll import Payroll
+from app.models.payroll_claim import PayrollClaim
 from app.models.notification import Notification, ScheduleChangeLog
 from app.models.staffing_metrics import StaffingMetrics, StaffingPrediction
 from app.models.ml_tracking import MLModelVersion, MLPredictionAccuracy, Holiday, PredictionAlert
@@ -31,6 +32,7 @@ __all__ = [
     'Supply',
     'SupplyPrice',
     'Payroll',
+    'PayrollClaim',
     'Notification',
     'ScheduleChangeLog',
     'StaffingMetrics',
