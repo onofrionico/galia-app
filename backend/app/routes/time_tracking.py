@@ -595,7 +595,7 @@ def get_all_records(current_user):
 @bp.route('/admin/record/<int:employee_id>', methods=['POST'])
 @token_required
 @admin_required
-def admin_create_record(current_user):
+def admin_create_record(current_user, employee_id):
     """
     Admin endpoint: Crea un registro de horas trabajadas para un empleado.
     """
