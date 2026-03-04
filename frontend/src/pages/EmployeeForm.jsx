@@ -4,10 +4,12 @@ import employeeService from '../services/employeeService'
 import { jobPositionService } from '../services/jobPositionService'
 import { validateDNI, validateCUIL, validateAge, validateEmail, validatePhone, formatCUIL } from '../utils/validators'
 import { ArrowLeft, Save, Upload, AlertCircle } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const EmployeeForm = () => {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { isAdmin } = useAuth()
   const isEditMode = !!id
 
   const [loading, setLoading] = useState(false)
@@ -241,10 +243,10 @@ const EmployeeForm = () => {
                   onChange={handleChange}
                   maxLength="8"
                   placeholder="12345678"
-                  disabled={isEditMode}
+                  disabled={isEditMode && !isAdmin()}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     validationErrors.dni ? 'border-red-500' : 'border-gray-300'
-                  } ${isEditMode ? 'bg-gray-100' : ''}`}
+                  } ${isEditMode && !isAdmin() ? 'bg-gray-100' : ''}`}
                 />
                 {validationErrors.dni && (
                   <p className="text-red-500 text-sm mt-1">{validationErrors.dni}</p>
@@ -262,10 +264,10 @@ const EmployeeForm = () => {
                   onChange={handleChange}
                   maxLength="13"
                   placeholder="20-12345678-9"
-                  disabled={isEditMode}
+                  disabled={isEditMode && !isAdmin()}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     validationErrors.cuil ? 'border-red-500' : 'border-gray-300'
-                  } ${isEditMode ? 'bg-gray-100' : ''}`}
+                  } ${isEditMode && !isAdmin() ? 'bg-gray-100' : ''}`}
                 />
                 {validationErrors.cuil && (
                   <p className="text-red-500 text-sm mt-1">{validationErrors.cuil}</p>

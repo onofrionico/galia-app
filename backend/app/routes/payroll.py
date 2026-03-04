@@ -11,7 +11,8 @@ from app.utils.jwt_utils import token_required
 from app.utils.payroll_utils import (
     calculate_hours_from_time_tracking,
     calculate_scheduled_hours,
-    calculate_employee_cost
+    calculate_employee_cost,
+    calculate_payroll_with_multipliers
 )
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract
@@ -49,7 +50,7 @@ def calculate_payroll(current_user, employee_id, year, month):
     scheduled_hours, scheduled_records = calculate_scheduled_hours(employee_id, month, year)
     
     hourly_rate = float(employee.job_position.hourly_rate)
-    gross_salary = calculate_employee_cost(worked_hours, hourly_rate)
+    gross_salary = calculate_payroll_with_multipliers(employee_id, month, year, hourly_rate, employee.job_position)
     hours_difference = worked_hours - scheduled_hours
     
     return jsonify({
@@ -105,7 +106,7 @@ def generate_payroll(current_user):
     else:
         hourly_rate = float(employee.job_position.hourly_rate)
     
-    gross_salary = calculate_employee_cost(worked_hours, hourly_rate)
+    gross_salary = calculate_payroll_with_multipliers(employee_id, month, year, hourly_rate, employee.job_position)
     
     payroll = Payroll(
         employee_id=employee_id,

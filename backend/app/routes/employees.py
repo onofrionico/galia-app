@@ -309,11 +309,6 @@ def update_employee(current_user, employee_id):
     if 'emergency_contact_relationship' in data:
         employee.emergency_contact_relationship = data['emergency_contact_relationship']
     
-    if 'cuil' in data:
-        if data['cuil'] and Employee.query.filter(Employee.cuil == data['cuil'], Employee.id != employee_id).first():
-            return jsonify({'error': 'El CUIL ya está registrado'}), 400
-        employee.cuil = data['cuil'] or None
-    
     if 'birth_date' in data:
         try:
             birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
@@ -325,6 +320,16 @@ def update_employee(current_user, employee_id):
             return jsonify({'error': 'Formato de fecha inválido'}), 400
     
     if is_admin:
+        if 'dni' in data and data['dni'] != employee.dni:
+            if Employee.query.filter(Employee.dni == data['dni'], Employee.id != employee_id).first():
+                return jsonify({'error': 'El DNI ya está registrado'}), 400
+            employee.dni = data['dni']
+        
+        if 'cuil' in data and data['cuil'] != employee.cuil:
+            if data['cuil'] and Employee.query.filter(Employee.cuil == data['cuil'], Employee.id != employee_id).first():
+                return jsonify({'error': 'El CUIL ya está registrado'}), 400
+            employee.cuil = data['cuil'] or None
+        
         if 'employment_relationship' in data:
             employee.employment_relationship = data['employment_relationship']
         if 'status' in data:

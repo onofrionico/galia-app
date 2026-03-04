@@ -240,3 +240,39 @@ def calculate_total_hours_from_dict(hours, minutes):
         float: Total de horas en formato decimal
     """
     return hours + (minutes / 60.0)
+
+
+def calculate_payroll_with_multipliers(employee_id, month, year, hourly_rate, job_position):
+    """
+    Calcula el costo total de nómina aplicando multiplicadores por día.
+    Itera sobre cada día trabajado y aplica el multiplicador correspondiente
+    (feriado, domingo, fin de semana).
+    
+    Args:
+        employee_id: ID del empleado
+        month: Mes (1-12)
+        year: Año
+        hourly_rate: Tarifa horaria base (float)
+        job_position: Objeto JobPosition con multiplicadores
+        
+    Returns:
+        float: Costo total de nómina con multiplicadores aplicados
+    """
+    _, daily_records = calculate_hours_from_time_tracking(employee_id, month, year)
+    
+    total_cost = 0.0
+    
+    for record in daily_records:
+        work_date = datetime.fromisoformat(record['date']).date()
+        day_hours = record['hours']
+        
+        day_cost = calculate_employee_cost(
+            day_hours,
+            hourly_rate,
+            work_date=work_date,
+            job_position=job_position
+        )
+        
+        total_cost += day_cost
+    
+    return round(total_cost, 2)
