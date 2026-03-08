@@ -30,14 +30,24 @@ class S3Service:
             dict: Contains s3_key, s3_url, and original_filename
         """
         try:
+            print(f"[S3 DEBUG] Starting upload - employee_id: {employee_id}, filename: {original_filename}")
+            print(f"[S3 DEBUG] Bucket name: {self.bucket_name}")
+            
+            if not self.bucket_name:
+                raise ValueError("AWS S3 bucket no está configurado. Verifique la variable de entorno AWS_S3_BUCKET_NAME")
+            
             if not original_filename:
                 raise ValueError("El nombre del archivo no puede estar vacío")
             
             filename = secure_filename(original_filename)
+            print(f"[S3 DEBUG] Secure filename: {filename}")
+            
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             s3_key = f"{self.folder_prefix}{employee_id}_{timestamp}_{filename}"
+            print(f"[S3 DEBUG] S3 key: {s3_key}")
             
             content_type = file.content_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+            print(f"[S3 DEBUG] Content type: {content_type}")
             
             self.s3_client.upload_fileobj(
                 file,
@@ -55,6 +65,7 @@ class S3Service:
             )
             
             s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
+            print(f"[S3 DEBUG] Upload successful, URL: {s3_url}")
             
             return {
                 's3_key': s3_key,
@@ -64,7 +75,13 @@ class S3Service:
             }
         
         except ClientError as e:
+            print(f"[S3 DEBUG] ClientError: {str(e)}")
             raise Exception(f"Error uploading file to S3: {str(e)}")
+        except Exception as e:
+            print(f"[S3 DEBUG] Unexpected error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
     
     def download_file(self, s3_key):
         """
