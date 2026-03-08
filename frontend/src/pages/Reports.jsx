@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, 
   Users, Target, Settings, Calendar, RefreshCw, ChevronDown,
-  AlertTriangle, CheckCircle, Clock, BarChart3, PieChart, Scale
+  AlertTriangle, CheckCircle, Clock, BarChart3, PieChart, Scale,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { reportsService } from '@/services/reportsService'
 
@@ -10,8 +11,12 @@ const Reports = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [dashboard, setDashboard] = useState(null)
-  const [filterMode, setFilterMode] = useState('period') // 'period' o 'range'
+  const [filterMode, setFilterMode] = useState('month') // 'period', 'month', o 'range'
   const [period, setPeriod] = useState('mensual')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  })
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [showGoalsModal, setShowGoalsModal] = useState(false)
@@ -21,8 +26,10 @@ const Reports = () => {
   useEffect(() => {
     if (filterMode === 'period') {
       loadDashboard()
+    } else if (filterMode === 'month') {
+      loadDashboard()
     }
-  }, [period, filterMode])
+  }, [period, filterMode, selectedMonth])
 
   const loadDashboard = async () => {
     try {
@@ -31,6 +38,13 @@ const Reports = () => {
       let data
       if (filterMode === 'range' && startDate && endDate) {
         data = await reportsService.getDashboard(null, null, startDate, endDate)
+      } else if (filterMode === 'month') {
+        // Calculate start and end dates for the selected month
+        const start = new Date(selectedMonth.year, selectedMonth.month - 1, 1)
+        const end = new Date(selectedMonth.year, selectedMonth.month, 0)
+        const startStr = start.toISOString().split('T')[0]
+        const endStr = end.toISOString().split('T')[0]
+        data = await reportsService.getDashboard(null, null, startStr, endStr)
       } else {
         data = await reportsService.getDashboard(period)
       }
@@ -47,6 +61,31 @@ const Reports = () => {
     if (startDate && endDate) {
       loadDashboard()
     }
+  }
+
+  const navigateMonth = (direction) => {
+    setSelectedMonth(prev => {
+      let newMonth = prev.month + direction
+      let newYear = prev.year
+      
+      if (newMonth > 12) {
+        newMonth = 1
+        newYear += 1
+      } else if (newMonth < 1) {
+        newMonth = 12
+        newYear -= 1
+      }
+      
+      return { year: newYear, month: newMonth }
+    })
+  }
+
+  const getMonthName = (month) => {
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ]
+    return months[month - 1]
   }
 
   const loadGoals = async () => {
@@ -223,6 +262,16 @@ const Reports = () => {
             {/* Toggle modo de filtro */}
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
               <button
+                onClick={() => setFilterMode('month')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  filterMode === 'month' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Por Mes
+              </button>
+              <button
                 onClick={() => setFilterMode('period')}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   filterMode === 'period' 
@@ -240,11 +289,43 @@ const Reports = () => {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Rango de Fechas
+                Rango
               </button>
             </div>
 
-            {filterMode === 'period' ? (
+            {filterMode === 'month' ? (
+              /* Navegador de mes */
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateMonth(-1)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Mes anterior"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg min-w-[180px] text-center">
+                  <span className="text-sm font-semibold text-blue-900">
+                    {getMonthName(selectedMonth.month)} {selectedMonth.year}
+                  </span>
+                </div>
+                <button
+                  onClick={() => navigateMonth(1)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Mes siguiente"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <button
+                  onClick={() => {
+                    const now = new Date()
+                    setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() + 1 })
+                  }}
+                  className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+                >
+                  Mes Actual
+                </button>
+              </div>
+            ) : filterMode === 'period' ? (
               /* Selector de período */
               <div className="relative">
                 <select
