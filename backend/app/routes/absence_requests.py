@@ -62,7 +62,7 @@ def create_absence_request(current_user):
     
     if 'attachment' in request.files:
         file = request.files['attachment']
-        if file and file.filename:
+        if file and file.filename and file.filename.strip():
             if not allowed_file(file.filename):
                 return jsonify({'error': 'Tipo de archivo no permitido. Use: png, jpg, jpeg, pdf'}), 400
             
@@ -75,6 +75,8 @@ def create_absence_request(current_user):
                 absence_request.attachment_path = s3_result['s3_key']
                 absence_request.attachment_filename = s3_result['original_filename']
                 absence_request.attachment_mimetype = s3_result['content_type']
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
             except Exception as e:
                 return jsonify({'error': f'Error al subir archivo: {str(e)}'}), 500
     
