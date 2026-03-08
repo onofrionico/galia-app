@@ -59,8 +59,6 @@ class Expense(db.Model):
             'fecha': self.fecha.isoformat() if self.fecha else None,
             'fecha_vencimiento': self.fecha_vencimiento.isoformat() if self.fecha_vencimiento else None,
             'proveedor': self.proveedor,
-            'categoria': self.categoria,
-            'subcategoria': self.subcategoria,
             'comentario': self.comentario,
             'estado_pago': self.estado_pago,
             'importe': float(self.importe) if self.importe else 0,
@@ -114,13 +112,47 @@ class Expense(db.Model):
         """Create an Expense instance from a CSV row"""
         external_id = row.get('Id', '').strip()
         
+        # Map categoria from CSV to category_id
+        categoria_name = row.get('Categoría', '').strip()
+        category_id = None
+        
+        if categoria_name:
+            # Try to find existing category
+            category = ExpenseCategory.query.filter_by(name=categoria_name).first()
+            if not category:
+                # Create new category if it doesn't exist
+                # Determine expense_type based on keywords
+                direct_keywords = ['mercaderia', 'mercadería', 'insumo', 'materia prima', 'producto', 'stock']
+                expense_type = 'directo' if any(kw in categoria_name.lower() for kw in direct_keywords) else 'indirecto'
+                
+                category = ExpenseCategory(
+                    name=categoria_name,
+                    expense_type=expense_type,
+                    is_active=True
+                )
+                db.add(category)
+                db.flush()  # Get the ID without committing
+            
+            category_id = category.id
+        else:
+            # Use default "Sin categoría" category
+            default_category = ExpenseCategory.query.filter_by(name='Sin categoría').first()
+            if not default_category:
+                default_category = ExpenseCategory(
+                    name='Sin categoría',
+                    expense_type='indirecto',
+                    is_active=True
+                )
+                db.add(default_category)
+                db.flush()
+            category_id = default_category.id
+        
         return cls(
             external_id=int(external_id) if external_id else None,
             fecha=cls.parse_date(row.get('Fecha', '')),
             fecha_vencimiento=cls.parse_date(row.get('Fecha de vencimiento', '')),
             proveedor=row.get('Proveedor', '').strip() or None,
-            categoria=row.get('Categoría', '').strip() or None,
-            subcategoria=row.get('Subcategoría', '').strip() or None,
+            category_id=category_id,
             comentario=row.get('Comentario', '').strip() or None,
             estado_pago=row.get('Estado del pago', '').strip() or 'Pendiente',
             importe=cls.parse_decimal(row.get('Importe', 0)),

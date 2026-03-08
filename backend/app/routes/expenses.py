@@ -20,7 +20,7 @@ def get_expenses(current_user):
     fecha_desde = request.args.get('fecha_desde')
     fecha_hasta = request.args.get('fecha_hasta')
     proveedor = request.args.get('proveedor')
-    categoria = request.args.get('categoria')
+    category_id = request.args.get('category_id', type=int)
     estado_pago = request.args.get('estado_pago')
     medio_pago = request.args.get('medio_pago')
     
@@ -43,8 +43,8 @@ def get_expenses(current_user):
     if proveedor:
         query = query.filter(Expense.proveedor.ilike(f'%{proveedor}%'))
     
-    if categoria:
-        query = query.filter(Expense.categoria == categoria)
+    if category_id:
+        query = query.filter(Expense.category_id == category_id)
     
     if estado_pago:
         query = query.filter(Expense.estado_pago == estado_pago)
@@ -94,10 +94,12 @@ def get_expense_stats(current_user):
     total_importe = query.with_entities(func.sum(Expense.importe)).scalar() or 0
     
     por_categoria = db.session.query(
-        Expense.categoria,
+        ExpenseCategory.id,
+        ExpenseCategory.name,
+        ExpenseCategory.expense_type,
         func.count(Expense.id).label('cantidad'),
         func.sum(Expense.importe).label('total')
-    ).filter(Expense.cancelado == False)
+    ).join(Expense, Expense.category_id == ExpenseCategory.id).filter(Expense.cancelado == False)
     
     if fecha_desde:
         try:
@@ -112,7 +114,7 @@ def get_expense_stats(current_user):
         except ValueError:
             pass
     
-    por_categoria = por_categoria.group_by(Expense.categoria).all()
+    por_categoria = por_categoria.group_by(ExpenseCategory.id, ExpenseCategory.name, ExpenseCategory.expense_type).all()
     
     por_medio_pago = db.session.query(
         Expense.medio_pago,
@@ -159,7 +161,7 @@ def get_expense_stats(current_user):
     return jsonify({
         'total_gastos': total_gastos,
         'total_importe': float(total_importe),
-        'por_categoria': [{'categoria': c or 'Sin categoría', 'cantidad': cant, 'total': float(tot or 0)} for c, cant, tot in por_categoria],
+        'por_categoria': [{'id': cat_id, 'categoria': cat_name, 'expense_type': exp_type, 'cantidad': cant, 'total': float(tot or 0)} for cat_id, cat_name, exp_type, cant, tot in por_categoria],
         'por_medio_pago': [{'medio_pago': m or 'Sin especificar', 'cantidad': cant, 'total': float(tot or 0)} for m, cant, tot in por_medio_pago],
         'top_proveedores': [{'proveedor': p or 'Sin proveedor', 'cantidad': cant, 'total': float(tot or 0)} for p, cant, tot in por_proveedor]
     }), 200
@@ -190,12 +192,20 @@ def create_expense(current_user):
         except ValueError:
             pass
     
+    # Validate category_id if provided
+    category_id = data.get('category_id')
+    if category_id:
+        category = ExpenseCategory.query.get(category_id)
+        if not category or not category.is_active:
+            return jsonify({'error': 'Categoría inválida o inactiva'}), 400
+    else:
+        return jsonify({'error': 'La categoría es requerida'}), 400
+    
     expense = Expense(
         fecha=fecha,
         fecha_vencimiento=fecha_vencimiento,
         proveedor=data.get('proveedor'),
-        categoria=data.get('categoria'),
-        subcategoria=data.get('subcategoria'),
+        category_id=category_id,
         comentario=data.get('comentario'),
         estado_pago=data.get('estado_pago', 'Pendiente'),
         importe=data.get('importe', 0),
@@ -246,7 +256,18 @@ def update_expense(current_user, expense_id):
     elif 'fecha_vencimiento' in data and not data['fecha_vencimiento']:
         expense.fecha_vencimiento = None
     
-    updatable_fields = ['proveedor', 'categoria', 'subcategoria', 'comentario',
+    # Handle category_id update separately with validation
+    if 'category_id' in data:
+        category_id = data['category_id']
+        if category_id:
+            category = ExpenseCategory.query.get(category_id)
+            if not category or not category.is_active:
+                return jsonify({'error': 'Categoría inválida o inactiva'}), 400
+            expense.category_id = category_id
+        else:
+            return jsonify({'error': 'La categoría es requerida'}), 400
+    
+    updatable_fields = ['proveedor', 'comentario',
                         'estado_pago', 'importe', 'de_caja', 'caja', 'medio_pago',
                         'numero_fiscal', 'tipo_comprobante', 'numero_comprobante',
                         'creado_por', 'cancelado']
@@ -372,7 +393,7 @@ def export_expenses(current_user):
     
     writer.writerow([
         'Id', 'Fecha', 'Fecha de vencimiento', 'Proveedor', 'Categoría', 
-        'Subcategoría', 'Comentario', 'Estado del pago', 'Importe', 'De Caja',
+        'Tipo de Gasto', 'Comentario', 'Estado del pago', 'Importe', 'De Caja',
         'Caja', 'Medio de pago', 'Número Fiscal', 'Tipo de comprobante',
         'N° de comprobante', 'Creado por', 'Cancelado'
     ])
@@ -383,8 +404,8 @@ def export_expenses(current_user):
             expense.fecha.strftime('%d/%m/%Y') if expense.fecha else '',
             expense.fecha_vencimiento.strftime('%d/%m/%Y') if expense.fecha_vencimiento else '',
             expense.proveedor or '',
-            expense.categoria or '',
-            expense.subcategoria or '',
+            expense.category_rel.name if expense.category_rel else 'Sin categoría',
+            expense.category_rel.expense_type if expense.category_rel else '',
             expense.comentario or '',
             expense.estado_pago or '',
             expense.importe or 0,
@@ -412,13 +433,14 @@ def export_expenses(current_user):
 @admin_required
 def get_filter_options(current_user):
     """Get available filter options"""
-    categorias = db.session.query(Expense.categoria).distinct().all()
+    # Get categories from ExpenseCategory table
+    categorias = ExpenseCategory.query.filter_by(is_active=True).all()
     proveedores = db.session.query(Expense.proveedor).distinct().all()
     estados_pago = db.session.query(Expense.estado_pago).distinct().all()
     medios_pago = db.session.query(Expense.medio_pago).distinct().all()
     
     return jsonify({
-        'categorias': [c[0] for c in categorias if c[0]],
+        'categorias': [{'id': c.id, 'name': c.name, 'expense_type': c.expense_type} for c in categorias],
         'proveedores': [p[0] for p in proveedores if p[0]],
         'estados_pago': [e[0] for e in estados_pago if e[0]],
         'medios_pago': [m[0] for m in medios_pago if m[0]]

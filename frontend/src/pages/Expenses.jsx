@@ -15,7 +15,7 @@ const Expenses = () => {
     fecha_desde: '',
     fecha_hasta: '',
     proveedor: '',
-    categoria: '',
+    category_id: '',
     estado_pago: '',
     medio_pago: ''
   });
@@ -43,8 +43,7 @@ const Expenses = () => {
     fecha: new Date().toISOString().split('T')[0],
     fecha_vencimiento: '',
     proveedor: '',
-    categoria: '',
-    subcategoria: '',
+    category_id: '',
     comentario: '',
     estado_pago: 'Pendiente',
     importe: '',
@@ -69,7 +68,7 @@ const Expenses = () => {
       if (filters.fecha_desde) params.append('fecha_desde', filters.fecha_desde);
       if (filters.fecha_hasta) params.append('fecha_hasta', filters.fecha_hasta);
       if (filters.proveedor) params.append('proveedor', filters.proveedor);
-      if (filters.categoria) params.append('categoria', filters.categoria);
+      if (filters.category_id) params.append('category_id', filters.category_id);
       if (filters.estado_pago) params.append('estado_pago', filters.estado_pago);
       if (filters.medio_pago) params.append('medio_pago', filters.medio_pago);
       
@@ -128,7 +127,7 @@ const Expenses = () => {
       fecha_desde: '',
       fecha_hasta: '',
       proveedor: '',
-      categoria: '',
+      category_id: '',
       estado_pago: '',
       medio_pago: ''
     });
@@ -202,8 +201,7 @@ const Expenses = () => {
       fecha: new Date().toISOString().split('T')[0],
       fecha_vencimiento: '',
       proveedor: '',
-      categoria: '',
-      subcategoria: '',
+      category_id: '',
       comentario: '',
       estado_pago: 'Pendiente',
       importe: '',
@@ -255,8 +253,7 @@ const Expenses = () => {
       fecha: expense.fecha || '',
       fecha_vencimiento: expense.fecha_vencimiento || '',
       proveedor: expense.proveedor || '',
-      categoria: expense.categoria || '',
-      subcategoria: expense.subcategoria || '',
+      category_id: expense.category_id || '',
       comentario: expense.comentario || '',
       estado_pago: expense.estado_pago || 'Pendiente',
       importe: expense.importe || '',
@@ -453,13 +450,15 @@ const Expenses = () => {
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
               <select
-                value={filters.categoria}
-                onChange={(e) => handleFilterChange('categoria', e.target.value)}
+                value={filters.category_id}
+                onChange={(e) => handleFilterChange('category_id', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Todas</option>
                 {filterOptions.categorias.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} {cat.expense_type && `(${cat.expense_type})`}
+                  </option>
                 ))}
               </select>
             </div>
@@ -533,7 +532,18 @@ const Expenses = () => {
                       {expense.proveedor || '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                      {expense.categoria || '-'}
+                      <div className="flex items-center gap-1">
+                        <span>{expense.category_name || '-'}</span>
+                        {expense.category_type && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            expense.category_type === 'directo' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {expense.category_type === 'directo' ? 'D' : 'I'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
                       {expense.comentario || '-'}
@@ -740,20 +750,20 @@ const Expenses = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                    <input
-                      type="text"
-                      value={formData.categoria}
-                      onChange={(e) => handleFormChange('categoria', e.target.value)}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+                    <select
+                      required
+                      value={formData.category_id}
+                      onChange={(e) => handleFormChange('category_id', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Ej: Mercadería, Servicios"
-                      list="categorias-list"
-                    />
-                    <datalist id="categorias-list">
+                    >
+                      <option value="">Seleccione una categoría</option>
                       {filterOptions.categorias.map(cat => (
-                        <option key={cat} value={cat} />
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} ({cat.expense_type === 'directo' ? 'Directo' : 'Indirecto'})
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Estado de Pago</label>
@@ -873,7 +883,18 @@ const Expenses = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Categoría</p>
-                    <p className="font-medium">{selectedExpense.categoria || '-'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{selectedExpense.category_name || '-'}</p>
+                      {selectedExpense.category_type && (
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          selectedExpense.category_type === 'directo' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {selectedExpense.category_type === 'directo' ? 'Directo' : 'Indirecto'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Estado de Pago</p>

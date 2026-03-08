@@ -195,25 +195,29 @@ def get_expenses_metrics(start_date, end_date):
     
     total = float(total_result) if total_result else 0
     
-    # Gastos por tipo (directo/indirecto) - basado en categoría del gasto
-    # Por ahora clasificamos según el campo categoria del expense
-    directos_keywords = ['mercaderia', 'mercadería', 'directo', 'insumo', 'materia', 'producto']
+    # Gastos por tipo (directo/indirecto) - basado en expense_type de la categoría
+    from app.models.expense import ExpenseCategory
     
-    directos = 0
-    indirectos = 0
-    
-    expenses = Expense.query.filter(
+    directos_result = db.session.query(
+        func.coalesce(func.sum(Expense.importe), 0)
+    ).join(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
         Expense.fecha >= start_date,
         Expense.fecha <= end_date,
-        Expense.cancelado == False
-    ).all()
+        Expense.cancelado == False,
+        ExpenseCategory.expense_type == 'directo'
+    ).scalar()
     
-    for exp in expenses:
-        cat = (exp.categoria or '').lower()
-        if any(kw in cat for kw in directos_keywords):
-            directos += float(exp.importe)
-        else:
-            indirectos += float(exp.importe)
+    indirectos_result = db.session.query(
+        func.coalesce(func.sum(Expense.importe), 0)
+    ).join(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
+        Expense.fecha >= start_date,
+        Expense.fecha <= end_date,
+        Expense.cancelado == False,
+        ExpenseCategory.expense_type == 'indirecto'
+    ).scalar()
+    
+    directos = float(directos_result) if directos_result else 0
+    indirectos = float(indirectos_result) if indirectos_result else 0
     
     return {
         'total': total,
@@ -629,16 +633,16 @@ def sales_evolution(current_user):
     }), 200
 
 
-# ==================== REPORTE DE GASTOS ====================
-
-@bp.route('/expenses', methods=['GET'])
+@bp.route('/expenses/report', methods=['GET'])
 @token_required
 @admin_required
 def expenses_report(current_user):
     """Reporte detallado de gastos"""
+    from app.models.expense import ExpenseCategory
+    
     start_date = parse_date(request.args.get('start_date'))
     end_date = parse_date(request.args.get('end_date'))
-    categoria = request.args.get('categoria')
+    category_id = request.args.get('category_id', type=int)
     proveedor = request.args.get('proveedor')
     
     if not start_date:
@@ -652,8 +656,8 @@ def expenses_report(current_user):
         Expense.cancelado == False
     )
     
-    if categoria:
-        query = query.filter(Expense.categoria.ilike(f'%{categoria}%'))
+    if category_id:
+        query = query.filter(Expense.category_id == category_id)
     if proveedor:
         query = query.filter(Expense.proveedor.ilike(f'%{proveedor}%'))
     
@@ -661,8 +665,7 @@ def expenses_report(current_user):
     
     total = sum(float(e.importe) for e in expenses)
     
-    # Clasificar en directos/indirectos
-    directos_keywords = ['mercaderia', 'mercadería', 'directo', 'insumo', 'materia', 'producto']
+    # Clasificar en directos/indirectos usando expense_type de la categoría
     directos = 0
     indirectos = 0
     
@@ -670,21 +673,22 @@ def expenses_report(current_user):
     by_supplier = {}
     
     for e in expenses:
-        cat = e.categoria or 'Sin categoría'
+        cat_name = e.category_rel.name if e.category_rel else 'Sin categoría'
+        expense_type = e.category_rel.expense_type if e.category_rel else 'indirecto'
         prov = e.proveedor or 'Sin proveedor'
         importe = float(e.importe)
         
-        # Clasificar
-        if any(kw in cat.lower() for kw in directos_keywords):
+        # Clasificar usando expense_type
+        if expense_type == 'directo':
             directos += importe
         else:
             indirectos += importe
         
         # Agrupar por categoría
-        if cat not in by_category:
-            by_category[cat] = {'total': 0, 'count': 0}
-        by_category[cat]['total'] += importe
-        by_category[cat]['count'] += 1
+        if cat_name not in by_category:
+            by_category[cat_name] = {'total': 0, 'count': 0, 'expense_type': expense_type}
+        by_category[cat_name]['total'] += importe
+        by_category[cat_name]['count'] += 1
         
         # Agrupar por proveedor
         if prov not in by_supplier:
