@@ -30,6 +30,9 @@ class S3Service:
             dict: Contains s3_key, s3_url, and original_filename
         """
         try:
+            if not original_filename:
+                raise ValueError("El nombre del archivo no puede estar vacío")
+            
             filename = secure_filename(original_filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             s3_key = f"{self.folder_prefix}{employee_id}_{timestamp}_{filename}"
