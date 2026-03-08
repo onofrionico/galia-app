@@ -31,62 +31,86 @@ def admin_or_supervisor_required(f):
 @absence_bp.route('/', methods=['POST'])
 @token_required
 def create_absence_request(current_user):
-    employee = Employee.query.filter_by(user_id=current_user.id).first()
-    if not employee:
-        return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
-    
-    start_date_str = request.form.get('start_date')
-    end_date_str = request.form.get('end_date')
-    justification = request.form.get('justification')
-    
-    if not all([start_date_str, end_date_str, justification]):
-        return jsonify({'error': 'Faltan datos requeridos: start_date, end_date, justification'}), 400
-    
     try:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
-    
-    absence_request = AbsenceRequest(
-        employee_id=employee.id,
-        start_date=start_date,
-        end_date=end_date,
-        justification=justification,
-        status='pending'
-    )
-    
-    errors = absence_request.validate()
-    if errors:
-        return jsonify({'error': 'Validación fallida', 'details': errors}), 400
-    
-    if 'attachment' in request.files:
-        file = request.files['attachment']
-        if file and file.filename and file.filename.strip():
-            if not allowed_file(file.filename):
-                return jsonify({'error': 'Tipo de archivo no permitido. Use: png, jpg, jpeg, pdf'}), 400
+        employee = Employee.query.filter_by(user_id=current_user.id).first()
+        if not employee:
+            return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
+        
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        justification = request.form.get('justification')
+        
+        print(f"[ABSENCE DEBUG] Form data - start_date: {start_date_str}, end_date: {end_date_str}, justification length: {len(justification) if justification else 0}")
+        print(f"[ABSENCE DEBUG] Files in request: {list(request.files.keys())}")
+        
+        if not all([start_date_str, end_date_str, justification]):
+            return jsonify({'error': 'Faltan datos requeridos: start_date, end_date, justification'}), 400
+        
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError as e:
+            print(f"[ABSENCE DEBUG] Date parsing error: {str(e)}")
+            return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
+        
+        absence_request = AbsenceRequest(
+            employee_id=employee.id,
+            start_date=start_date,
+            end_date=end_date,
+            justification=justification,
+            status='pending'
+        )
+        
+        errors = absence_request.validate()
+        if errors:
+            print(f"[ABSENCE DEBUG] Validation errors: {errors}")
+            return jsonify({'error': 'Validación fallida', 'details': errors}), 400
+        
+        if 'attachment' in request.files:
+            file = request.files['attachment']
+            print(f"[ABSENCE DEBUG] File object: {file}, filename: {file.filename if file else 'None'}")
             
-            if request.content_length and request.content_length > MAX_FILE_SIZE:
-                return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB'}), 400
-            
-            try:
-                s3_result = s3_service.upload_file(file, employee.id, file.filename)
+            if file and file.filename and file.filename.strip():
+                print(f"[ABSENCE DEBUG] Processing file: {file.filename}")
                 
-                absence_request.attachment_path = s3_result['s3_key']
-                absence_request.attachment_filename = s3_result['original_filename']
-                absence_request.attachment_mimetype = s3_result['content_type']
-            except ValueError as e:
-                return jsonify({'error': str(e)}), 400
-            except Exception as e:
-                return jsonify({'error': f'Error al subir archivo: {str(e)}'}), 500
+                if not allowed_file(file.filename):
+                    return jsonify({'error': 'Tipo de archivo no permitido. Use: png, jpg, jpeg, pdf'}), 400
+                
+                if request.content_length and request.content_length > MAX_FILE_SIZE:
+                    return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB'}), 400
+                
+                try:
+                    s3_result = s3_service.upload_file(file, employee.id, file.filename)
+                    print(f"[ABSENCE DEBUG] S3 upload successful: {s3_result['s3_key']}")
+                    
+                    absence_request.attachment_path = s3_result['s3_key']
+                    absence_request.attachment_filename = s3_result['original_filename']
+                    absence_request.attachment_mimetype = s3_result['content_type']
+                except ValueError as e:
+                    print(f"[ABSENCE DEBUG] ValueError during upload: {str(e)}")
+                    return jsonify({'error': str(e)}), 400
+                except Exception as e:
+                    print(f"[ABSENCE DEBUG] Exception during upload: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return jsonify({'error': f'Error al subir archivo: {str(e)}'}), 500
+            else:
+                print(f"[ABSENCE DEBUG] File validation failed - file exists: {file is not None}, has filename: {file.filename if file else 'N/A'}")
+        
+        db.session.add(absence_request)
+        db.session.commit()
+        print(f"[ABSENCE DEBUG] Absence request created successfully with ID: {absence_request.id}")
+        
+        return jsonify({
+            'message': 'Solicitud de ausencia creada exitosamente',
+            'absence_request': absence_request.to_dict()
+        }), 201
     
-    db.session.add(absence_request)
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Solicitud de ausencia creada exitosamente',
-        'absence_request': absence_request.to_dict()
-    }), 201
+    except Exception as e:
+        print(f"[ABSENCE DEBUG] Unexpected error in create_absence_request: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
 
 @absence_bp.route('/my-requests', methods=['GET'])
 @token_required
