@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import jsonify, request
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -10,13 +11,19 @@ def admin_required(f):
     def decorated_function(current_user, *args, **kwargs):
         # current_user viene del decorador @token_required
         if not current_user:
-            logger.warning(f"Unauthorized access attempt to {request.path}")
+            logger.warning(
+                f"[SECURITY] Unauthorized access attempt | "
+                f"Path: {request.path} | Method: {request.method} | "
+                f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
+            )
             return jsonify({'error': 'Autenticación requerida'}), 401
         
         if current_user.role != 'admin':
             logger.warning(
-                f"Forbidden: User {current_user.email} (role: {current_user.role}) "
-                f"attempted to access admin endpoint {request.path}"
+                f"[SECURITY] Forbidden access attempt | "
+                f"User: {current_user.email} | Role: {current_user.role} | "
+                f"Path: {request.path} | Method: {request.method} | "
+                f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
             )
             return jsonify({
                 'error': 'Acceso denegado',
@@ -38,13 +45,20 @@ def role_required(*allowed_roles):
         @wraps(f)
         def decorated_function(current_user, *args, **kwargs):
             if not current_user:
-                logger.warning(f"Unauthorized access attempt to {request.path}")
+                logger.warning(
+                    f"[SECURITY] Unauthorized access attempt | "
+                    f"Path: {request.path} | Method: {request.method} | "
+                    f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
+                )
                 return jsonify({'error': 'Autenticación requerida'}), 401
             
             if current_user.role not in allowed_roles:
                 logger.warning(
-                    f"Forbidden: User {current_user.email} (role: {current_user.role}) "
-                    f"attempted to access endpoint {request.path} (requires: {allowed_roles})"
+                    f"[SECURITY] Forbidden access attempt | "
+                    f"User: {current_user.email} | Role: {current_user.role} | "
+                    f"Required roles: {allowed_roles} | "
+                    f"Path: {request.path} | Method: {request.method} | "
+                    f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
                 )
                 return jsonify({
                     'error': 'Acceso denegado',
@@ -60,13 +74,19 @@ def employee_or_admin_required(f):
     @wraps(f)
     def decorated_function(current_user, *args, **kwargs):
         if not current_user:
-            logger.warning(f"Unauthorized access attempt to {request.path}")
+            logger.warning(
+                f"[SECURITY] Unauthorized access attempt | "
+                f"Path: {request.path} | Method: {request.method} | "
+                f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
+            )
             return jsonify({'error': 'Autenticación requerida'}), 401
         
         if current_user.role not in ['admin', 'employee']:
             logger.warning(
-                f"Forbidden: User {current_user.email} (role: {current_user.role}) "
-                f"attempted to access endpoint {request.path}"
+                f"[SECURITY] Forbidden access attempt | "
+                f"User: {current_user.email} | Role: {current_user.role} | "
+                f"Path: {request.path} | Method: {request.method} | "
+                f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
             )
             return jsonify({
                 'error': 'Acceso denegado',

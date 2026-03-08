@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.sale import Sale
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import admin_required
 from datetime import datetime, date
 from sqlalchemy import func, extract
 import csv
@@ -11,6 +12,7 @@ bp = Blueprint('sales', __name__, url_prefix='/api/v1/sales')
 
 @bp.route('', methods=['GET'])
 @token_required
+@admin_required
 def get_sales(current_user):
     """Get sales with optional filtering"""
     page = request.args.get('page', 1, type=int)
@@ -62,6 +64,7 @@ def get_sales(current_user):
 
 @bp.route('/stats', methods=['GET'])
 @token_required
+@admin_required
 def get_sales_stats(current_user):
     """Get sales statistics"""
     fecha_desde = request.args.get('fecha_desde')
@@ -187,6 +190,7 @@ def create_sale(current_user):
 
 @bp.route('/<int:sale_id>', methods=['GET'])
 @token_required
+@admin_required
 def get_sale(current_user, sale_id):
     """Get a single sale by ID"""
     sale = Sale.query.get_or_404(sale_id)
@@ -195,6 +199,7 @@ def get_sale(current_user, sale_id):
 
 @bp.route('/<int:sale_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_sale(current_user, sale_id):
     """Update a sale"""
     sale = Sale.query.get_or_404(sale_id)
@@ -229,6 +234,7 @@ def update_sale(current_user, sale_id):
 
 @bp.route('/<int:sale_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_sale(current_user, sale_id):
     """Delete a sale"""
     sale = Sale.query.get_or_404(sale_id)
@@ -239,6 +245,7 @@ def delete_sale(current_user, sale_id):
 
 @bp.route('/import', methods=['POST'])
 @token_required
+@admin_required
 def import_sales(current_user):
     """Import sales from CSV file"""
     if 'file' not in request.files:
@@ -309,6 +316,7 @@ def import_sales(current_user):
 
 @bp.route('/export', methods=['GET'])
 @token_required
+@admin_required
 def export_sales(current_user):
     """Export sales to CSV"""
     fecha_desde = request.args.get('fecha_desde')
@@ -374,6 +382,7 @@ def export_sales(current_user):
 
 @bp.route('/filters', methods=['GET'])
 @token_required
+@admin_required
 def get_filter_options(current_user):
     """Get available filter options"""
     estados = db.session.query(Sale.estado).distinct().all()

@@ -15,6 +15,10 @@ class Schedule(db.Model):
     shifts = db.relationship('Shift', backref='schedule', lazy='dynamic', cascade='all, delete-orphan')
     creator = db.relationship('User', backref='schedules_created')
     
+    def can_be_deleted(self):
+        """Check if schedule can be deleted (only draft schedules can be deleted)"""
+        return self.status == 'draft'
+    
     def to_dict(self, include_shifts=False):
         data = {
             'id': self.id,

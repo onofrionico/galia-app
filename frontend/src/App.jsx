@@ -29,6 +29,7 @@ import VacationPeriods from './pages/VacationPeriods'
 import MyAbsenceRequests from './pages/MyAbsenceRequests'
 import AbsenceRequestsAdmin from './pages/AbsenceRequestsAdmin'
 import AdminTimeTracking from './pages/AdminTimeTracking'
+import MyDocuments from './pages/MyDocuments'
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
             <Route path="/payroll-claims" element={<PayrollClaims />} />
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
+            <Route path="/my-documents" element={<MyDocuments />} />
             <Route path="/my-absence-requests" element={<MyAbsenceRequests />} />
             <Route path="/absence-requests" element={<AbsenceRequestsAdmin />} />
             <Route path="/holidays" element={<HolidaysPage />} />

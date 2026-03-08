@@ -90,6 +90,13 @@ def update_schedule(current_user, schedule_id):
 @admin_required
 def delete_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
+    
+    if not schedule.can_be_deleted():
+        return jsonify({
+            'error': 'Solo se pueden eliminar grillas en estado borrador',
+            'status': schedule.status
+        }), 403
+    
     db.session.delete(schedule)
     db.session.commit()
     

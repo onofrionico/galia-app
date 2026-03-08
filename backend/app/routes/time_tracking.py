@@ -13,6 +13,7 @@ import logging
 import pytz
 from app.utils.jwt_utils import token_required
 from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
+from app.utils.timezone_utils import get_current_time_argentina, get_current_time_only_argentina
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
@@ -24,12 +25,6 @@ def admin_required(f):
             return jsonify({'error': 'Se requieren permisos de administrador'}), 403
         return f(current_user, *args, **kwargs)
     return decorated
-
-ARGENTINA_TZ = pytz.timezone('America/Argentina/Buenos_Aires')
-
-def get_current_time_argentina():
-    """Obtiene la hora actual en la zona horaria de Argentina (UTC-3)"""
-    return datetime.now(ARGENTINA_TZ)
 
 def blocks_overlap(start1, end1, start2, end2):
     """Verifica si dos bloques de tiempo se superponen"""
@@ -68,7 +63,7 @@ def check_in(current_user):
             db.session.add(record)
             db.session.flush()
         
-        current_time = get_current_time_argentina().time()
+        current_time = get_current_time_only_argentina()
         
         # Check if there's an active block (end_time == start_time means in progress)
         for existing_block in record.work_blocks:
@@ -129,7 +124,7 @@ def check_out(current_user):
         if last_block.end_time != last_block.start_time:
             return jsonify({'error': 'Ya has registrado salida para el último bloque'}), 409
         
-        last_block.end_time = get_current_time_argentina().time()
+        last_block.end_time = get_current_time_only_argentina()
         db.session.commit()
         
         return jsonify({
