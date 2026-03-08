@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
+import MoneyFormat from '../components/MoneyFormat';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -281,14 +282,6 @@ const Expenses = () => {
     }
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value || 0);
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -348,7 +341,7 @@ const Expenses = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Gastos</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.total_importe)}</p>
+                <p className="text-xl font-bold text-gray-900">$<MoneyFormat amount={stats.total_importe} /></p>
               </div>
             </div>
           </div>
@@ -384,7 +377,7 @@ const Expenses = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Promedio</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {formatCurrency(stats.total_gastos > 0 ? stats.total_importe / stats.total_gastos : 0)}
+                  $<MoneyFormat amount={stats.total_gastos > 0 ? stats.total_importe / stats.total_gastos : 0} />
                 </p>
               </div>
             </div>
@@ -558,7 +551,7 @@ const Expenses = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      {formatCurrency(expense.importe)}
+                      $<MoneyFormat amount={expense.importe} />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                       {expense.medio_pago || '-'}

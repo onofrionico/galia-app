@@ -15,6 +15,7 @@ class S3Service:
         )
         self.bucket_name = os.getenv('AWS_S3_BUCKET_NAME')
         self.folder_prefix = 'absence-attachments/'
+        self.social_security_prefix = 'social-security-documents/'
     
     def upload_file(self, file, employee_id, original_filename):
         """

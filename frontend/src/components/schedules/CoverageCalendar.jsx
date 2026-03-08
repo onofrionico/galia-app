@@ -1,14 +1,29 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, eachDayOfInterval, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Users, TrendingUp, Clock } from 'lucide-react'
 import api from '@/services/api'
+import DayCoverageDetail from './DayCoverageDetail'
 
 const CoverageCalendar = ({ startDate, endDate }) => {
+  const [selectedDate, setSelectedDate] = useState(null)
+
   const { data: coverage, isLoading } = useQuery({
     queryKey: ['coverage', startDate, endDate],
     queryFn: async () => {
       const response = await api.get('/coverage/hourly', {
+        params: { start_date: startDate, end_date: endDate }
+      })
+      return response.data
+    },
+    enabled: !!startDate && !!endDate
+  })
+
+  const { data: dailyCoverage, refetch: refetchDailyCoverage } = useQuery({
+    queryKey: ['daily-coverage', startDate, endDate],
+    queryFn: async () => {
+      const response = await api.get('/schedules/coverage', {
         params: { start_date: startDate, end_date: endDate }
       })
       return response.data
@@ -109,8 +124,12 @@ const CoverageCalendar = ({ startDate, endDate }) => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {coverage.map((dayData) => (
-                <tr key={dayData.date} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                <tr 
+                  key={dayData.date} 
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setSelectedDate(dayData.date)}
+                >
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white hover:bg-gray-50">
                     <div>{format(parseISO(dayData.date), 'EEE', { locale: es })}</div>
                     <div className="text-xs text-gray-500">{format(parseISO(dayData.date), 'dd/MM')}</div>
                   </td>
@@ -152,6 +171,18 @@ const CoverageCalendar = ({ startDate, endDate }) => {
           </div>
         </div>
       </div>
+
+      {selectedDate && dailyCoverage && (
+        <DayCoverageDetail
+          date={selectedDate}
+          employees={dailyCoverage.find(d => d.date === selectedDate)?.employees || []}
+          onClose={() => setSelectedDate(null)}
+          onShiftAdded={() => {
+            refetchDailyCoverage()
+            setSelectedDate(null)
+          }}
+        />
+      )}
     </div>
   )
 }

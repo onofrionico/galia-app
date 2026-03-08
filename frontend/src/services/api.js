@@ -29,11 +29,47 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Manejo de error 401 - No autenticado
     if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+      console.warn('[SECURITY] 401 Unauthorized - Redirigiendo a login')
       localStorage.removeItem('auth_token')
       delete api.defaults.headers.common['Authorization']
       window.location.href = '/login'
     }
+    
+    // Manejo de error 403 - No autorizado (sin permisos)
+    if (error.response?.status === 403) {
+      console.error(
+        '[SECURITY] 403 Forbidden - Acceso denegado',
+        {
+          path: error.config?.url,
+          method: error.config?.method,
+          message: error.response?.data?.message || error.response?.data?.error
+        }
+      )
+      
+      // Mostrar notificación al usuario
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'No tienes permisos para acceder a este recurso'
+      
+      // Crear evento personalizado para que los componentes puedan escucharlo
+      window.dispatchEvent(new CustomEvent('forbidden-access', {
+        detail: {
+          message: errorMessage,
+          path: error.config?.url
+        }
+      }))
+      
+      // Si no estamos en la página de inicio, redirigir después de 2 segundos
+      if (!window.location.pathname.includes('/dashboard') && 
+          !window.location.pathname.includes('/home')) {
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 2000)
+      }
+    }
+    
     return Promise.reject(error)
   }
 )

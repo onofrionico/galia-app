@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import employeeService from '../services/employeeService'
 import { ArrowLeft, Edit, UserX, Mail, Phone, MapPin, Calendar, Briefcase, AlertCircle, User, Clock } from 'lucide-react'
+import SocialSecurityUpload from '../components/SocialSecurityUpload'
+import { useAuth } from '../context/AuthContext'
 
 const EmployeeDetail = () => {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { user } = useAuth()
   const [employee, setEmployee] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -259,6 +262,13 @@ const EmployeeDetail = () => {
                 <div className="text-gray-900">{employee.emergency_contact_relationship}</div>
               </div>
             </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <SocialSecurityUpload 
+              employeeId={parseInt(id)} 
+              isAdmin={user?.role === 'admin'} 
+            />
           </div>
 
           {employee.job_history && employee.job_history.length > 0 && (

@@ -390,7 +390,7 @@ def deactivate_employee(current_user, employee_id):
     
     Shift.query.filter(
         Shift.employee_id == employee_id,
-        Shift.date >= date.today()
+        Shift.shift_date >= date.today()
     ).delete()
     
     db.session.commit()

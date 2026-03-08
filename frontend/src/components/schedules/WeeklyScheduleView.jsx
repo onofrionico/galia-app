@@ -12,6 +12,21 @@ const WeeklyScheduleView = ({ schedule }) => {
     return date
   }
   
+  const isShiftOngoing = (shift, dayIndex) => {
+    if (!isToday(dayIndex)) return false
+    
+    const now = new Date()
+    const currentTime = now.getHours() * 60 + now.getMinutes()
+    
+    const [startHour, startMin] = shift.start_time.split(':').map(Number)
+    const [endHour, endMin] = shift.end_time.split(':').map(Number)
+    
+    const shiftStart = startHour * 60 + startMin
+    const shiftEnd = endHour * 60 + endMin
+    
+    return currentTime >= shiftStart && currentTime < shiftEnd
+  }
+  
   const getShiftsForDay = (dayIndex) => {
     const startDate = parseDate(schedule.start_date)
     const targetDate = new Date(startDate)
@@ -90,22 +105,34 @@ const WeeklyScheduleView = ({ schedule }) => {
                 <p className="text-sm text-gray-400 italic">Sin turnos asignados</p>
               ) : (
                 <div className="space-y-2">
-                  {shifts.map((shift) => (
-                    <div
-                      key={shift.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                    >
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {shift.start_time} - {shift.end_time}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {shift.hours} horas
-                        </p>
+                  {shifts.map((shift) => {
+                    const isOngoing = isShiftOngoing(shift, index)
+                    return (
+                      <div
+                        key={shift.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
+                          isOngoing 
+                            ? 'bg-green-50 border-green-500' 
+                            : 'bg-gray-50 border-transparent'
+                        }`}
+                      >
+                        <Clock className={`w-4 h-4 ${isOngoing ? 'text-green-600' : 'text-gray-400'}`} />
+                        <div className="flex-1">
+                          <p className={`font-medium ${isOngoing ? 'text-green-900' : 'text-gray-900'}`}>
+                            {shift.start_time} - {shift.end_time}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {shift.hours} horas
+                          </p>
+                        </div>
+                        {isOngoing && (
+                          <span className="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded">
+                            En curso
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

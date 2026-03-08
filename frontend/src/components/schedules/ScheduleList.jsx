@@ -1,13 +1,28 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { scheduleService } from '@/services/scheduleService'
 import { Calendar, Plus, Eye, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const ScheduleList = ({ onSelectSchedule, onCreateNew }) => {
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const queryClient = useQueryClient()
+  
   const { data: schedules, isLoading, error } = useQuery({
     queryKey: ['schedules'],
     queryFn: scheduleService.getSchedules,
+  })
+  
+  const deleteMutation = useMutation({
+    mutationFn: scheduleService.deleteSchedule,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['schedules'])
+      setDeleteConfirm(null)
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'Error al eliminar la grilla')
+    }
   })
 
   if (isLoading) {
@@ -94,10 +109,53 @@ const ScheduleList = ({ onSelectSchedule, onCreateNew }) => {
                   >
                     <Eye className="h-5 w-5" />
                   </button>
+                  {schedule.status === 'draft' && (
+                    <button
+                      onClick={() => setDeleteConfirm(schedule)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar grilla"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+      
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirmar eliminación
+            </h3>
+            <p className="text-gray-600 mb-4">
+              ¿Estás seguro de que deseas eliminar la grilla del{' '}
+              {format(new Date(deleteConfirm.start_date), 'dd MMM', { locale: es })} al{' '}
+              {format(new Date(deleteConfirm.end_date), 'dd MMM yyyy', { locale: es })}?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                disabled={deleteMutation.isPending}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
