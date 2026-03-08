@@ -3,10 +3,11 @@ from app.extensions import db
 from app.models.sale import Sale
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import admin_required
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import func, extract
 import csv
 import io
+import pytz
 
 bp = Blueprint('sales', __name__, url_prefix='/api/v1/sales')
 
@@ -30,14 +31,14 @@ def get_sales(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     if estado:
         query = query.filter(Sale.estado == estado)
@@ -77,14 +78,14 @@ def get_sales_stats(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     total_ventas = query.count()
     total_monto = query.with_entities(func.sum(Sale.total)).scalar() or 0
@@ -329,14 +330,14 @@ def export_sales(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Sale.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     sales = query.order_by(Sale.fecha.desc(), Sale.creacion.desc()).all()
     

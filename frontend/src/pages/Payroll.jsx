@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import payrollService from '../services/payrollService';
 import employeeService from '../services/employeeService';
+import MoneyFormat from '../components/MoneyFormat';
 import { 
   DollarSign, 
   Calendar, 
@@ -147,7 +148,7 @@ const Payroll = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Sueldos</p>
                 <p className="text-xl md:text-2xl font-bold text-gray-900">
-                  ${summary.total_salary.toFixed(2)}
+                  $<MoneyFormat amount={summary.total_salary} />
                 </p>
               </div>
               <DollarSign className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
@@ -250,7 +251,7 @@ const Payroll = () => {
                 {historical.map((item, idx) => (
                   <tr key={idx} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 text-sm">{item.month_name} {item.year}</td>
-                    <td className="py-2 px-4 text-sm text-right font-medium">${item.total_salary.toFixed(2)}</td>
+                    <td className="py-2 px-4 text-sm text-right font-medium">$<MoneyFormat amount={item.total_salary} /></td>
                     <td className="py-2 px-4 text-sm text-right">{item.total_hours.toFixed(2)}</td>
                     <td className="py-2 px-4 text-sm text-right">{item.employee_count}</td>
                   </tr>
@@ -317,7 +318,7 @@ const Payroll = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-semibold">
-                      {employee.gross_salary ? `$${employee.gross_salary.toFixed(2)}` : '-'}
+                      {employee.gross_salary ? <span>$<MoneyFormat amount={employee.gross_salary} /></span> : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {employee.pdf_generated ? (
@@ -400,7 +401,7 @@ const Payroll = () => {
                     {employee.gross_salary && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Sueldo bruto:</span>
-                        <span className="font-semibold text-lg">${employee.gross_salary.toFixed(2)}</span>
+                        <span className="font-semibold text-lg">$<MoneyFormat amount={employee.gross_salary} /></span>
                       </div>
                     )}
                   </div>
@@ -643,7 +644,7 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
                 </div>
                 <div>
                   <span className="text-gray-600">Tarifa horaria (puesto):</span>
-                  <p className="font-semibold">${calculation.hourly_rate.toFixed(2)}</p>
+                  <p className="font-semibold">$<MoneyFormat amount={calculation.hourly_rate} /></p>
                 </div>
                 <div className="col-span-2">
                   <div className="flex items-center gap-2 mb-2">
@@ -683,13 +684,13 @@ const NewPayrollModal = ({ preselectedEmployee, defaultYear, defaultMonth, onClo
                 <div className="col-span-2 pt-2 border-t">
                   <span className="text-gray-600">Sueldo bruto estimado:</span>
                   <p className="text-2xl font-bold text-green-600">
-                    ${(useCustomRate && customHourlyRate 
-                      ? (calculation.hours_worked * parseFloat(customHourlyRate)).toFixed(2)
-                      : calculation.gross_salary.toFixed(2))}
+                    $<MoneyFormat amount={useCustomRate && customHourlyRate 
+                      ? (calculation.hours_worked * parseFloat(customHourlyRate))
+                      : calculation.gross_salary} />
                   </p>
                   {useCustomRate && customHourlyRate && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Usando tarifa personalizada: ${parseFloat(customHourlyRate).toFixed(2)}/hora
+                      Usando tarifa personalizada: $<MoneyFormat amount={parseFloat(customHourlyRate)} />/hora
                     </p>
                   )}
                 </div>

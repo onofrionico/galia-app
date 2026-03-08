@@ -5,6 +5,7 @@ import {
   CreditCard, Store, Truck, Eye, Edit2, Trash2, RefreshCw
 } from 'lucide-react';
 import api from '../services/api';
+import MoneyFormat from '../components/MoneyFormat';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -288,17 +289,11 @@ const Sales = () => {
     });
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0
-    }).format(value || 0);
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('es-AR');
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('es-AR');
   };
 
   const formatDateTime = (dateStr) => {
@@ -382,7 +377,7 @@ const Sales = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Monto Total</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.total_monto)}</p>
+                <p className="text-xl font-bold text-gray-900">$<MoneyFormat amount={stats.total_monto} /></p>
               </div>
             </div>
           </div>
@@ -395,7 +390,7 @@ const Sales = () => {
               <div>
                 <p className="text-sm text-gray-600">Promedio</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {formatCurrency(stats.total_ventas > 0 ? stats.total_monto / stats.total_ventas : 0)}
+                  $<MoneyFormat amount={stats.total_ventas > 0 ? stats.total_monto / stats.total_ventas : 0} />
                 </p>
               </div>
             </div>
@@ -576,7 +571,7 @@ const Sales = () => {
                       {sale.medio_pago || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
-                      {formatCurrency(sale.total)}
+                      $<MoneyFormat amount={sale.total} />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">

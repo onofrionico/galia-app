@@ -20,6 +20,21 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - **Tests de permisos**: 27 tests automatizados para verificar la correcta aplicación de permisos en todos los módulos
 
 ### Added
+- **Formato de montos argentino**: Todos los montos monetarios ahora se muestran en formato argentino (punto como separador de miles, coma como separador decimal)
+  - Utilidad backend `format_money_ar()` en `backend/app/utils/format_utils.py` para formatear montos
+  - Utilidad backend `parse_money_ar()` para parsear strings en formato argentino
+  - Componente React `MoneyFormat.jsx` para mostrar montos formateados
+  - Componente React `MoneyInput.jsx` para inputs de montos con formato argentino
+  - Utilidades JavaScript `formatMoney()`, `parseMoney()` y `formatMoneyWithCurrency()` en `frontend/src/utils/moneyFormat.js`
+  - Actualización de componentes Payroll, Sales y Expenses para usar el nuevo formato
+  - Tests automatizados para backend (pytest) y frontend (Jest) con cobertura completa
+  - Ejemplos: 1234.56 se muestra como "1.234,56", 1000000 como "1.000.000,00"
+- **Eliminación de nóminas en borrador**: Los administradores pueden eliminar nóminas que están en estado "borrador"
+  - Endpoint DELETE `/api/v1/payroll/<id>` con validación de estado
+  - Solo permite eliminar nóminas con status = "draft"
+  - Botón de eliminación visible únicamente para nóminas en borrador
+  - Diálogo de confirmación antes de eliminar
+  - Tests automatizados para validar permisos y restricciones de eliminación
 - **Sistema de gestión de documentos de cargas sociales**: Los administradores pueden cargar y gestionar comprobantes de cargas sociales para empleados
   - Nuevo modelo `SocialSecurityDocument` con soporte para múltiples tipos de documentos (cargas sociales, aportes, obra social, ART, otros)
   - Almacenamiento seguro en S3 con encriptación AES256
@@ -28,6 +43,13 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
   - Endpoints REST para upload, download, listado y eliminación de documentos
   - Filtros por tipo de documento, año y mes
   - Permisos: solo administradores pueden subir/eliminar, empleados pueden ver sus propios documentos
+- **Detalle de cobertura diaria en grillas**: Nueva funcionalidad para visualizar empleados asignados por día
+  - Nuevo endpoint `/api/v1/schedules/coverage` que retorna detalle completo de empleados por fecha
+  - Componente `DayCoverageDetail.jsx` con modal interactivo para ver asignaciones del día
+  - Click en cualquier día del calendario de cobertura muestra detalle de empleados asignados
+  - Visualización de nombre, puesto y horario de cada empleado
+  - Opción de asignación rápida de turnos desde el modal de detalle
+  - Cálculo automático de horas totales programadas por día
 - **Gestión de horarios mejorada**: Los turnos en curso ahora aparecen primero en la lista de turnos del empleado
 - **Indicador visual de turnos activos**: Los turnos que están en curso se muestran con un borde verde y badge "En curso"
 - **Confirmación de eliminación de grillas**: Agregado diálogo de confirmación al eliminar grillas horarias

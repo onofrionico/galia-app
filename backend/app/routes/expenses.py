@@ -31,14 +31,14 @@ def get_expenses(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     if proveedor:
         query = query.filter(Expense.proveedor.ilike(f'%{proveedor}%'))
@@ -81,14 +81,14 @@ def get_expense_stats(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     total_gastos = query.count()
     total_importe = query.with_entities(func.sum(Expense.importe)).scalar() or 0
@@ -377,14 +377,14 @@ def export_expenses(current_user):
             fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha >= fecha_desde_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     
     if fecha_hasta:
         try:
             fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
             query = query.filter(Expense.fecha <= fecha_hasta_dt)
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
     expenses = query.order_by(Expense.fecha.desc(), Expense.id.desc()).all()
     
