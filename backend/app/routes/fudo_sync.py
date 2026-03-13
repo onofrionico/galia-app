@@ -8,6 +8,7 @@ from app.utils.fudo_client import FudoClient
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
+import threading
 
 bp = Blueprint('fudo_sync', __name__, url_prefix='/api/v1/fudo')
 
@@ -164,12 +165,67 @@ def parse_fudo_expense(fudo_expense: Dict, category_mapping: Dict[str, int]) -> 
     }
 
 
+def _sync_sales_background(start_date, end_date, update_existing):
+    """Background task for syncing sales"""
+    from app import create_app
+    app = create_app('production')
+    
+    with app.app_context():
+        try:
+            logger.info(f"Starting background sales sync: {start_date} to {end_date}")
+            client = FudoClient()
+            
+            fudo_sales = client.get_all_sales(start_date=start_date, end_date=end_date)
+            
+            results = {
+                'total_fetched': len(fudo_sales),
+                'imported': 0,
+                'updated': 0,
+                'skipped': 0,
+                'errors': []
+            }
+            
+            for fudo_sale in fudo_sales:
+                try:
+                    sale_data = parse_fudo_sale(fudo_sale)
+                    external_id = sale_data.get('external_id')
+                    
+                    existing_sale = Sale.query.filter_by(external_id=external_id).first()
+                    
+                    if existing_sale:
+                        if update_existing:
+                            for key, value in sale_data.items():
+                                if key != 'external_id':
+                                    setattr(existing_sale, key, value)
+                            results['updated'] += 1
+                        else:
+                            results['skipped'] += 1
+                    else:
+                        new_sale = Sale(**sale_data)
+                        db.session.add(new_sale)
+                        results['imported'] += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error processing Fudo sale {fudo_sale.get('id')}: {str(e)}")
+                    results['errors'].append({
+                        'sale_id': fudo_sale.get('id'),
+                        'error': str(e)
+                    })
+            
+            db.session.commit()
+            logger.info(f"Sales sync completed: {results['imported']} imported, {results['updated']} updated")
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in background sales sync: {str(e)}")
+
+
 @bp.route('/sync/sales', methods=['POST'])
 @token_required
 @admin_required
 def sync_sales(current_user):
     """
-    Sync sales from Fudo API
+    Sync sales from Fudo API (runs in background)
     
     Query params:
         - start_date: Start date in ISO format (e.g., '2024-01-01T00:00:00Z')
@@ -181,56 +237,91 @@ def sync_sales(current_user):
         end_date = request.args.get('end_date')
         update_existing = request.args.get('update_existing', 'false').lower() == 'true'
         
-        client = FudoClient()
-        
-        fudo_sales = client.get_all_sales(start_date=start_date, end_date=end_date)
-        
-        results = {
-            'total_fetched': len(fudo_sales),
-            'imported': 0,
-            'updated': 0,
-            'skipped': 0,
-            'errors': []
-        }
-        
-        for fudo_sale in fudo_sales:
-            try:
-                sale_data = parse_fudo_sale(fudo_sale)
-                external_id = sale_data.get('external_id')
-                
-                existing_sale = Sale.query.filter_by(external_id=external_id).first()
-                
-                if existing_sale:
-                    if update_existing:
-                        for key, value in sale_data.items():
-                            if key != 'external_id':
-                                setattr(existing_sale, key, value)
-                        results['updated'] += 1
-                    else:
-                        results['skipped'] += 1
-                else:
-                    new_sale = Sale(**sale_data)
-                    db.session.add(new_sale)
-                    results['imported'] += 1
-                    
-            except Exception as e:
-                logger.error(f"Error processing Fudo sale {fudo_sale.get('id')}: {str(e)}")
-                results['errors'].append({
-                    'sale_id': fudo_sale.get('id'),
-                    'error': str(e)
-                })
-        
-        db.session.commit()
+        # Start background thread
+        thread = threading.Thread(
+            target=_sync_sales_background,
+            args=(start_date, end_date, update_existing)
+        )
+        thread.daemon = True
+        thread.start()
         
         return jsonify({
-            'message': f"Sincronización completada: {results['imported']} ventas importadas, {results['updated']} actualizadas",
-            'results': results
-        }), 200
+            'message': 'Sincronización de ventas iniciada en segundo plano',
+            'status': 'processing',
+            'start_date': start_date,
+            'end_date': end_date
+        }), 202
         
     except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error syncing sales from Fudo: {str(e)}")
-        return jsonify({'error': f'Error sincronizando ventas: {str(e)}'}), 500
+        logger.error(f"Error starting sales sync: {str(e)}")
+        return jsonify({'error': f'Error iniciando sincronización: {str(e)}'}), 500
+
+
+def _sync_expenses_background(start_date, end_date, update_existing, category_mapping):
+    """Background task for syncing expenses"""
+    from app import create_app
+    app = create_app('production')
+    
+    with app.app_context():
+        try:
+            logger.info(f"Starting background expenses sync: {start_date} to {end_date}")
+            client = FudoClient()
+            
+            fudo_expenses = client.get_all_expenses(start_date=start_date, end_date=end_date)
+            
+            results = {
+                'total_fetched': len(fudo_expenses),
+                'imported': 0,
+                'updated': 0,
+                'skipped': 0,
+                'no_category_mapping': 0,
+                'errors': []
+            }
+            
+            for fudo_expense in fudo_expenses:
+                try:
+                    expense_data = parse_fudo_expense(fudo_expense, category_mapping)
+                    
+                    if not expense_data:
+                        results['errors'].append({
+                            'expense_id': fudo_expense.get('id'),
+                            'error': 'Error parsing expense data'
+                        })
+                        continue
+                    
+                    if not expense_data.get('category_id'):
+                        results['no_category_mapping'] += 1
+                    
+                    external_id = expense_data.get('external_id')
+                    
+                    existing_expense = Expense.query.filter_by(external_id=external_id).first()
+                    
+                    if existing_expense:
+                        if update_existing:
+                            for key, value in expense_data.items():
+                                if key != 'external_id':
+                                    setattr(existing_expense, key, value)
+                            results['updated'] += 1
+                        else:
+                            results['skipped'] += 1
+                    else:
+                        new_expense = Expense(**expense_data)
+                        db.session.add(new_expense)
+                        results['imported'] += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error processing Fudo expense {fudo_expense.get('id')}: {str(e)}")
+                    results['errors'].append({
+                        'expense_id': fudo_expense.get('id'),
+                        'error': str(e)
+                    })
+            
+            db.session.commit()
+            logger.info(f"Expenses sync completed: {results['imported']} imported, {results['updated']} updated")
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in background expenses sync: {str(e)}")
 
 
 @bp.route('/sync/expenses', methods=['POST'])
@@ -238,7 +329,7 @@ def sync_sales(current_user):
 @admin_required
 def sync_expenses(current_user):
     """
-    Sync expenses from Fudo API
+    Sync expenses from Fudo API (runs in background)
     
     Query params:
         - start_date: Start date in format YYYY-MM-DD
@@ -257,71 +348,24 @@ def sync_expenses(current_user):
         data = request.get_json() or {}
         category_mapping = data.get('category_mapping', {})
         
-        # category_mapping is optional - expenses without mapping will have category_id = None
-        
-        client = FudoClient()
-        
-        fudo_expenses = client.get_all_expenses(start_date=start_date, end_date=end_date)
-        
-        results = {
-            'total_fetched': len(fudo_expenses),
-            'imported': 0,
-            'updated': 0,
-            'skipped': 0,
-            'no_category_mapping': 0,
-            'errors': []
-        }
-        
-        for fudo_expense in fudo_expenses:
-            try:
-                expense_data = parse_fudo_expense(fudo_expense, category_mapping)
-                
-                if not expense_data:
-                    results['errors'].append({
-                        'expense_id': fudo_expense.get('id'),
-                        'error': 'Error parsing expense data'
-                    })
-                    continue
-                
-                # Track if expense has no category mapping
-                if not expense_data.get('category_id'):
-                    results['no_category_mapping'] += 1
-                
-                external_id = expense_data.get('external_id')
-                
-                existing_expense = Expense.query.filter_by(external_id=external_id).first()
-                
-                if existing_expense:
-                    if update_existing:
-                        for key, value in expense_data.items():
-                            if key != 'external_id':
-                                setattr(existing_expense, key, value)
-                        results['updated'] += 1
-                    else:
-                        results['skipped'] += 1
-                else:
-                    new_expense = Expense(**expense_data)
-                    db.session.add(new_expense)
-                    results['imported'] += 1
-                    
-            except Exception as e:
-                logger.error(f"Error processing Fudo expense {fudo_expense.get('id')}: {str(e)}")
-                results['errors'].append({
-                    'expense_id': fudo_expense.get('id'),
-                    'error': str(e)
-                })
-        
-        db.session.commit()
+        # Start background thread
+        thread = threading.Thread(
+            target=_sync_expenses_background,
+            args=(start_date, end_date, update_existing, category_mapping)
+        )
+        thread.daemon = True
+        thread.start()
         
         return jsonify({
-            'message': f"Sincronización completada: {results['imported']} gastos importados, {results['updated']} actualizados",
-            'results': results
-        }), 200
+            'message': 'Sincronización de gastos iniciada en segundo plano',
+            'status': 'processing',
+            'start_date': start_date,
+            'end_date': end_date
+        }), 202
         
     except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error syncing expenses from Fudo: {str(e)}")
-        return jsonify({'error': f'Error sincronizando gastos: {str(e)}'}), 500
+        logger.error(f"Error starting expenses sync: {str(e)}")
+        return jsonify({'error': f'Error iniciando sincronización: {str(e)}'}), 500
 
 
 @bp.route('/categories', methods=['GET'])

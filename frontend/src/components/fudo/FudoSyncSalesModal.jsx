@@ -51,12 +51,26 @@ const FudoSyncSalesModal = ({ isOpen, onClose, onSuccess }) => {
         endDateISO,
         syncConfig.updateExisting
       );
-      setSyncResults(result.results);
-      if (result.results.imported > 0 || result.results.updated > 0) {
+      
+      // Handle async response (202)
+      if (result.status === 'processing') {
+        setSyncResults({
+          message: result.message,
+          processing: true
+        });
         setTimeout(() => {
           onSuccess();
           onClose();
-        }, 2000);
+        }, 3000);
+      } else {
+        // Handle sync response (200) - for backwards compatibility
+        setSyncResults(result.results);
+        if (result.results.imported > 0 || result.results.updated > 0) {
+          setTimeout(() => {
+            onSuccess();
+            onClose();
+          }, 2000);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Error al sincronizar ventas');
@@ -155,30 +169,43 @@ const FudoSyncSalesModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
-                Resultados de la Sincronización
+                {syncResults.processing ? 'Sincronización Iniciada' : 'Resultados de la Sincronización'}
               </h4>
-              <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white rounded p-3 text-center">
-                  <div className="text-2xl font-bold text-blue-900">{syncResults.total_fetched}</div>
-                  <div className="text-xs text-blue-600">Obtenidas</div>
+              {syncResults.processing ? (
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm text-gray-700">
+                    {syncResults.message}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    La sincronización se está ejecutando en segundo plano. Los datos se actualizarán automáticamente cuando finalice el proceso.
+                  </p>
                 </div>
-                <div className="bg-white rounded p-3 text-center">
-                  <div className="text-2xl font-bold text-green-900">{syncResults.imported}</div>
-                  <div className="text-xs text-green-600">Importadas</div>
-                </div>
-                <div className="bg-white rounded p-3 text-center">
-                  <div className="text-2xl font-bold text-yellow-900">{syncResults.updated}</div>
-                  <div className="text-xs text-yellow-600">Actualizadas</div>
-                </div>
-                <div className="bg-white rounded p-3 text-center">
-                  <div className="text-2xl font-bold text-gray-900">{syncResults.skipped}</div>
-                  <div className="text-xs text-gray-600">Omitidas</div>
-                </div>
-              </div>
-              {syncResults.errors && syncResults.errors.length > 0 && (
-                <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-600">
-                  ⚠️ {syncResults.errors.length} errores encontrados
-                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-white rounded p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-900">{syncResults.total_fetched}</div>
+                      <div className="text-xs text-blue-600">Obtenidas</div>
+                    </div>
+                    <div className="bg-white rounded p-3 text-center">
+                      <div className="text-2xl font-bold text-green-900">{syncResults.imported}</div>
+                      <div className="text-xs text-green-600">Importadas</div>
+                    </div>
+                    <div className="bg-white rounded p-3 text-center">
+                      <div className="text-2xl font-bold text-yellow-900">{syncResults.updated}</div>
+                      <div className="text-xs text-yellow-600">Actualizadas</div>
+                    </div>
+                    <div className="bg-white rounded p-3 text-center">
+                      <div className="text-2xl font-bold text-gray-900">{syncResults.skipped}</div>
+                      <div className="text-xs text-gray-600">Omitidas</div>
+                    </div>
+                  </div>
+                  {syncResults.errors && syncResults.errors.length > 0 && (
+                    <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-600">
+                      ⚠️ {syncResults.errors.length} errores encontrados
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
