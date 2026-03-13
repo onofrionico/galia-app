@@ -6,7 +6,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: "./build.sh"
-    startCommand: "gunicorn --chdir backend --bind 0.0.0.0:$PORT run:app"
+    startCommand: "gunicorn --chdir backend --bind 0.0.0.0:$PORT --timeout 120 run:app"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -19,7 +19,7 @@ services:
       - key: FLASK_ENV
         value: production
       - key: CORS_ORIGINS
-        sync: false
+        value: http://localhost:5173,https://galia-frontend.onrender.com
     
   # Frontend React Static Site
   - type: web
