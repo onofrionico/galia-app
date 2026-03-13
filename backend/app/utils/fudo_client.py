@@ -122,8 +122,17 @@ class FudoClient:
         page_number = 1
         page_size = 500
         
-        # Don't use date filters - fetch all sales and filter locally if needed
+        # Use API date filters if provided
         filters = {}
+        if start_date and end_date:
+            # Format: and(gte.2024-01-01T00:00:00Z,lte.2024-01-31T23:59:59Z)
+            filters['createdAt'] = f'and(gte.{start_date},lte.{end_date})'
+        elif start_date:
+            # Format: gte.2024-01-01T00:00:00Z
+            filters['createdAt'] = f'gte.{start_date}'
+        elif end_date:
+            # Format: lte.2024-01-31T23:59:59Z
+            filters['createdAt'] = f'lte.{end_date}'
         
         while True:
             response = self.get_sales(page_size=page_size, page_number=page_number, filters=filters)
@@ -132,20 +141,7 @@ class FudoClient:
             if not sales_data:
                 break
             
-            # Filter sales by date locally if dates are provided
-            if start_date or end_date:
-                filtered_sales = []
-                for sale in sales_data:
-                    closed_at = sale.get('attributes', {}).get('closedAt')
-                    if closed_at:
-                        if start_date and closed_at < start_date:
-                            continue
-                        if end_date and closed_at > end_date:
-                            continue
-                    filtered_sales.append(sale)
-                all_sales.extend(filtered_sales)
-            else:
-                all_sales.extend(sales_data)
+            all_sales.extend(sales_data)
             
             if len(sales_data) < page_size:
                 break
@@ -198,8 +194,17 @@ class FudoClient:
         page_number = 1
         page_size = 500
         
-        # Don't use date filters - fetch all expenses and filter locally if needed
+        # Use API date filters if provided
         filters = {}
+        if start_date and end_date:
+            # Format: and(gte.2024-01-01,lte.2024-01-31)
+            filters['date'] = f'and(gte.{start_date},lte.{end_date})'
+        elif start_date:
+            # Format: gte.2024-01-01
+            filters['date'] = f'gte.{start_date}'
+        elif end_date:
+            # Format: lte.2024-01-31
+            filters['date'] = f'lte.{end_date}'
         
         while True:
             response = self.get_expenses(page_size=page_size, page_number=page_number, filters=filters)
@@ -208,20 +213,7 @@ class FudoClient:
             if not expenses_data:
                 break
             
-            # Filter expenses by date locally if dates are provided
-            if start_date or end_date:
-                filtered_expenses = []
-                for expense in expenses_data:
-                    expense_date = expense.get('attributes', {}).get('date')
-                    if expense_date:
-                        if start_date and expense_date < start_date:
-                            continue
-                        if end_date and expense_date > end_date:
-                            continue
-                    filtered_expenses.append(expense)
-                all_expenses.extend(filtered_expenses)
-            else:
-                all_expenses.extend(expenses_data)
+            all_expenses.extend(expenses_data)
             
             if len(expenses_data) < page_size:
                 break
