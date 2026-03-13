@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Upload, Download, Plus, Search, Filter, X, ChevronLeft, ChevronRight,
   FileText, AlertCircle, CheckCircle, DollarSign, TrendingUp, Users,
-  CreditCard, Store, Truck, Eye, Edit2, Trash2, RefreshCw
+  CreditCard, Store, Truck, Eye, Edit2, Trash2, RefreshCw, Cloud
 } from 'lucide-react';
 import api from '../services/api';
 import MoneyFormat from '../components/MoneyFormat';
+import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -57,6 +58,7 @@ const Sales = () => {
     id_origen: ''
   });
   const [saving, setSaving] = useState(false);
+  const [showFudoSyncModal, setShowFudoSyncModal] = useState(false);
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -331,6 +333,14 @@ const Sales = () => {
         </div>
         
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowFudoSyncModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            title="Sincronizar desde Fudo"
+          >
+            <Cloud className="w-4 h-4" />
+            Sync Fudo
+          </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -1092,6 +1102,17 @@ const Sales = () => {
           </div>
         </div>
       )}
+
+      {/* Fudo Sync Modal */}
+      <FudoSyncSalesModal
+        isOpen={showFudoSyncModal}
+        onClose={() => setShowFudoSyncModal(false)}
+        onSuccess={() => {
+          fetchSales();
+          fetchStats();
+          fetchFilterOptions();
+        }}
+      />
     </div>
   );
 };

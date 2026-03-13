@@ -10,6 +10,7 @@ Sistema web monolítico para la gestión integral de una cafetería con servicio
 - 💸 **Gestión de Gastos**: Seguimiento de egresos por categoría
 - 📊 **Reportes y Análisis**: Reportes comparativos semanales, mensuales y trimestrales
 - 📈 **Balance Financiero**: Análisis de rentabilidad del negocio
+- 🔄 **Integración con Fudo**: Sincronización automática de ventas y gastos desde Fudo POS
 
 ## Stack Tecnológico
 
@@ -168,6 +169,34 @@ sdd-galia-app/
 - `GET /api/v1/reports/expenses` - Reporte de gastos
 - `GET /api/v1/reports/balance` - Balance financiero
 - `GET /api/v1/reports/payroll` - Reporte de sueldos
+
+### Integración Fudo
+- `GET /api/v1/fudo/test-connection` - Probar conexión con Fudo API
+- `POST /api/v1/fudo/sync/sales` - Sincronizar ventas desde Fudo
+- `POST /api/v1/fudo/sync/expenses` - Sincronizar gastos desde Fudo
+- `GET /api/v1/fudo/categories` - Obtener categorías de Fudo
+- `GET /api/v1/fudo/payment-methods` - Obtener métodos de pago de Fudo
+
+## Integraciones
+
+### Fudo POS
+
+Galia se integra con Fudo para sincronizar automáticamente ventas y gastos. Para configurar la integración:
+
+1. Obtén tus credenciales de API de Fudo (contacta a soporte@fu.do)
+2. Configura las variables de entorno en `.env`:
+   ```bash
+   FUDO_API_KEY=tu-api-key
+   FUDO_API_SECRET=tu-api-secret
+   ```
+3. Consulta la documentación completa en [`FUDO_INTEGRATION.md`](./FUDO_INTEGRATION.md)
+
+**Características:**
+- Sincronización de ventas con mapeo automático de campos
+- Sincronización de gastos con mapeo de categorías
+- Autenticación automática con renovación de tokens
+- Paginación automática para grandes volúmenes de datos
+- Manejo de errores y duplicados
 
 ## Desarrollo
 
