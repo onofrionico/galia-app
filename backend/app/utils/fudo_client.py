@@ -134,6 +134,9 @@ class FudoClient:
             # Format: lte.2024-01-31T23:59:59Z
             filters['createdAt'] = f'lte.{end_date}'
         
+        # Only fetch closed sales
+        filters['saleState'] = 'in.(CLOSED)'
+        
         while True:
             response = self.get_sales(page_size=page_size, page_number=page_number, filters=filters)
             sales_data = response.get('data', [])
