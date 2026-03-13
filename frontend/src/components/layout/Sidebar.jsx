@@ -18,7 +18,8 @@ import {
   CalendarDays,
   Tag,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Truck
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -39,6 +40,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/sales', icon: ShoppingCart, label: 'Ventas', adminOnly: true },
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
     { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', adminOnly: true },
+    { to: '/suppliers', icon: Truck, label: 'Proveedores', adminOnly: true },
     { to: '/payroll', icon: Wallet, label: 'Sueldos', adminOnly: true },
     { to: '/payroll-claims', icon: AlertTriangle, label: 'Reclamos de Nóminas', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },
