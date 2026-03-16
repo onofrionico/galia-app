@@ -55,18 +55,18 @@ const MyDocuments = () => {
     }
   };
 
-  const handleDownload = async (document) => {
+  const handleDownload = async (doc) => {
     try {
-      const documentType = document.type;
-      const documentId = document.reference_id;
+      const documentType = doc.type;
+      const documentId = doc.reference_id;
       
-      console.log('Descargando documento:', { type: documentType, id: documentId, fileName: document.file_name });
+      console.log('Descargando documento:', { type: documentType, id: documentId, fileName: doc.file_name });
       
       const blob = await employeeDocumentsService.downloadDocument(documentType, documentId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = document.file_name;
+      a.download = doc.file_name;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
