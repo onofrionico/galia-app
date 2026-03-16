@@ -10,6 +10,7 @@ from app.models.user import User
 from app.utils.jwt_utils import token_required
 from datetime import datetime
 from sqlalchemy import or_, and_
+from io import BytesIO
 import os
 
 employee_documents_bp = Blueprint('employee_documents', __name__, url_prefix='/api/v1')
@@ -325,9 +326,6 @@ def download_my_document(current_user, document_type, document_id):
     """
     employee = current_user.employee
     
-    file_path = None
-    file_name = None
-    
     if document_type == 'payroll':
         payroll = Payroll.query.filter_by(
             id=document_id,
@@ -342,6 +340,16 @@ def download_my_document(current_user, document_type, document_id):
         
         file_path = payroll.pdf_path
         file_name = f'nomina_{employee.dni}_{payroll.year}_{payroll.month:02d}.pdf'
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Archivo no encontrado en el servidor'}), 404
+        
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=file_name,
+            mimetype='application/pdf'
+        )
     
     elif document_type == 'social_security':
         ss_doc = SocialSecurityDocument.query.filter_by(
@@ -352,8 +360,18 @@ def download_my_document(current_user, document_type, document_id):
         if not ss_doc:
             return jsonify({'error': 'Documento de cargas sociales no encontrado'}), 404
         
-        file_path = ss_doc.file_path
-        file_name = ss_doc.file_name
+        from app.services.document_service import document_service
+        file_content, file_name, error = document_service.download_document(document_id)
+        
+        if error:
+            return jsonify({'error': error}), 404 if 'no encontrado' in error.lower() else 500
+        
+        return send_file(
+            BytesIO(file_content),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=file_name
+        )
     
     elif document_type == 'absence':
         absence = AbsenceRequest.query.filter_by(
@@ -369,16 +387,16 @@ def download_my_document(current_user, document_type, document_id):
         
         file_path = absence.attachment_path
         file_name = absence.attachment_filename
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Archivo no encontrado en el servidor'}), 404
+        
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=file_name,
+            mimetype='application/pdf'
+        )
     
     else:
         return jsonify({'error': 'Tipo de documento inválido'}), 400
-    
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'Archivo no encontrado en el servidor'}), 404
-    
-    return send_file(
-        file_path,
-        as_attachment=True,
-        download_name=file_name,
-        mimetype='application/pdf'
-    )
