@@ -1,11 +1,4 @@
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
+import api from './api'
 
 const socialSecurityService = {
   uploadDocument: async (employeeId, documentType, periodMonth, periodYear, file, notes = '') => {
@@ -19,12 +12,11 @@ const socialSecurityService = {
       formData.append('notes', notes)
     }
 
-    const response = await axios.post(
-      `${API_URL}/api/v1/social-security/upload`,
+    const response = await api.post(
+      '/social-security/upload',
       formData,
       {
         headers: {
-          ...getAuthHeader(),
           'Content-Type': 'multipart/form-data'
         }
       }
@@ -38,9 +30,8 @@ const socialSecurityService = {
     if (filters.period_year) params.append('period_year', filters.period_year)
     if (filters.period_month) params.append('period_month', filters.period_month)
 
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/employee/${employeeId}?${params.toString()}`,
-      { headers: getAuthHeader() }
+    const response = await api.get(
+      `/social-security/employee/${employeeId}?${params.toString()}`
     )
     return response.data
   },
@@ -52,26 +43,23 @@ const socialSecurityService = {
     if (filters.period_year) params.append('period_year', filters.period_year)
     if (filters.period_month) params.append('period_month', filters.period_month)
 
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/all?${params.toString()}`,
-      { headers: getAuthHeader() }
+    const response = await api.get(
+      `/social-security/all?${params.toString()}`
     )
     return response.data
   },
 
   getDocumentDetail: async (documentId) => {
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/${documentId}`,
-      { headers: getAuthHeader() }
+    const response = await api.get(
+      `/social-security/${documentId}`
     )
     return response.data
   },
 
   downloadDocument: async (documentId) => {
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/download/${documentId}`,
+    const response = await api.get(
+      `/social-security/download/${documentId}`,
       {
-        headers: getAuthHeader(),
         responseType: 'blob'
       }
     )
@@ -79,25 +67,22 @@ const socialSecurityService = {
   },
 
   getDownloadUrl: async (documentId, expiration = 3600) => {
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/download-url/${documentId}?expiration=${expiration}`,
-      { headers: getAuthHeader() }
+    const response = await api.get(
+      `/social-security/download-url/${documentId}?expiration=${expiration}`
     )
     return response.data
   },
 
   deleteDocument: async (documentId) => {
-    const response = await axios.delete(
-      `${API_URL}/api/v1/social-security/${documentId}`,
-      { headers: getAuthHeader() }
+    const response = await api.delete(
+      `/social-security/${documentId}`
     )
     return response.data
   },
 
   getDocumentTypes: async () => {
-    const response = await axios.get(
-      `${API_URL}/api/v1/social-security/types`,
-      { headers: getAuthHeader() }
+    const response = await api.get(
+      '/social-security/types'
     )
     return response.data
   }
