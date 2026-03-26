@@ -32,8 +32,14 @@ import AdminTimeTracking from './pages/AdminTimeTracking'
 import MyDocuments from './pages/MyDocuments'
 import SuppliersListPage from './pages/suppliers/SuppliersListPage'
 import SupplierDetailPage from './pages/suppliers/SupplierDetailPage'
+import ProductCatalogPage from './pages/suppliers/ProductCatalogPage'
 import PurchaseEntryPage from './pages/suppliers/PurchaseEntryPage'
+import ProductsListPage from './pages/products/ProductsListPage'
+import ProductDetailPage from './pages/products/ProductDetailPage'
+import VolatileProductsPage from './pages/products/VolatileProductsPage'
 import SuppliersDashboard from './pages/dashboards/SuppliersDashboard'
+import PurchaseFrequencyDashboard from './pages/dashboards/PurchaseFrequencyDashboard'
+import ConfigurationPage from './pages/ConfigurationPage'
 
 function App() {
   return (
@@ -74,8 +80,14 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/suppliers" element={<SuppliersListPage />} />
             <Route path="/suppliers/:id" element={<SupplierDetailPage />} />
+            <Route path="/suppliers/:supplierId/products" element={<ProductCatalogPage />} />
+            <Route path="/products" element={<ProductsListPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
+            <Route path="/products-volatile" element={<VolatileProductsPage />} />
             <Route path="/purchases/new" element={<PurchaseEntryPage />} />
             <Route path="/suppliers-dashboard" element={<SuppliersDashboard />} />
+            <Route path="/frequency-dashboard" element={<PurchaseFrequencyDashboard />} />
+            <Route path="/configuration" element={<ConfigurationPage />} />
           </Route>
         </Routes>
       </AuthProvider>

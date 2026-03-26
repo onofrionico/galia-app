@@ -37,7 +37,7 @@ class PurchaseSchema(Schema):
     related_expense_id = fields.Int(allow_none=True)
     purchase_date = fields.Date(required=True)
     total_amount = fields.Decimal(dump_only=True, as_string=True, places=2)
-    currency = fields.Str(required=True, validate=validate.OneOf(['ARS', 'USD', 'EUR', 'BRL']), missing='ARS')
+    currency = fields.Str(validate=validate.OneOf(['ARS', 'USD', 'EUR', 'BRL']), missing='ARS')
     exchange_rate = fields.Decimal(allow_none=True, as_string=True, places=6)
     invoice_number = fields.Str(allow_none=True, validate=validate.Length(max=100))
     cae_number = fields.Str(allow_none=True, validate=validate.Length(max=100))

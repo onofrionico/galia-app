@@ -1,7 +1,7 @@
 """create suppliers module tables
 
 Revision ID: create_suppliers_module
-Revises: merge_heads_march8
+Revises: fab7ffda9936
 Create Date: 2026-03-13 18:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'create_suppliers_module'
-down_revision = 'merge_heads_march8'
+down_revision = 'fab7ffda9936'
 branch_labels = None
 depends_on = None
 

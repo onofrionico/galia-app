@@ -19,7 +19,11 @@ import {
   Tag,
   FileText,
   AlertTriangle,
-  Truck
+  Truck,
+  Package,
+  Settings,
+  TrendingUp,
+  Activity
 } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -41,6 +45,12 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/expenses', icon: Receipt, label: 'Gastos', adminOnly: true },
     { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', adminOnly: true },
     { to: '/suppliers', icon: Truck, label: 'Proveedores', adminOnly: true },
+    { to: '/products', icon: Package, label: 'Productos', adminOnly: true },
+    { to: '/products-volatile', icon: Activity, label: 'Productos Volátiles', adminOnly: true },
+    { to: '/purchases/new', icon: Package, label: 'Entrada de Compras', adminOnly: true },
+    { to: '/suppliers-dashboard', icon: TrendingUp, label: 'Dashboard Proveedores', adminOnly: true },
+    { to: '/frequency-dashboard', icon: Calendar, label: 'Frecuencia de Compras', adminOnly: true },
+    { to: '/configuration', icon: Settings, label: 'Configuración', adminOnly: true },
     { to: '/payroll', icon: Wallet, label: 'Sueldos', adminOnly: true },
     { to: '/payroll-claims', icon: AlertTriangle, label: 'Reclamos de Nóminas', adminOnly: true },
     { to: '/reports', icon: BarChart3, label: 'Reportes', adminOnly: true },

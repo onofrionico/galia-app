@@ -75,3 +75,5 @@ backups/
 # Migrations (keep migrations folder but ignore specific migration files in development)
 # Uncomment if you want to ignore migration files:
 # backend/migrations/versions/*.py
+/gitignore
+

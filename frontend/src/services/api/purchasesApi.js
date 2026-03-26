@@ -43,6 +43,14 @@ const purchasesApi = {
       params: { supplier_id: supplierId, ...params }
     })
     return response.data
+  },
+
+  // Update product catalog prices from purchase
+  updateProductPrices: async (purchaseId, priceUpdates) => {
+    const response = await api.post(`/purchases/${purchaseId}/update-prices`, {
+      price_updates: priceUpdates
+    })
+    return response.data
   }
 }
 

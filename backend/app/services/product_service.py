@@ -1,0 +1,903 @@
+"""
+Product service layer
+Business logic for product and product master management
+"""
+from flask import abort
+from sqlalchemy import or_, and_
+from datetime import date
+from decimal import Decimal
+from app.extensions import db
+from app.models.product import Product
+from app.models.product_master import ProductMaster
+from app.models.price_history import PriceHistory
+from app.models.supplier import Supplier
+from app.services.base_service import BaseService
+
+
+class ProductService(BaseService):
+    model = Product
+    
+    @classmethod
+    def create_product(cls, data, user_id=None):
+        """
+        Create a new product with validation and initial price history
+        
+        Args:
+            data: dict with product fields
+            user_id: ID of user creating the product
+        
+        Returns:
+            Created Product instance
+        """
+        supplier_id = data.get('supplier_id')
+        sku = data.get('sku')
+        
+        # Validate supplier exists
+        supplier = Supplier.query.get(supplier_id)
+        if not supplier:
+            abort(400, description='Proveedor no encontrado')
+        
+        # Check for duplicate SKU per supplier
+        existing = Product.query.filter_by(
+            supplier_id=supplier_id,
+            sku=sku,
+            is_deleted=False
+        ).first()
+        
+        if existing:
+            abort(400, description=f'Ya existe un producto con SKU "{sku}" para este proveedor')
+        
+        # Create product
+        product = cls.create(data, user_id=user_id)
+        
+        # Create initial price history entry
+        price_history = PriceHistory(
+            product_id=product.id,
+            price=product.current_price,
+            effective_date=date.today(),
+            change_percentage=None,
+            source='catalog_creation',
+            created_by_user_id=user_id
+        )
+        db.session.add(price_history)
+        db.session.commit()
+        
+        return product
+    
+    @classmethod
+    def update_product(cls, product_id, data, user_id=None):
+        """
+        Update product with price history tracking
+        
+        Args:
+            product_id: ID of product to update
+            data: dict with fields to update
+            user_id: ID of user updating
+        
+        Returns:
+            Updated Product instance
+        """
+        product = cls.get_by_id(product_id)
+        
+        # Check for duplicate SKU if changing it
+        if 'sku' in data and data['sku'] != product.sku:
+            existing = Product.query.filter_by(
+                supplier_id=product.supplier_id,
+                sku=data['sku'],
+                is_deleted=False
+            ).filter(Product.id != product_id).first()
+            
+            if existing:
+                abort(400, description=f'Ya existe un producto con SKU "{data["sku"]}" para este proveedor')
+        
+        # Track price change
+        if 'current_price' in data and Decimal(str(data['current_price'])) != product.current_price:
+            old_price = product.current_price
+            new_price = Decimal(str(data['current_price']))
+            
+            # Calculate change percentage
+            change_pct = PriceHistory.calculate_change_percentage(old_price, new_price)
+            
+            # Create price history entry
+            price_history = PriceHistory(
+                product_id=product.id,
+                price=new_price,
+                effective_date=date.today(),
+                change_percentage=change_pct,
+                source='catalog_update',
+                created_by_user_id=user_id
+            )
+            db.session.add(price_history)
+        
+        # Update product
+        updated_product = cls.update(product_id, data, user_id=user_id)
+        
+        return updated_product
+    
+    @classmethod
+    def delete_product(cls, product_id, user_id=None):
+        """
+        Soft delete a product with validation
+        
+        Args:
+            product_id: ID of product to delete
+            user_id: ID of user deleting
+        
+        Returns:
+            Deleted Product instance
+        """
+        product = cls.get_by_id(product_id)
+        
+        # Check if product has purchase history
+        if product.purchase_items.count() > 0:
+            abort(400, description='No se puede eliminar un producto con historial de compras. Considere marcarlo como discontinuado.')
+        
+        return cls.delete(product_id, user_id=user_id, soft_delete=True)
+    
+    @classmethod
+    def search_products(cls, supplier_id=None, search_term=None, category=None, status=None, page=1, per_page=25):
+        """
+        Search products with filters and pagination
+        
+        Args:
+            supplier_id: filter by supplier
+            search_term: text to search in name, sku
+            category: filter by category
+            status: filter by status
+            page: page number
+            per_page: items per page
+        
+        Returns:
+            Paginated query result
+        """
+        query = Product.query.filter_by(is_deleted=False)
+        
+        if supplier_id:
+            query = query.filter_by(supplier_id=supplier_id)
+        
+        if search_term:
+            search_pattern = f'%{search_term}%'
+            query = query.filter(
+                or_(
+                    Product.name.ilike(search_pattern),
+                    Product.sku.ilike(search_pattern)
+                )
+            )
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        query = query.order_by(Product.name.asc())
+        
+        return query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    @classmethod
+    def get_product_with_history(cls, product_id, history_limit=10):
+        """
+        Get product with price history
+        
+        Args:
+            product_id: ID of product
+            history_limit: number of history entries to include
+        
+        Returns:
+            dict with product data and price history
+        """
+        product = cls.get_by_id(product_id)
+        
+        product_dict = product.to_dict(include_supplier=True)
+        product_dict['price_history'] = [
+            ph.to_dict() for ph in product.price_history.limit(history_limit).all()
+        ]
+        
+        return product_dict
+    
+    @classmethod
+    def get_product_with_statistics(cls, product_id):
+        """
+        Get product with price history and purchase statistics
+        
+        Args:
+            product_id: ID of product
+        
+        Returns:
+            dict with product data, price history, and statistics
+        """
+        from app.models.purchase_item import PurchaseItem
+        from sqlalchemy import func
+        
+        product = cls.get_by_id(product_id)
+        
+        # Get basic product data with price history
+        product_dict = cls.get_product_with_history(product_id)
+        
+        # Calculate purchase statistics
+        stats = db.session.query(
+            func.count(PurchaseItem.id).label('purchase_count'),
+            func.sum(PurchaseItem.quantity).label('total_quantity'),
+            func.sum(PurchaseItem.quantity * PurchaseItem.unit_price).label('total_spent'),
+            func.avg(PurchaseItem.unit_price).label('avg_price'),
+            func.min(PurchaseItem.unit_price).label('min_price'),
+            func.max(PurchaseItem.unit_price).label('max_price')
+        ).filter(
+            PurchaseItem.product_id == product_id
+        ).first()
+        
+        product_dict['statistics'] = {
+            'purchase_count': int(stats.purchase_count or 0),
+            'total_quantity': float(stats.total_quantity or 0),
+            'total_spent': float(stats.total_spent or 0),
+            'avg_price': float(stats.avg_price or 0),
+            'min_price': float(stats.min_price or 0),
+            'max_price': float(stats.max_price or 0)
+        }
+        
+        return product_dict
+    
+    @classmethod
+    def search_across_suppliers(cls, search_term, category=None, page=1, per_page=25):
+        """
+        Search products across all suppliers for price comparison
+        
+        Args:
+            search_term: text to search in name, sku
+            category: filter by category
+            page: page number
+            per_page: items per page
+        
+        Returns:
+            Paginated query result with supplier info
+        """
+        query = Product.query.filter_by(is_deleted=False, status='active')
+        
+        if search_term:
+            search_pattern = f'%{search_term}%'
+            query = query.filter(
+                or_(
+                    Product.name.ilike(search_pattern),
+                    Product.sku.ilike(search_pattern)
+                )
+            )
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        query = query.order_by(Product.current_price.asc())
+        
+        return query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    @classmethod
+    def link_to_product_master(cls, product_id, product_master_id, user_id=None):
+        """
+        Link a product to a ProductMaster for cross-supplier comparison
+        
+        Args:
+            product_id: ID of product to link
+            product_master_id: ID of ProductMaster to link to
+            user_id: ID of user performing the action
+        
+        Returns:
+            Updated Product instance
+        """
+        product = cls.get_by_id(product_id)
+        product_master = ProductMaster.query.get(product_master_id)
+        
+        if not product_master:
+            abort(400, description='ProductMaster no encontrado')
+        
+        # Validate unit of measure matches
+        if product.unit_of_measure != product_master.unit_of_measure:
+            abort(400, description='La unidad de medida del producto no coincide con el ProductMaster')
+        
+        product.product_master_id = product_master_id
+        if user_id and hasattr(product, 'modified_by_user_id'):
+            product.modified_by_user_id = user_id
+        
+        db.session.commit()
+        
+        return product
+    
+    @classmethod
+    def unlink_from_product_master(cls, product_id, user_id=None):
+        """
+        Unlink a product from its ProductMaster
+        
+        Args:
+            product_id: ID of product to unlink
+            user_id: ID of user performing the action
+        
+        Returns:
+            Updated Product instance
+        """
+        product = cls.get_by_id(product_id)
+        product.product_master_id = None
+        
+        if user_id and hasattr(product, 'modified_by_user_id'):
+            product.modified_by_user_id = user_id
+        
+        db.session.commit()
+        
+        return product
+    
+    @classmethod
+    def bulk_update(cls, product_ids, operation, data, user_id=None):
+        """
+        Perform bulk operations on multiple products
+        
+        Args:
+            product_ids: list of product IDs
+            operation: 'update_category', 'update_status', or 'link_master'
+            data: dict with operation-specific data
+            user_id: ID of user performing the operation
+        
+        Returns:
+            dict with updated count and errors
+        """
+        updated = 0
+        failed = 0
+        errors = []
+        
+        for product_id in product_ids:
+            try:
+                product = Product.query.get(product_id)
+                if not product or product.is_deleted:
+                    errors.append(f'Producto {product_id} no encontrado')
+                    failed += 1
+                    continue
+                
+                if operation == 'update_category':
+                    product.category = data.get('category')
+                    product.modified_by_user_id = user_id
+                    updated += 1
+                    
+                elif operation == 'update_status':
+                    product.status = data.get('status')
+                    product.modified_by_user_id = user_id
+                    updated += 1
+                    
+                elif operation == 'link_master':
+                    product_master_id = data.get('product_master_id')
+                    if product_master_id:
+                        pm = ProductMaster.query.get(product_master_id)
+                        if pm:
+                            product.product_master_id = product_master_id
+                            product.modified_by_user_id = user_id
+                            updated += 1
+                        else:
+                            errors.append(f'ProductMaster {product_master_id} no encontrado')
+                            failed += 1
+                    else:
+                        errors.append('product_master_id requerido para link_master')
+                        failed += 1
+                else:
+                    errors.append(f'Operación desconocida: {operation}')
+                    failed += 1
+                    
+            except Exception as e:
+                errors.append(f'Error en producto {product_id}: {str(e)}')
+                failed += 1
+        
+        if updated > 0:
+            db.session.commit()
+        
+        return {
+            'updated': updated,
+            'failed': failed,
+            'errors': errors
+        }
+    
+    @classmethod
+    def export_to_csv(cls, supplier_id=None, search_term=None, category=None, status=None):
+        """
+        Export products to CSV format
+        
+        Args:
+            supplier_id: filter by supplier
+            search_term: search term
+            category: filter by category
+            status: filter by status
+        
+        Returns:
+            CSV string
+        """
+        import csv
+        from io import StringIO
+        
+        # Get all products matching filters (no pagination)
+        query = Product.query.filter_by(is_deleted=False)
+        
+        if supplier_id:
+            query = query.filter_by(supplier_id=supplier_id)
+        
+        if search_term:
+            search_pattern = f'%{search_term}%'
+            query = query.filter(
+                or_(
+                    Product.name.ilike(search_pattern),
+                    Product.sku.ilike(search_pattern)
+                )
+            )
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        products = query.order_by(Product.name.asc()).all()
+        
+        # Create CSV
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Headers
+        writer.writerow([
+            'ID',
+            'Proveedor',
+            'Nombre',
+            'SKU',
+            'Categoría',
+            'Unidad de Medida',
+            'Precio Actual',
+            'Estado',
+            'Producto Maestro',
+            'Fecha Creación'
+        ])
+        
+        # Data rows
+        for product in products:
+            writer.writerow([
+                product.id,
+                product.supplier.name if product.supplier else '',
+                product.name,
+                product.sku,
+                product.category or '',
+                product.unit_of_measure,
+                float(product.current_price),
+                product.status,
+                product.product_master.name if product.product_master else '',
+                product.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        return output.getvalue()
+    
+    @classmethod
+    def import_from_excel(cls, file, user_id=None):
+        """
+        Import products from Excel file
+        
+        Args:
+            file: FileStorage object from Flask request
+            user_id: ID of user performing import
+        
+        Returns:
+            dict with created, updated, failed counts and errors
+        """
+        import pandas as pd
+        from io import BytesIO
+        
+        created = 0
+        updated = 0
+        failed = 0
+        errors = []
+        
+        try:
+            # Read Excel file
+            df = pd.read_excel(BytesIO(file.read()))
+            
+            # Expected columns (case insensitive)
+            required_columns = ['proveedor', 'nombre', 'sku', 'unidad de medida', 'precio']
+            df.columns = df.columns.str.lower().str.strip()
+            
+            # Validate required columns
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                raise ValueError(f'Columnas faltantes: {", ".join(missing_columns)}')
+            
+            # Process each row
+            for index, row in df.iterrows():
+                try:
+                    # Get or find supplier
+                    supplier_value = str(row['proveedor']).strip()
+                    supplier = None
+                    
+                    # Try as ID first
+                    if supplier_value.isdigit():
+                        supplier = Supplier.query.get(int(supplier_value))
+                    
+                    # Try as name
+                    if not supplier:
+                        supplier = Supplier.query.filter(
+                            Supplier.name.ilike(f'%{supplier_value}%'),
+                            Supplier.is_deleted == False
+                        ).first()
+                    
+                    if not supplier:
+                        errors.append(f'Fila {index + 2}: Proveedor "{supplier_value}" no encontrado')
+                        failed += 1
+                        continue
+                    
+                    # Prepare product data
+                    sku = str(row['sku']).strip()
+                    name = str(row['nombre']).strip()
+                    unit_of_measure = str(row['unidad de medida']).strip()
+                    price = float(row['precio'])
+                    category = str(row.get('categoría', '')).strip() if pd.notna(row.get('categoría')) else None
+                    status = str(row.get('estado', 'active')).strip().lower() if pd.notna(row.get('estado')) else 'active'
+                    
+                    # Validate status
+                    if status not in ['active', 'inactive', 'discontinued']:
+                        status = 'active'
+                    
+                    # Check if product exists
+                    existing = Product.query.filter_by(
+                        supplier_id=supplier.id,
+                        sku=sku,
+                        is_deleted=False
+                    ).first()
+                    
+                    if existing:
+                        # Update existing product
+                        old_price = existing.current_price
+                        existing.name = name
+                        existing.category = category
+                        existing.unit_of_measure = unit_of_measure
+                        existing.current_price = price
+                        existing.status = status
+                        existing.modified_by_user_id = user_id
+                        
+                        # Track price change if different
+                        if old_price != price:
+                            change_pct = PriceHistory.calculate_change_percentage(old_price, price)
+                            price_history = PriceHistory(
+                                product_id=existing.id,
+                                price=price,
+                                effective_date=date.today(),
+                                change_percentage=change_pct,
+                                source='import',
+                                notes='Importación Excel'
+                            )
+                            db.session.add(price_history)
+                        
+                        updated += 1
+                    else:
+                        # Create new product
+                        product = Product(
+                            supplier_id=supplier.id,
+                            name=name,
+                            sku=sku,
+                            category=category,
+                            unit_of_measure=unit_of_measure,
+                            current_price=price,
+                            status=status,
+                            created_by_user_id=user_id,
+                            modified_by_user_id=user_id
+                        )
+                        db.session.add(product)
+                        db.session.flush()  # Get product ID
+                        
+                        # Create initial price history
+                        price_history = PriceHistory(
+                            product_id=product.id,
+                            price=price,
+                            effective_date=date.today(),
+                            source='import',
+                            notes='Precio inicial - Importación Excel'
+                        )
+                        db.session.add(price_history)
+                        
+                        created += 1
+                    
+                except Exception as e:
+                    errors.append(f'Fila {index + 2}: {str(e)}')
+                    failed += 1
+                    continue
+            
+            # Commit all changes
+            if created > 0 or updated > 0:
+                db.session.commit()
+            
+        except Exception as e:
+            db.session.rollback()
+            raise ValueError(f'Error al procesar archivo: {str(e)}')
+        
+        return {
+            'created': created,
+            'updated': updated,
+            'failed': failed,
+            'errors': errors
+        }
+    
+    @staticmethod
+    def get_price_history_with_analysis(product_id, start_date=None, end_date=None, limit=100):
+        """
+        Get price history for a product with trend analysis
+        
+        Args:
+            product_id: ID of product
+            start_date: Optional start date filter (YYYY-MM-DD)
+            end_date: Optional end date filter (YYYY-MM-DD)
+            limit: Maximum number of records
+        
+        Returns:
+            dict with product info, price history, and analysis
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        product = Product.query.get(product_id)
+        if not product:
+            return None
+        
+        # Build query
+        query = PriceHistory.query.filter_by(product_id=product_id)
+        
+        if start_date:
+            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            query = query.filter(PriceHistory.effective_date >= start)
+        
+        if end_date:
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(PriceHistory.effective_date <= end)
+        
+        # Get price history ordered by date
+        history = query.order_by(PriceHistory.effective_date.desc()).limit(limit).all()
+        
+        if not history:
+            return {
+                'product': {
+                    'id': product.id,
+                    'name': product.name,
+                    'sku': product.sku,
+                    'current_price': float(product.current_price),
+                    'supplier_name': product.supplier.name if product.supplier else None
+                },
+                'history': [],
+                'analysis': {
+                    'total_changes': 0,
+                    'avg_price': float(product.current_price),
+                    'min_price': float(product.current_price),
+                    'max_price': float(product.current_price),
+                    'price_range': 0,
+                    'volatility': 0,
+                    'trend': 'stable',
+                    'last_change_days': None,
+                    'avg_change_percentage': 0
+                }
+            }
+        
+        # Calculate analysis
+        prices = [float(h.price) for h in history]
+        changes = [float(h.change_percentage) for h in history if h.change_percentage]
+        
+        avg_price = sum(prices) / len(prices)
+        min_price = min(prices)
+        max_price = max(prices)
+        price_range = max_price - min_price
+        
+        # Calculate volatility (standard deviation / mean * 100)
+        if len(prices) > 1:
+            variance = sum((p - avg_price) ** 2 for p in prices) / len(prices)
+            std_dev = variance ** 0.5
+            volatility = (std_dev / avg_price * 100) if avg_price > 0 else 0
+        else:
+            volatility = 0
+        
+        # Determine trend
+        if len(history) >= 2:
+            recent_avg = sum(prices[:min(5, len(prices))]) / min(5, len(prices))
+            older_avg = sum(prices[-min(5, len(prices)):]) / min(5, len(prices))
+            
+            if recent_avg > older_avg * 1.05:
+                trend = 'increasing'
+            elif recent_avg < older_avg * 0.95:
+                trend = 'decreasing'
+            else:
+                trend = 'stable'
+        else:
+            trend = 'stable'
+        
+        # Days since last change
+        last_change_days = None
+        if history:
+            last_change_days = (datetime.now().date() - history[0].effective_date).days
+        
+        # Average change percentage
+        avg_change_pct = sum(abs(c) for c in changes) / len(changes) if changes else 0
+        
+        return {
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'current_price': float(product.current_price),
+                'supplier_name': product.supplier.name if product.supplier else None,
+                'category': product.category
+            },
+            'history': [
+                {
+                    'id': h.id,
+                    'price': float(h.price),
+                    'effective_date': h.effective_date.isoformat(),
+                    'change_percentage': float(h.change_percentage) if h.change_percentage else 0,
+                    'source': h.source,
+                    'notes': h.notes,
+                    'related_purchase_id': h.related_purchase_id
+                }
+                for h in history
+            ],
+            'analysis': {
+                'total_changes': len(history),
+                'avg_price': round(avg_price, 2),
+                'min_price': round(min_price, 2),
+                'max_price': round(max_price, 2),
+                'price_range': round(price_range, 2),
+                'volatility': round(volatility, 2),
+                'trend': trend,
+                'last_change_days': last_change_days,
+                'avg_change_percentage': round(avg_change_pct, 2)
+            }
+        }
+    
+    @staticmethod
+    def get_volatile_products(days=30, limit=20, min_changes=2):
+        """
+        Get products ranked by price volatility
+        
+        Args:
+            days: Number of days to analyze
+            limit: Maximum number of products to return
+            min_changes: Minimum number of price changes required
+        
+        Returns:
+            list of products with volatility metrics
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy import func, distinct
+        
+        cutoff_date = datetime.now().date() - timedelta(days=days)
+        
+        # Get products with price changes in the period
+        subquery = db.session.query(
+            PriceHistory.product_id,
+            func.count(PriceHistory.id).label('change_count'),
+            func.avg(PriceHistory.price).label('avg_price'),
+            func.min(PriceHistory.price).label('min_price'),
+            func.max(PriceHistory.price).label('max_price'),
+            func.avg(func.abs(PriceHistory.change_percentage)).label('avg_change_pct')
+        ).filter(
+            PriceHistory.effective_date >= cutoff_date
+        ).group_by(
+            PriceHistory.product_id
+        ).having(
+            func.count(PriceHistory.id) >= min_changes
+        ).subquery()
+        
+        # Join with products
+        results = db.session.query(
+            Product,
+            subquery.c.change_count,
+            subquery.c.avg_price,
+            subquery.c.min_price,
+            subquery.c.max_price,
+            subquery.c.avg_change_pct
+        ).join(
+            subquery, Product.id == subquery.c.product_id
+        ).filter(
+            Product.is_deleted == False
+        ).all()
+        
+        # Calculate volatility and sort
+        volatile_products = []
+        for product, change_count, avg_price, min_price, max_price, avg_change_pct in results:
+            if avg_price and avg_price > 0:
+                price_range = float(max_price - min_price)
+                volatility = (price_range / float(avg_price)) * 100
+                
+                volatile_products.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'sku': product.sku,
+                    'current_price': float(product.current_price),
+                    'supplier_name': product.supplier.name if product.supplier else None,
+                    'category': product.category,
+                    'metrics': {
+                        'change_count': change_count,
+                        'avg_price': round(float(avg_price), 2),
+                        'min_price': round(float(min_price), 2),
+                        'max_price': round(float(max_price), 2),
+                        'price_range': round(price_range, 2),
+                        'volatility': round(volatility, 2),
+                        'avg_change_percentage': round(float(avg_change_pct or 0), 2)
+                    }
+                })
+        
+        # Sort by volatility descending
+        volatile_products.sort(key=lambda x: x['metrics']['volatility'], reverse=True)
+        
+        return {
+            'period_days': days,
+            'total_products': len(volatile_products),
+            'products': volatile_products[:limit]
+        }
+
+
+class ProductMasterService(BaseService):
+    model = ProductMaster
+    
+    @classmethod
+    def create_product_master(cls, data, user_id=None):
+        """
+        Create a new ProductMaster
+        
+        Args:
+            data: dict with ProductMaster fields
+            user_id: ID of user creating
+        
+        Returns:
+            Created ProductMaster instance
+        """
+        # Check for duplicate name
+        existing = ProductMaster.query.filter_by(name=data['name']).first()
+        if existing:
+            abort(400, description=f'Ya existe un ProductMaster con el nombre "{data["name"]}"')
+        
+        return cls.create(data, user_id=user_id)
+    
+    @classmethod
+    def get_product_master_with_products(cls, product_master_id):
+        """
+        Get ProductMaster with all linked products for price comparison
+        
+        Args:
+            product_master_id: ID of ProductMaster
+        
+        Returns:
+            dict with ProductMaster data and linked products
+        """
+        product_master = cls.get_by_id(product_master_id)
+        
+        pm_dict = product_master.to_dict()
+        pm_dict['products'] = [
+            p.to_dict(include_supplier=True) 
+            for p in product_master.products.filter_by(is_deleted=False, status='active').all()
+        ]
+        
+        # Add price comparison stats
+        if pm_dict['products']:
+            prices = [p['current_price'] for p in pm_dict['products']]
+            pm_dict['min_price'] = min(prices)
+            pm_dict['max_price'] = max(prices)
+            pm_dict['avg_price'] = sum(prices) / len(prices)
+        
+        return pm_dict
+    
+    @classmethod
+    def search_product_masters(cls, search_term=None, category=None, page=1, per_page=25):
+        """
+        Search ProductMasters with filters
+        
+        Args:
+            search_term: text to search in name
+            category: filter by category
+            page: page number
+            per_page: items per page
+        
+        Returns:
+            Paginated query result
+        """
+        query = ProductMaster.query.filter_by(status='active')
+        
+        if search_term:
+            search_pattern = f'%{search_term}%'
+            query = query.filter(ProductMaster.name.ilike(search_pattern))
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        query = query.order_by(ProductMaster.name.asc())
+        
+        return query.paginate(page=page, per_page=per_page, error_out=False)

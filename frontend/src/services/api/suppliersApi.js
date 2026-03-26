@@ -32,26 +32,26 @@ const suppliersApi = {
   },
 
   // Search suppliers
-  search: async (query, filters = {}) => {
+  search: async (query) => {
     const response = await api.get('/suppliers', {
-      params: { search: query, ...filters }
+      params: { search: query }
     })
     return response.data
   },
 
-  // Get supplier sales history
+  // Get sales history for a supplier
   getSalesHistory: async (id, params = {}) => {
     const response = await api.get(`/suppliers/${id}/sales-history`, { params })
     return response.data
   },
 
   // Export supplier data
-  export: async (id, format = 'csv') => {
+  exportData: async (id, params = {}) => {
     const response = await api.get(`/suppliers/${id}/export`, {
-      params: { format },
+      params,
       responseType: 'blob'
     })
-    return response.data
+    return response
   }
 }
 

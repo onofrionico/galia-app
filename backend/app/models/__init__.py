@@ -19,6 +19,15 @@ from app.models.vacation_period import VacationPeriod
 from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
+from app.models.supplier import Supplier
+from app.models.product_master import ProductMaster
+from app.models.product import Product
+from app.models.purchase import Purchase
+from app.models.purchase_item import PurchaseItem
+from app.models.price_history import PriceHistory
+from app.models.exchange_rate import ExchangeRate
+from app.models.configurable_list import ConfigurableList
+from app.models.audit_log import AuditLog
 
 __all__ = [
     'User',
@@ -45,5 +54,18 @@ __all__ = [
     'VacationPeriod',
     'AbsenceRequest',
     'SocialSecurityDocument',
-    'EmployeeDocument'
+    'EmployeeDocument',
+    'Supplier',
+    'ProductMaster',
+    'Product',
+    'Purchase',
+    'PurchaseItem',
+    'PriceHistory',
+    'ExchangeRate',
+    'ConfigurableList',
+    'AuditLog',
+    'MLModelVersion',
+    'MLPredictionAccuracy',
+    'Holiday',
+    'PredictionAlert'
 ]

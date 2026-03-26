@@ -4,7 +4,7 @@ class SupplierSchema(Schema):
     """Schema for Supplier serialization and validation"""
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=validate.Length(min=3, max=200))
-    tax_id = fields.Str(required=True, validate=validate.Length(min=1, max=50))
+    tax_id = fields.Str(allow_none=True, validate=validate.Length(max=50))
     contact_person = fields.Str(allow_none=True, validate=validate.Length(max=200))
     phone = fields.Str(allow_none=True, validate=validate.Length(max=50))
     email = fields.Email(allow_none=True, validate=validate.Length(max=200))
@@ -22,6 +22,12 @@ class SupplierSchema(Schema):
         """Ensure name is not only whitespace"""
         if not value or not value.strip():
             raise ValidationError('Name cannot be empty or only whitespace')
+    
+    @validates('tax_id')
+    def validate_tax_id(self, value):
+        """Ensure tax_id is not only whitespace if provided"""
+        if value and not value.strip():
+            raise ValidationError('CUIT/Tax ID cannot be only whitespace if provided')
 
 
 class SupplierListSchema(Schema):
