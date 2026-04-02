@@ -114,6 +114,7 @@ def calculate_hours_from_time_tracking(employee_id, month, year):
 def calculate_hours_by_multiplier(employee_id, month, year, job_position):
     """
     Calcula las horas trabajadas clasificadas por tipo de multiplicador.
+    Solo incluye categorías que tienen un multiplicador diferente de 1.0.
     
     Args:
         employee_id: ID del empleado
@@ -151,14 +152,43 @@ def calculate_hours_by_multiplier(employee_id, month, year, job_position):
             normal_hours += day_hours
     
     result = {}
+    
+    # Siempre incluir horas normales si existen
     if normal_hours > 0:
         result['normal_hours'] = round(normal_hours, 2)
-    if weekend_hours > 0:
-        result['weekend_hours'] = round(weekend_hours, 2)
-    if sunday_hours > 0:
-        result['sunday_hours'] = round(sunday_hours, 2)
-    if holiday_hours > 0:
-        result['holiday_hours'] = round(holiday_hours, 2)
+    
+    # Solo incluir sábados si tienen multiplicador diferente de 1.0
+    if weekend_hours > 0 and job_position and job_position.weekend_rate_multiplier:
+        if float(job_position.weekend_rate_multiplier) != 1.0:
+            result['weekend_hours'] = round(weekend_hours, 2)
+        else:
+            # Si el multiplicador es 1.0, sumar a horas normales
+            if 'normal_hours' in result:
+                result['normal_hours'] += round(weekend_hours, 2)
+            else:
+                result['normal_hours'] = round(weekend_hours, 2)
+    
+    # Solo incluir domingos si tienen multiplicador diferente de 1.0
+    if sunday_hours > 0 and job_position and job_position.sunday_rate_multiplier:
+        if float(job_position.sunday_rate_multiplier) != 1.0:
+            result['sunday_hours'] = round(sunday_hours, 2)
+        else:
+            # Si el multiplicador es 1.0, sumar a horas normales
+            if 'normal_hours' in result:
+                result['normal_hours'] += round(sunday_hours, 2)
+            else:
+                result['normal_hours'] = round(sunday_hours, 2)
+    
+    # Solo incluir feriados si tienen multiplicador diferente de 1.0
+    if holiday_hours > 0 and job_position and job_position.holiday_rate_multiplier:
+        if float(job_position.holiday_rate_multiplier) != 1.0:
+            result['holiday_hours'] = round(holiday_hours, 2)
+        else:
+            # Si el multiplicador es 1.0, sumar a horas normales
+            if 'normal_hours' in result:
+                result['normal_hours'] += round(holiday_hours, 2)
+            else:
+                result['normal_hours'] = round(holiday_hours, 2)
     
     return result
 

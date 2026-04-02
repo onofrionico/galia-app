@@ -18,6 +18,15 @@ const MyPayrollDetail = () => {
   const navigate = useNavigate();
   const [payroll, setPayroll] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const formatHoursToHHMM = (decimalHours) => {
+    const hours = Math.floor(decimalHours);
+    const minutes = Math.round((decimalHours - hours) * 60);
+    if (minutes === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${minutes}m`;
+  };
   const [validating, setValidating] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [claimReason, setClaimReason] = useState('');
@@ -251,7 +260,7 @@ const MyPayrollDetail = () => {
             <Clock className="w-5 h-5 text-blue-600" />
             <span className="text-sm text-gray-600">Horas Trabajadas</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{payroll.hours_worked.toFixed(2)}h</p>
+          <p className="text-2xl font-bold text-gray-900">{formatHoursToHHMM(payroll.hours_worked)}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
@@ -259,7 +268,7 @@ const MyPayrollDetail = () => {
             <Calendar className="w-5 h-5 text-purple-600" />
             <span className="text-sm text-gray-600">Horas Programadas</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{payroll.scheduled_hours.toFixed(2)}h</p>
+          <p className="text-2xl font-bold text-gray-900">{formatHoursToHHMM(payroll.scheduled_hours)}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
@@ -268,7 +277,7 @@ const MyPayrollDetail = () => {
             <span className="text-sm text-gray-600">Diferencia</span>
           </div>
           <p className={`text-2xl font-bold ${payroll.hours_difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {payroll.hours_difference >= 0 ? '+' : ''}{payroll.hours_difference.toFixed(2)}h
+            {payroll.hours_difference >= 0 ? '+' : ''}{formatHoursToHHMM(Math.abs(payroll.hours_difference))}
           </p>
         </div>
 
@@ -291,25 +300,25 @@ const MyPayrollDetail = () => {
             {payroll.hours_by_type.normal_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Normales</span>
-                <p className="text-lg font-bold text-blue-600">{payroll.hours_by_type.normal_hours.toFixed(2)}h</p>
+                <p className="text-lg font-bold text-blue-600">{formatHoursToHHMM(payroll.hours_by_type.normal_hours)}</p>
               </div>
             )}
             {payroll.hours_by_type.weekend_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Sábado</span>
-                <p className="text-lg font-bold text-orange-600">{payroll.hours_by_type.weekend_hours.toFixed(2)}h</p>
+                <p className="text-lg font-bold text-orange-600">{formatHoursToHHMM(payroll.hours_by_type.weekend_hours)}</p>
               </div>
             )}
             {payroll.hours_by_type.sunday_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Domingo</span>
-                <p className="text-lg font-bold text-purple-600">{payroll.hours_by_type.sunday_hours.toFixed(2)}h</p>
+                <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours)}</p>
               </div>
             )}
             {payroll.hours_by_type.holiday_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Feriado</span>
-                <p className="text-lg font-bold text-red-600">{payroll.hours_by_type.holiday_hours.toFixed(2)}h</p>
+                <p className="text-lg font-bold text-red-600">{formatHoursToHHMM(payroll.hours_by_type.holiday_hours)}</p>
               </div>
             )}
           </div>
@@ -358,13 +367,13 @@ const MyPayrollDetail = () => {
                                   record.blocks.map((block) => (
                                     <div key={block.id} className="flex justify-between items-center bg-blue-50 p-2 rounded text-sm">
                                       <span>{block.start_time} - {block.end_time}</span>
-                                      <span className="font-semibold text-blue-600">{block.hours.toFixed(2)}h</span>
+                                      <span className="font-semibold text-blue-600">{formatHoursToHHMM(block.hours)}</span>
                                     </div>
                                   ))
                                 ) : (
                                   <div className="flex justify-between items-center bg-blue-50 p-2 rounded text-sm">
                                     <span>Total del día</span>
-                                    <span className="font-semibold text-blue-600">{record.hours.toFixed(2)}h</span>
+                                    <span className="font-semibold text-blue-600">{formatHoursToHHMM(record.hours)}</span>
                                   </div>
                                 )}
                               </div>
@@ -385,7 +394,7 @@ const MyPayrollDetail = () => {
                             {scheduledRecords.map((record, idx) => (
                               <div key={idx} className="flex justify-between items-center bg-purple-50 p-2 rounded text-sm">
                                 <span>{record.start_time} - {record.end_time}</span>
-                                <span className="font-semibold text-purple-600">{record.hours.toFixed(2)}h</span>
+                                <span className="font-semibold text-purple-600">{formatHoursToHHMM(record.hours)}</span>
                               </div>
                             ))}
                           </div>
