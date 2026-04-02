@@ -12,6 +12,7 @@ from app.utils.jwt_utils import token_required
 from app.utils.payroll_utils import (
     calculate_hours_from_time_tracking,
     calculate_scheduled_hours,
+    calculate_hours_by_multiplier,
     calculate_employee_cost,
     calculate_payroll_with_multipliers
 )
@@ -191,9 +192,14 @@ def get_payroll_detail(current_user, payroll_id):
         payroll.employee_id, payroll.month, payroll.year
     )
     
+    hours_by_type = calculate_hours_by_multiplier(
+        payroll.employee_id, payroll.month, payroll.year, payroll.employee.job_position
+    )
+    
     result = payroll.to_dict(include_details=True)
     result['daily_records'] = daily_records
     result['scheduled_records'] = scheduled_records
+    result['hours_by_type'] = hours_by_type
     
     return jsonify(result)
 

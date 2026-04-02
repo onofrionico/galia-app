@@ -111,6 +111,58 @@ def calculate_hours_from_time_tracking(employee_id, month, year):
     return float(total_hours), daily_records
 
 
+def calculate_hours_by_multiplier(employee_id, month, year, job_position):
+    """
+    Calcula las horas trabajadas clasificadas por tipo de multiplicador.
+    
+    Args:
+        employee_id: ID del empleado
+        month: Mes (1-12)
+        year: Año
+        job_position: Objeto JobPosition con multiplicadores
+        
+    Returns:
+        dict: Diccionario con horas por tipo de multiplicador
+            {
+                'normal_hours': float,
+                'weekend_hours': float,
+                'sunday_hours': float,
+                'holiday_hours': float
+            }
+    """
+    _, daily_records = calculate_hours_from_time_tracking(employee_id, month, year)
+    
+    normal_hours = 0.0
+    weekend_hours = 0.0
+    sunday_hours = 0.0
+    holiday_hours = 0.0
+    
+    for record in daily_records:
+        work_date = datetime.fromisoformat(record['date']).date()
+        day_hours = record['hours']
+        
+        if is_holiday(work_date):
+            holiday_hours += day_hours
+        elif is_weekend(work_date):
+            sunday_hours += day_hours
+        elif work_date.weekday() == 5:
+            weekend_hours += day_hours
+        else:
+            normal_hours += day_hours
+    
+    result = {}
+    if normal_hours > 0:
+        result['normal_hours'] = round(normal_hours, 2)
+    if weekend_hours > 0:
+        result['weekend_hours'] = round(weekend_hours, 2)
+    if sunday_hours > 0:
+        result['sunday_hours'] = round(sunday_hours, 2)
+    if holiday_hours > 0:
+        result['holiday_hours'] = round(holiday_hours, 2)
+    
+    return result
+
+
 def calculate_scheduled_hours(employee_id, month, year):
     """
     Calcula las horas programadas de un empleado en un mes específico

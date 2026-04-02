@@ -357,6 +357,38 @@ const PayrollDetail = () => {
             </div>
           )}
 
+          {payroll.hours_by_type && Object.keys(payroll.hours_by_type).length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg mb-6 border border-blue-200">
+              <h3 className="font-semibold text-gray-900 mb-3">Resumen de Horas por Tipo</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {payroll.hours_by_type.normal_hours && (
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <span className="text-xs text-gray-600 block mb-1">Horas Normales</span>
+                    <p className="text-lg font-bold text-blue-600">{payroll.hours_by_type.normal_hours.toFixed(2)}h</p>
+                  </div>
+                )}
+                {payroll.hours_by_type.weekend_hours && (
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <span className="text-xs text-gray-600 block mb-1">Horas Sábado</span>
+                    <p className="text-lg font-bold text-orange-600">{payroll.hours_by_type.weekend_hours.toFixed(2)}h</p>
+                  </div>
+                )}
+                {payroll.hours_by_type.sunday_hours && (
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <span className="text-xs text-gray-600 block mb-1">Horas Domingo</span>
+                    <p className="text-lg font-bold text-purple-600">{payroll.hours_by_type.sunday_hours.toFixed(2)}h</p>
+                  </div>
+                )}
+                {payroll.hours_by_type.holiday_hours && (
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <span className="text-xs text-gray-600 block mb-1">Horas Feriado</span>
+                    <p className="text-lg font-bold text-red-600">{payroll.hours_by_type.holiday_hours.toFixed(2)}h</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold text-gray-900">Observaciones</h3>
