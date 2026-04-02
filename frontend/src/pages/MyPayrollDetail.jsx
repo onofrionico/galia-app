@@ -302,7 +302,7 @@ const MyPayrollDetail = () => {
                     <div key={idx} className="border rounded-lg p-3 bg-blue-50">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium text-sm">
-                          {new Date(record.date).toLocaleDateString('es-AR')}
+                          {new Date(record.date + 'T00:00:00').toLocaleDateString('es-AR')}
                         </span>
                         <span className="font-semibold text-blue-600">
                           {record.hours.toFixed(2)}h
@@ -339,7 +339,7 @@ const MyPayrollDetail = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-medium text-sm block">
-                            {new Date(record.date).toLocaleDateString('es-AR')}
+                            {new Date(record.date + 'T00:00:00').toLocaleDateString('es-AR')}
                           </span>
                           <span className="text-xs text-gray-600">
                             {record.start_time} - {record.end_time}
