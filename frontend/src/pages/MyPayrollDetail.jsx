@@ -289,73 +289,82 @@ const MyPayrollDetail = () => {
           <h2 className="text-lg font-semibold text-gray-900">Detalle de Horas</h2>
         </div>
         <div className="p-4 md:p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Horas Trabajadas */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                Horas Trabajadas (Registradas)
-              </h3>
-              {payroll.daily_records && payroll.daily_records.length > 0 ? (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {payroll.daily_records.map((record, idx) => (
-                    <div key={idx} className="border rounded-lg p-3 bg-blue-50">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-sm">
-                          {new Date(record.date + 'T00:00:00').toLocaleDateString('es-AR')}
-                        </span>
-                        <span className="font-semibold text-blue-600">
-                          {record.hours.toFixed(2)}h
-                        </span>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {(() => {
+              const allDates = new Set([
+                ...(payroll.daily_records || []).map(r => r.date),
+                ...(payroll.scheduled_records || []).map(r => r.date)
+              ]);
+              const sortedDates = Array.from(allDates).sort();
+              
+              return sortedDates.map((date) => {
+                const workedRecords = (payroll.daily_records || []).filter(r => r.date === date);
+                const scheduledRecords = (payroll.scheduled_records || []).filter(r => r.date === date);
+                
+                return (
+                  <div key={date} className="border rounded-lg p-4 bg-gray-50">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {new Date(date + 'T00:00:00').toLocaleDateString('es-AR', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div>
+                        <h5 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          Horas Trabajadas
+                        </h5>
+                        {workedRecords.length > 0 ? (
+                          <div className="space-y-1">
+                            {workedRecords.map((record, idx) => (
+                              <div key={idx}>
+                                {record.blocks && record.blocks.length > 0 ? (
+                                  record.blocks.map((block) => (
+                                    <div key={block.id} className="flex justify-between items-center bg-blue-50 p-2 rounded text-sm">
+                                      <span>{block.start_time} - {block.end_time}</span>
+                                      <span className="font-semibold text-blue-600">{block.hours.toFixed(2)}h</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="flex justify-between items-center bg-blue-50 p-2 rounded text-sm">
+                                    <span>Total del día</span>
+                                    <span className="font-semibold text-blue-600">{record.hours.toFixed(2)}h</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm italic">Sin registros</p>
+                        )}
                       </div>
-                      {record.blocks && record.blocks.length > 0 && (
-                        <div className="space-y-1 text-xs text-gray-600">
-                          {record.blocks.map((block) => (
-                            <div key={block.id} className="flex justify-between">
-                              <span>{block.start_time} - {block.end_time}</span>
-                              <span>{block.hours.toFixed(2)}h</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No hay registros de horas trabajadas</p>
-              )}
-            </div>
-
-            {/* Horas Programadas */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                Horas Programadas (Grilla)
-              </h3>
-              {payroll.scheduled_records && payroll.scheduled_records.length > 0 ? (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {payroll.scheduled_records.map((record, idx) => (
-                    <div key={idx} className="border rounded-lg p-3 bg-purple-50">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium text-sm block">
-                            {new Date(record.date + 'T00:00:00').toLocaleDateString('es-AR')}
-                          </span>
-                          <span className="text-xs text-gray-600">
-                            {record.start_time} - {record.end_time}
-                          </span>
-                        </div>
-                        <span className="font-semibold text-purple-600">
-                          {record.hours.toFixed(2)}h
-                        </span>
+                      
+                      <div>
+                        <h5 className="text-sm font-medium text-purple-600 mb-2 flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          Horas Grilla
+                        </h5>
+                        {scheduledRecords.length > 0 ? (
+                          <div className="space-y-1">
+                            {scheduledRecords.map((record, idx) => (
+                              <div key={idx} className="flex justify-between items-center bg-purple-50 p-2 rounded text-sm">
+                                <span>{record.start_time} - {record.end_time}</span>
+                                <span className="font-semibold text-purple-600">{record.hours.toFixed(2)}h</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm italic">Sin turnos programados</p>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No hay turnos programados</p>
-              )}
-            </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
