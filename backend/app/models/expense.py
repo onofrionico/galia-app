@@ -48,8 +48,12 @@ class Expense(db.Model):
     
     category_id = db.Column(db.Integer, db.ForeignKey('expense_categories.id'), nullable=True)
     
+    source = db.Column(db.String(20), default='manual', nullable=False)
+    invoice_attachment_id = db.Column(db.Integer, db.ForeignKey('invoice_attachments.id'), nullable=True)
+    
     __table_args__ = (
         db.Index('idx_expenses_fecha', 'fecha'),
+        db.Index('idx_expenses_source', 'source'),
     )
     
     def to_dict(self):
@@ -73,7 +77,9 @@ class Expense(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'category_id': self.category_id,
             'category_name': self.category_rel.name if self.category_rel else None,
-            'category_type': self.category_rel.expense_type if self.category_rel else None
+            'category_type': self.category_rel.expense_type if self.category_rel else None,
+            'source': self.source,
+            'invoice_attachment_id': self.invoice_attachment_id
         }
     
     @staticmethod

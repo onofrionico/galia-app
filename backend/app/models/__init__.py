@@ -28,6 +28,7 @@ from app.models.price_history import PriceHistory
 from app.models.exchange_rate import ExchangeRate
 from app.models.configurable_list import ConfigurableList
 from app.models.audit_log import AuditLog
+from app.models.email_invoice import EmailConfiguration, EmailInvoice, InvoiceAttachment
 
 __all__ = [
     'User',
@@ -67,5 +68,8 @@ __all__ = [
     'MLModelVersion',
     'MLPredictionAccuracy',
     'Holiday',
-    'PredictionAlert'
+    'PredictionAlert',
+    'EmailConfiguration',
+    'EmailInvoice',
+    'InvoiceAttachment'
 ]
