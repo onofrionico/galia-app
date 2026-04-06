@@ -10,6 +10,7 @@ echo "Running database migrations..."
 cd backend
 flask db upgrade
 python create_notifications_tables.py
+python add_extraordinary_fields.py
 cd ..
 
 echo "Build completed successfully!"
