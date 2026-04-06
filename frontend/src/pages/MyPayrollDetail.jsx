@@ -292,6 +292,21 @@ const MyPayrollDetail = () => {
         </div>
       </div>
 
+      {/* Saldo extraordinario */}
+      {payroll.extraordinary_amount > 0 && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow p-4 mb-6 border border-green-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Saldo Extraordinario</h2>
+          <div className="bg-white p-4 rounded-lg">
+            <p className="text-2xl font-bold text-green-600 mb-2">
+              ${payroll.extraordinary_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </p>
+            {payroll.extraordinary_description && (
+              <p className="text-sm text-gray-600">{payroll.extraordinary_description}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Resumen de horas por tipo */}
       {payroll.hours_by_type && Object.keys(payroll.hours_by_type).length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow p-4 mb-6 border border-blue-200">
@@ -300,25 +315,29 @@ const MyPayrollDetail = () => {
             {payroll.hours_by_type.normal_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Normales</span>
-                <p className="text-lg font-bold text-blue-600">{formatHoursToHHMM(payroll.hours_by_type.normal_hours)}</p>
+                <p className="text-lg font-bold text-blue-600">{formatHoursToHHMM(payroll.hours_by_type.normal_hours.hours)}</p>
+                <span className="text-xs text-gray-500">x{payroll.hours_by_type.normal_hours.multiplier}</span>
               </div>
             )}
             {payroll.hours_by_type.weekend_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Sábado</span>
-                <p className="text-lg font-bold text-orange-600">{formatHoursToHHMM(payroll.hours_by_type.weekend_hours)}</p>
+                <p className="text-lg font-bold text-orange-600">{formatHoursToHHMM(payroll.hours_by_type.weekend_hours.hours)}</p>
+                <span className="text-xs text-gray-500">x{payroll.hours_by_type.weekend_hours.multiplier}</span>
               </div>
             )}
             {payroll.hours_by_type.sunday_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Domingo</span>
-                <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours)}</p>
+                <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours.hours)}</p>
+                <span className="text-xs text-gray-500">x{payroll.hours_by_type.sunday_hours.multiplier}</span>
               </div>
             )}
             {payroll.hours_by_type.holiday_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Feriado</span>
-                <p className="text-lg font-bold text-red-600">{formatHoursToHHMM(payroll.hours_by_type.holiday_hours)}</p>
+                <p className="text-lg font-bold text-red-600">{formatHoursToHHMM(payroll.hours_by_type.holiday_hours.hours)}</p>
+                <span className="text-xs text-gray-500">x{payroll.hours_by_type.holiday_hours.multiplier}</span>
               </div>
             )}
           </div>

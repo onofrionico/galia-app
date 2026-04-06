@@ -31,8 +31,6 @@ class Expense(db.Model):
     fecha = db.Column(db.Date, nullable=False, index=True)
     fecha_vencimiento = db.Column(db.Date, nullable=True)
     proveedor = db.Column(db.String(200))
-    categoria = db.Column(db.String(100))
-    subcategoria = db.Column(db.String(100))
     comentario = db.Column(db.Text)
     estado_pago = db.Column(db.String(50), default='Pendiente')
     importe = db.Column(db.Numeric(12, 2), nullable=False)

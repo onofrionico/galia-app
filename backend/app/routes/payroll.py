@@ -218,6 +218,12 @@ def update_payroll(current_user, payroll_id):
     if 'notes' in data:
         payroll.notes = data['notes']
     
+    if 'extraordinary_amount' in data:
+        payroll.extraordinary_amount = Decimal(str(data['extraordinary_amount'])) if data['extraordinary_amount'] else Decimal('0')
+    
+    if 'extraordinary_description' in data:
+        payroll.extraordinary_description = data['extraordinary_description']
+    
     if 'recalculate' in data and data['recalculate']:
         worked_hours, _ = calculate_hours_from_time_tracking(
             payroll.employee_id, payroll.month, payroll.year
@@ -226,9 +232,16 @@ def update_payroll(current_user, payroll_id):
             payroll.employee_id, payroll.month, payroll.year
         )
         
+        base_salary = calculate_payroll_with_multipliers(
+            payroll.employee_id, payroll.month, payroll.year, 
+            float(payroll.hourly_rate), payroll.employee.job_position
+        )
+        
+        extraordinary_amount = float(payroll.extraordinary_amount) if payroll.extraordinary_amount else 0
+        
         payroll.hours_worked = Decimal(str(worked_hours))
         payroll.scheduled_hours = Decimal(str(scheduled_hours))
-        payroll.gross_salary = payroll.hours_worked * payroll.hourly_rate
+        payroll.gross_salary = Decimal(str(base_salary + extraordinary_amount))
     
     db.session.commit()
     

@@ -153,42 +153,48 @@ def calculate_hours_by_multiplier(employee_id, month, year, job_position):
     
     result = {}
     
-    # Siempre incluir horas normales si existen
-    if normal_hours > 0:
-        result['normal_hours'] = round(normal_hours, 2)
+    # Acumular horas que se consideran "normales" (sin multiplicador especial)
+    total_normal_hours = normal_hours
     
-    # Solo incluir sábados si tienen multiplicador diferente de 1.0
-    if weekend_hours > 0 and job_position and job_position.weekend_rate_multiplier:
-        if float(job_position.weekend_rate_multiplier) != 1.0:
-            result['weekend_hours'] = round(weekend_hours, 2)
+    # Verificar sábados
+    if weekend_hours > 0:
+        if job_position and job_position.weekend_rate_multiplier and float(job_position.weekend_rate_multiplier) != 1.0:
+            result['weekend_hours'] = {
+                'hours': round(weekend_hours, 2),
+                'multiplier': float(job_position.weekend_rate_multiplier)
+            }
         else:
-            # Si el multiplicador es 1.0, sumar a horas normales
-            if 'normal_hours' in result:
-                result['normal_hours'] += round(weekend_hours, 2)
-            else:
-                result['normal_hours'] = round(weekend_hours, 2)
+            # Si no tiene multiplicador o es 1.0, sumar a normales
+            total_normal_hours += weekend_hours
     
-    # Solo incluir domingos si tienen multiplicador diferente de 1.0
-    if sunday_hours > 0 and job_position and job_position.sunday_rate_multiplier:
-        if float(job_position.sunday_rate_multiplier) != 1.0:
-            result['sunday_hours'] = round(sunday_hours, 2)
+    # Verificar domingos
+    if sunday_hours > 0:
+        if job_position and job_position.sunday_rate_multiplier and float(job_position.sunday_rate_multiplier) != 1.0:
+            result['sunday_hours'] = {
+                'hours': round(sunday_hours, 2),
+                'multiplier': float(job_position.sunday_rate_multiplier)
+            }
         else:
-            # Si el multiplicador es 1.0, sumar a horas normales
-            if 'normal_hours' in result:
-                result['normal_hours'] += round(sunday_hours, 2)
-            else:
-                result['normal_hours'] = round(sunday_hours, 2)
+            # Si no tiene multiplicador o es 1.0, sumar a normales
+            total_normal_hours += sunday_hours
     
-    # Solo incluir feriados si tienen multiplicador diferente de 1.0
-    if holiday_hours > 0 and job_position and job_position.holiday_rate_multiplier:
-        if float(job_position.holiday_rate_multiplier) != 1.0:
-            result['holiday_hours'] = round(holiday_hours, 2)
+    # Verificar feriados
+    if holiday_hours > 0:
+        if job_position and job_position.holiday_rate_multiplier and float(job_position.holiday_rate_multiplier) != 1.0:
+            result['holiday_hours'] = {
+                'hours': round(holiday_hours, 2),
+                'multiplier': float(job_position.holiday_rate_multiplier)
+            }
         else:
-            # Si el multiplicador es 1.0, sumar a horas normales
-            if 'normal_hours' in result:
-                result['normal_hours'] += round(holiday_hours, 2)
-            else:
-                result['normal_hours'] = round(holiday_hours, 2)
+            # Si no tiene multiplicador o es 1.0, sumar a normales
+            total_normal_hours += holiday_hours
+    
+    # Incluir horas normales si existen
+    if total_normal_hours > 0:
+        result['normal_hours'] = {
+            'hours': round(total_normal_hours, 2),
+            'multiplier': 1.0
+        }
     
     return result
 

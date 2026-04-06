@@ -18,6 +18,8 @@ class Payroll(db.Model):
     pdf_generated = db.Column(db.Boolean, default=False, nullable=False)
     pdf_path = db.Column(db.Text)
     notes = db.Column(db.Text)
+    extraordinary_amount = db.Column(db.Numeric(10, 2), default=0)
+    extraordinary_description = db.Column(db.Text)
     generated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     generated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -67,6 +69,8 @@ class Payroll(db.Model):
             'pdf_generated': self.pdf_generated,
             'pdf_path': self.pdf_path,
             'notes': self.notes,
+            'extraordinary_amount': float(self.extraordinary_amount) if self.extraordinary_amount else 0,
+            'extraordinary_description': self.extraordinary_description,
             'generated_at': self.generated_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'has_active_claim': self.has_active_claim

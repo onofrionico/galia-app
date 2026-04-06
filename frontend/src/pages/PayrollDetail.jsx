@@ -27,6 +27,9 @@ const PayrollDetail = () => {
   const [editingBlock, setEditingBlock] = useState(null);
   const [notes, setNotes] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [extraordinaryAmount, setExtraordinaryAmount] = useState(0);
+  const [extraordinaryDescription, setExtraordinaryDescription] = useState('');
+  const [isEditingExtraordinary, setIsEditingExtraordinary] = useState(false);
   const [validating, setValidating] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
@@ -55,9 +58,12 @@ const PayrollDetail = () => {
         payrollService.getPayrollDetail(id),
         payrollService.getWorkBlocks(id)
       ]);
-      setPayroll(payrollData);
+      const payroll = payrollData.data || payrollData;
+      setPayroll(payroll);
+      setNotes(payroll.notes || '');
+      setExtraordinaryAmount(payroll.extraordinary_amount || 0);
+      setExtraordinaryDescription(payroll.extraordinary_description || '');
       setWorkBlocks(blocksData);
-      setNotes(payrollData.notes || '');
     } catch (error) {
       console.error('Error loading payroll detail:', error);
       alert('Error al cargar el detalle de la nómina');
@@ -119,6 +125,21 @@ const PayrollDetail = () => {
     } catch (error) {
       console.error('Error downloading PDF:', error);
       alert('Error al descargar el PDF');
+    }
+  };
+
+  const handleUpdateExtraordinary = async () => {
+    try {
+      await payrollService.updatePayroll(id, { 
+        extraordinary_amount: extraordinaryAmount,
+        extraordinary_description: extraordinaryDescription 
+      });
+      setIsEditingExtraordinary(false);
+      alert('Saldo extraordinario actualizado');
+      loadPayrollDetail();
+    } catch (error) {
+      console.error('Error updating extraordinary:', error);
+      alert('Error al actualizar el saldo extraordinario');
     }
   };
 
@@ -373,30 +394,92 @@ const PayrollDetail = () => {
                 {payroll.hours_by_type.normal_hours && (
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <span className="text-xs text-gray-600 block mb-1">Horas Normales</span>
-                    <p className="text-lg font-bold text-blue-600">{formatHoursToHHMM(payroll.hours_by_type.normal_hours)}</p>
+                    <p className="text-lg font-bold text-blue-600">{formatHoursToHHMM(payroll.hours_by_type.normal_hours.hours)}</p>
+                    <span className="text-xs text-gray-500">x{payroll.hours_by_type.normal_hours.multiplier}</span>
                   </div>
                 )}
                 {payroll.hours_by_type.weekend_hours && (
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <span className="text-xs text-gray-600 block mb-1">Horas Sábado</span>
-                    <p className="text-lg font-bold text-orange-600">{formatHoursToHHMM(payroll.hours_by_type.weekend_hours)}</p>
+                    <p className="text-lg font-bold text-orange-600">{formatHoursToHHMM(payroll.hours_by_type.weekend_hours.hours)}</p>
+                    <span className="text-xs text-gray-500">x{payroll.hours_by_type.weekend_hours.multiplier}</span>
                   </div>
                 )}
                 {payroll.hours_by_type.sunday_hours && (
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <span className="text-xs text-gray-600 block mb-1">Horas Domingo</span>
-                    <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours)}</p>
+                    <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours.hours)}</p>
+                    <span className="text-xs text-gray-500">x{payroll.hours_by_type.sunday_hours.multiplier}</span>
                   </div>
                 )}
                 {payroll.hours_by_type.holiday_hours && (
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <span className="text-xs text-gray-600 block mb-1">Horas Feriado</span>
-                    <p className="text-lg font-bold text-red-600">{formatHoursToHHMM(payroll.hours_by_type.holiday_hours)}</p>
+                    <p className="text-lg font-bold text-red-600">{formatHoursToHHMM(payroll.hours_by_type.holiday_hours.hours)}</p>
+                    <span className="text-xs text-gray-500">x{payroll.hours_by_type.holiday_hours.multiplier}</span>
                   </div>
                 )}
               </div>
             </div>
           )}
+
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold text-gray-900">Saldo Extraordinario</h3>
+              {!isValidated && (
+                <button
+                  onClick={() => setIsEditingExtraordinary(!isEditingExtraordinary)}
+                  className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                >
+                  {isEditingExtraordinary ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                  {isEditingExtraordinary ? 'Cancelar' : 'Editar'}
+                </button>
+              )}
+            </div>
+            {isEditingExtraordinary ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+                  <input
+                    type="number"
+                    value={extraordinaryAmount}
+                    onChange={(e) => setExtraordinaryAmount(parseFloat(e.target.value) || 0)}
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="0.00"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <textarea
+                    value={extraordinaryDescription}
+                    onChange={(e) => setExtraordinaryDescription(e.target.value)}
+                    rows={2}
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="Ej: Vacaciones, bono, aguinaldo, etc..."
+                  />
+                </div>
+                <button
+                  onClick={handleUpdateExtraordinary}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Guardar
+                </button>
+              </div>
+            ) : (
+              <div>
+                {extraordinaryAmount > 0 ? (
+                  <div>
+                    <p className="text-lg font-bold text-green-600">${extraordinaryAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-sm text-gray-600 mt-1">{extraordinaryDescription || 'Sin descripción'}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">Sin saldo extraordinario</p>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <div className="flex justify-between items-center mb-3">
