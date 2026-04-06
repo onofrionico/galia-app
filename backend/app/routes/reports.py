@@ -200,20 +200,21 @@ def get_expenses_metrics(start_date, end_date):
     
     directos_result = db.session.query(
         func.coalesce(func.sum(Expense.importe), 0)
-    ).join(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
+    ).outerjoin(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
         Expense.fecha >= start_date,
         Expense.fecha <= end_date,
         Expense.cancelado == False,
         ExpenseCategory.expense_type == 'directo'
     ).scalar()
     
+    # Indirectos incluye gastos con expense_type='indirecto' O sin categoría (NULL)
     indirectos_result = db.session.query(
         func.coalesce(func.sum(Expense.importe), 0)
-    ).join(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
+    ).outerjoin(ExpenseCategory, Expense.category_id == ExpenseCategory.id).filter(
         Expense.fecha >= start_date,
         Expense.fecha <= end_date,
         Expense.cancelado == False,
-        ExpenseCategory.expense_type == 'indirecto'
+        or_(ExpenseCategory.expense_type == 'indirecto', Expense.category_id.is_(None))
     ).scalar()
     
     directos = float(directos_result) if directos_result else 0
