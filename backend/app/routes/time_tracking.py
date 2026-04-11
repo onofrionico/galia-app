@@ -13,7 +13,7 @@ import logging
 import pytz
 from app.utils.jwt_utils import token_required
 from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
-from app.utils.timezone_utils import get_current_time_argentina, get_current_time_only_argentina
+from app.utils.timezone_utils import get_current_time_argentina, get_current_time_only_argentina, get_current_date_argentina
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
@@ -142,8 +142,8 @@ def check_out(current_user):
 def get_today_record(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
-    
-    today = date.today()
+
+    today = get_current_date_argentina()
     record = TimeTracking.query.filter_by(
         employee_id=current_user.employee.id,
         tracking_date=today
