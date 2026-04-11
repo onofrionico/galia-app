@@ -221,8 +221,12 @@ const TimeTracking = () => {
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <button
             onClick={handleCheckIn}
-            disabled={loading}
-            className="py-3 px-3 md:px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || isLastBlockOpen()}
+            className={`py-3 px-3 md:px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-sm md:text-base ${
+              isLastBlockOpen()
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <LogIn className="w-4 md:w-5 h-4 md:h-5" />
             <span className="hidden sm:inline">{loading ? 'Registrando...' : 'Nueva Entrada'}</span>
