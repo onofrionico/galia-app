@@ -381,7 +381,15 @@ const AdminTimeTracking = () => {
           <div className="text-center py-8 text-gray-500">No se encontraron registros</div>
         ) : (
           <div className="space-y-4">
-            {records.map((record) => {
+            {records
+              .sort((a, b) => {
+                const aOngoing = hasOngoingBlock(a)
+                const bOngoing = hasOngoingBlock(b)
+                if (aOngoing && !bOngoing) return -1
+                if (!aOngoing && bOngoing) return 1
+                return 0
+              })
+              .map((record) => {
               const isOngoing = hasOngoingBlock(record)
               return (
                 <div key={record.id} className={`border rounded-lg p-4 ${

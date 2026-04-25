@@ -7,6 +7,15 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-24
+
+### Fixed
+- **Seguridad - Log de token**: Eliminado console.log que mostraba el token de autenticación en la consola del navegador
+- **UX - Ordenamiento de turnos**: Los turnos en curso (verde) ahora aparecen primero en la gestión de horas trabajadas
+
+### Security
+- Removido logging de tokens de autenticación que podían ser visibles en la consola del navegador
+
 ## [1.1.0] - 2026-03-08
 
 ### Security
