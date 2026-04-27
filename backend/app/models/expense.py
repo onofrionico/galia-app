@@ -45,6 +45,7 @@ class Expense(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     category_id = db.Column(db.Integer, db.ForeignKey('expense_categories.id'), nullable=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True, index=True)
     
     __table_args__ = (
         db.Index('idx_expenses_fecha', 'fecha'),
@@ -71,7 +72,9 @@ class Expense(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'category_id': self.category_id,
             'category_name': self.category_rel.name if self.category_rel else None,
-            'category_type': self.category_rel.expense_type if self.category_rel else None
+            'category_type': self.category_rel.expense_type if self.category_rel else None,
+            'supplier_id': self.supplier_id,
+            'supplier_name': self.supplier.name if self.supplier else None,
         }
     
     @staticmethod
