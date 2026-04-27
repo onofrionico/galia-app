@@ -28,10 +28,9 @@ def upgrade():
         sa.Column('address', sa.Text(), nullable=True),
         sa.Column('notes', sa.Text(), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('cuit'),
     )
     op.create_index(op.f('ix_suppliers_cuit'), 'suppliers', ['cuit'], unique=True)
 
