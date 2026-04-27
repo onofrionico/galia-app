@@ -7,7 +7,7 @@ class Supplier(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    cuit = db.Column(db.String(20), nullable=True)
+    cuit = db.Column(db.String(20), nullable=True, unique=True, index=True)
     email = db.Column(db.String(200), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     address = db.Column(db.Text, nullable=True)
