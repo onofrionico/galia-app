@@ -8,6 +8,7 @@ from app.models.time_tracking import TimeTracking
 from app.models.sale import Sale
 from app.models.expense import Expense, ExpenseCategory
 from app.models.supply import Supply, SupplyPrice
+from app.models.supplier import Supplier
 from app.models.payroll import Payroll
 from app.models.payroll_claim import PayrollClaim
 from app.models.notification import Notification, ScheduleChangeLog
@@ -33,6 +34,7 @@ __all__ = [
     'ExpenseCategory',
     'Supply',
     'SupplyPrice',
+    'Supplier',
     'Payroll',
     'PayrollClaim',
     'Notification',
