@@ -106,3 +106,67 @@ class TestSuppliersCRUD:
         data = json.loads(r.data)
         assert data['total'] == 1
         assert data['suppliers'][0]['name'] == 'Activo'
+
+
+class TestSupplierExpenses:
+    def test_get_expenses_empty(self, client, admin_user, app):
+        with app.app_context():
+            s = Supplier(name='Sin Gastos')
+            db.session.add(s)
+            db.session.commit()
+            supplier_id = s.id
+        token = get_token(client)
+        r = client.get(f'/api/v1/suppliers/{supplier_id}/expenses', headers={'Authorization': f'Bearer {token}'})
+        assert r.status_code == 200
+        data = json.loads(r.data)
+        assert data['expenses'] == []
+        assert data['total'] == 0
+
+    def test_link_expenses_by_name(self, client, admin_user, app):
+        from app.models.expense import Expense
+        from datetime import date
+        with app.app_context():
+            s = Supplier(name='Distribuidora García')
+            db.session.add(s)
+            from app.models.expense import ExpenseCategory
+            cat = ExpenseCategory(name='Test Cat', expense_type='indirecto')
+            db.session.add(cat)
+            db.session.flush()
+            e1 = Expense(fecha=date.today(), proveedor='Distribuidora García', importe=1000, category_id=cat.id)
+            e2 = Expense(fecha=date.today(), proveedor='Otro Proveedor', importe=500, category_id=cat.id)
+            db.session.add_all([e1, e2])
+            db.session.commit()
+            supplier_id = s.id
+
+        token = get_token(client)
+        r = client.post(f'/api/v1/suppliers/{supplier_id}/link-expenses', headers={'Authorization': f'Bearer {token}'})
+        assert r.status_code == 200
+        data = json.loads(r.data)
+        assert data['linked'] == 1
+
+        with app.app_context():
+            linked = Expense.query.filter_by(supplier_id=supplier_id).count()
+            assert linked == 1
+
+    def test_supplier_analytics(self, client, admin_user, app):
+        from app.models.expense import Expense, ExpenseCategory
+        from datetime import date
+        with app.app_context():
+            s = Supplier(name='Proveedor Analytics')
+            db.session.add(s)
+            cat = ExpenseCategory(name='Insumos', expense_type='directo')
+            db.session.add(cat)
+            db.session.flush()
+            for i in range(3):
+                e = Expense(fecha=date.today(), proveedor='Proveedor Analytics',
+                            supplier_id=s.id, importe=1000, category_id=cat.id)
+                db.session.add(e)
+            db.session.commit()
+            supplier_id = s.id
+
+        token = get_token(client)
+        r = client.get(f'/api/v1/suppliers/{supplier_id}/analytics', headers={'Authorization': f'Bearer {token}'})
+        assert r.status_code == 200
+        data = json.loads(r.data)
+        assert data['total_periodo'] == 3000.0
+        assert len(data['por_categoria']) == 1

@@ -135,3 +135,124 @@ def deactivate_supplier(current_user, supplier_id):
     supplier.is_active = False
     db.session.commit()
     return jsonify({'message': 'Proveedor desactivado correctamente'}), 200
+
+
+@bp.route('/<int:supplier_id>/expenses', methods=['GET'])
+@token_required
+@admin_required
+def get_supplier_expenses(current_user, supplier_id):
+    Supplier.query.get_or_404(supplier_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    fecha_desde = request.args.get('fecha_desde')
+    fecha_hasta = request.args.get('fecha_hasta')
+
+    query = Expense.query.filter(Expense.supplier_id == supplier_id, Expense.cancelado == False)
+
+    if fecha_desde:
+        try:
+            query = query.filter(Expense.fecha >= datetime.strptime(fecha_desde, '%Y-%m-%d').date())
+        except ValueError:
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
+    if fecha_hasta:
+        try:
+            query = query.filter(Expense.fecha <= datetime.strptime(fecha_hasta, '%Y-%m-%d').date())
+        except ValueError:
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
+
+    total = query.count()
+    expenses = query.order_by(Expense.fecha.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    return jsonify({
+        'expenses': [e.to_dict() for e in expenses.items],
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'pages': expenses.pages
+    }), 200
+
+
+@bp.route('/<int:supplier_id>/link-expenses', methods=['POST'])
+@token_required
+@admin_required
+def link_expenses(current_user, supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    unlinked = Expense.query.filter(
+        Expense.supplier_id == None,
+        func.lower(Expense.proveedor) == func.lower(supplier.name)
+    ).all()
+
+    for expense in unlinked:
+        expense.supplier_id = supplier_id
+
+    db.session.commit()
+    return jsonify({'linked': len(unlinked), 'supplier_id': supplier_id}), 200
+
+
+@bp.route('/<int:supplier_id>/analytics', methods=['GET'])
+@token_required
+@admin_required
+def get_supplier_analytics(current_user, supplier_id):
+    from app.models.expense import ExpenseCategory
+    Supplier.query.get_or_404(supplier_id)
+
+    fecha_desde = request.args.get('fecha_desde')
+    fecha_hasta = request.args.get('fecha_hasta')
+
+    query = Expense.query.filter(Expense.supplier_id == supplier_id, Expense.cancelado == False)
+
+    if fecha_desde:
+        try:
+            query = query.filter(Expense.fecha >= datetime.strptime(fecha_desde, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+    if fecha_hasta:
+        try:
+            query = query.filter(Expense.fecha <= datetime.strptime(fecha_hasta, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+
+    total_periodo = float(
+        db.session.query(func.sum(Expense.importe))
+        .filter(Expense.supplier_id == supplier_id, Expense.cancelado == False)
+        .scalar() or 0
+    )
+
+    twelve_months_ago = date.today() - relativedelta(months=12)
+    if db.engine.dialect.name == 'postgresql':
+        month_expr = func.date_trunc('month', Expense.fecha)
+    else:
+        month_expr = func.strftime('%Y-%m', Expense.fecha)
+    monthly_totals = db.session.query(
+        month_expr.label('month'),
+        func.sum(Expense.importe).label('total')
+    ).filter(
+        Expense.supplier_id == supplier_id,
+        Expense.cancelado == False,
+        Expense.fecha >= twelve_months_ago
+    ).group_by(month_expr).all()
+
+    promedio_mensual = (
+        sum(float(r.total) for r in monthly_totals) / len(monthly_totals)
+        if monthly_totals else 0
+    )
+
+    por_categoria = db.session.query(
+        ExpenseCategory.name,
+        func.sum(Expense.importe).label('total')
+    ).join(Expense, Expense.category_id == ExpenseCategory.id).filter(
+        Expense.supplier_id == supplier_id,
+        Expense.cancelado == False
+    ).group_by(ExpenseCategory.name).all()
+
+    last_expense = db.session.query(func.max(Expense.fecha)).filter(
+        Expense.supplier_id == supplier_id
+    ).scalar()
+
+    return jsonify({
+        'total_periodo': total_periodo,
+        'promedio_mensual': round(promedio_mensual, 2),
+        'por_categoria': [{'categoria': name, 'total': float(total)} for name, total in por_categoria],
+        'ultima_compra': last_expense.isoformat() if last_expense else None,
+    }), 200
