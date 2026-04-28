@@ -19,6 +19,7 @@ import {
   Brain,
   DollarSign,
   LogIn,
+  Building2,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -76,6 +77,16 @@ const navGroups = [
     items: [
       { to: '/reports', icon: BarChart3, label: 'Reportes' },
       { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML' },
+    ],
+  },
+  {
+    id: 'compras',
+    label: 'Compras',
+    icon: Building2,
+    activeClass: 'text-orange-700 bg-orange-50 border-orange-200',
+    headerClass: 'text-orange-700 bg-orange-50',
+    items: [
+      { to: '/suppliers', icon: Building2, label: 'Proveedores' },
     ],
   },
 ]
