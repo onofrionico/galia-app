@@ -15,6 +15,20 @@ bp = Blueprint('fudo_sync', __name__, url_prefix='/api/v1/fudo')
 logger = logging.getLogger(__name__)
 
 
+def _try_link_supplier(expense):
+    """Link expense to supplier if one exists with matching name (case-insensitive)."""
+    if expense.supplier_id or not expense.proveedor:
+        return
+    from app.models.supplier import Supplier
+    from sqlalchemy import func
+    supplier = Supplier.query.filter(
+        func.lower(Supplier.name) == func.lower(expense.proveedor),
+        Supplier.is_active == True
+    ).first()
+    if supplier:
+        expense.supplier_id = supplier.id
+
+
 def parse_fudo_sale(fudo_sale: Dict) -> Dict:
     """
     Parse Fudo sale data to Galia format
@@ -301,11 +315,13 @@ def _sync_expenses_background(start_date, end_date, update_existing, category_ma
                             for key, value in expense_data.items():
                                 if key != 'external_id':
                                     setattr(existing_expense, key, value)
+                            _try_link_supplier(existing_expense)
                             results['updated'] += 1
                         else:
                             results['skipped'] += 1
                     else:
                         new_expense = Expense(**expense_data)
+                        _try_link_supplier(new_expense)
                         db.session.add(new_expense)
                         results['imported'] += 1
                         

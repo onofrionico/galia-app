@@ -196,3 +196,26 @@ class TestExpenseWithSupplier:
         data = json.loads(r.data)
         assert data['supplier_id'] == supplier_id
         assert data['supplier_name'] == 'Proveedor Gasto'
+
+
+class TestFudoAutoLink:
+    def test_expense_auto_links_to_supplier_by_name(self, app):
+        from app.routes.fudo_sync import _try_link_supplier
+        from app.models.expense import Expense, ExpenseCategory
+        from datetime import date
+        with app.app_context():
+            s = Supplier(name='Distribuidora López')
+            db.session.add(s)
+            cat = ExpenseCategory(name='Varios', expense_type='indirecto')
+            db.session.add(cat)
+            db.session.flush()
+            e = Expense(fecha=date.today(), proveedor='Distribuidora López', importe=500, category_id=cat.id)
+            db.session.add(e)
+            db.session.commit()
+            expense_id = e.id
+
+            _try_link_supplier(e)
+            db.session.commit()
+
+            updated = Expense.query.get(expense_id)
+            assert updated.supplier_id == s.id
