@@ -170,3 +170,29 @@ class TestSupplierExpenses:
         data = json.loads(r.data)
         assert data['total_periodo'] == 3000.0
         assert len(data['por_categoria']) == 1
+
+
+class TestExpenseWithSupplier:
+    def test_create_expense_with_supplier_id(self, client, admin_user, app):
+        from app.models.expense import ExpenseCategory
+        with app.app_context():
+            s = Supplier(name='Proveedor Gasto')
+            db.session.add(s)
+            cat = ExpenseCategory(name='Insumos Test', expense_type='directo')
+            db.session.add(cat)
+            db.session.commit()
+            supplier_id = s.id
+            cat_id = cat.id
+
+        token = get_token(client)
+        payload = {
+            'fecha': '2026-04-01',
+            'importe': 5000,
+            'category_id': cat_id,
+            'supplier_id': supplier_id,
+        }
+        r = client.post('/api/v1/expenses', json=payload, headers={'Authorization': f'Bearer {token}'})
+        assert r.status_code == 201
+        data = json.loads(r.data)
+        assert data['supplier_id'] == supplier_id
+        assert data['supplier_name'] == 'Proveedor Gasto'

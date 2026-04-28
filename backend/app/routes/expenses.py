@@ -200,12 +200,20 @@ def create_expense(current_user):
             return jsonify({'error': 'Categoría inválida o inactiva'}), 400
     else:
         return jsonify({'error': 'La categoría es requerida'}), 400
-    
+
+    supplier_id = data.get('supplier_id')
+    if supplier_id:
+        from app.models.supplier import Supplier
+        supplier = Supplier.query.get(supplier_id)
+        if not supplier or not supplier.is_active:
+            return jsonify({'error': 'Proveedor inválido o inactivo'}), 400
+
     expense = Expense(
         fecha=fecha,
         fecha_vencimiento=fecha_vencimiento,
         proveedor=data.get('proveedor'),
         category_id=category_id,
+        supplier_id=supplier_id,
         comentario=data.get('comentario'),
         estado_pago=data.get('estado_pago', 'Pendiente'),
         importe=data.get('importe', 0),
@@ -267,6 +275,14 @@ def update_expense(current_user, expense_id):
         else:
             return jsonify({'error': 'La categoría es requerida'}), 400
     
+    if 'supplier_id' in data:
+        if data['supplier_id'] is not None:
+            from app.models.supplier import Supplier
+            supplier = Supplier.query.get(data['supplier_id'])
+            if not supplier or not supplier.is_active:
+                return jsonify({'error': 'Proveedor inválido o inactivo'}), 400
+        expense.supplier_id = data['supplier_id']
+
     updatable_fields = ['proveedor', 'comentario',
                         'estado_pago', 'importe', 'de_caja', 'caja', 'medio_pago',
                         'numero_fiscal', 'tipo_comprobante', 'numero_comprobante',
