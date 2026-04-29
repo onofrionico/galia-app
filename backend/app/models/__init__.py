@@ -20,6 +20,13 @@ from app.models.vacation_period import VacationPeriod
 from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
+from app.models.product_category import ProductCategory
+from app.models.product import Product
+from app.models.product_variant import ProductVariant
+from app.models.product_recipe_item import ProductRecipeItem
+from app.models.sale_item import SaleItem
+from app.models.salon import Salon
+from app.models.mesa import Mesa
 
 __all__ = [
     'User',
@@ -47,5 +54,12 @@ __all__ = [
     'VacationPeriod',
     'AbsenceRequest',
     'SocialSecurityDocument',
-    'EmployeeDocument'
+    'EmployeeDocument',
+    'ProductCategory',
+    'Product',
+    'ProductVariant',
+    'ProductRecipeItem',
+    'SaleItem',
+    'Salon',
+    'Mesa'
 ]
