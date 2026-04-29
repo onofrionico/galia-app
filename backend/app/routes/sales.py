@@ -1,9 +1,13 @@
 from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.sale import Sale
+from app.models.product_variant import ProductVariant
+from app.models.sale_item import SaleItem
+from app.services.stock_service import deduct_stock_for_sale
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import admin_required
 from datetime import datetime, date, timedelta
+from decimal import Decimal
 from sqlalchemy import func, extract
 import csv
 import io
@@ -128,20 +132,80 @@ def get_sales_stats(current_user):
     }), 200
 
 
+@bp.route('/create-from-items', methods=['POST'])
+@token_required
+def create_sale_from_items(current_user):
+    """
+    Crear una venta nueva con items y deducción automática de stock.
+    Body: {
+      "items": [{"product_variant_id": int, "quantity": int}, ...],
+      "mesa_id": int (opcional),
+      "medio_pago": str (default: "Efectivo")
+    }
+    """
+    data = request.get_json() or {}
+    items = data.get('items', [])
+    mesa_id = data.get('mesa_id')
+    medio_pago = data.get('medio_pago', 'Efectivo')
+
+    if not items:
+        return jsonify({'error': 'Al menos un item es requerido'}), 400
+
+    try:
+        deduct_stock_for_sale(items)
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+    sale = Sale(
+        fecha=date.today(),
+        creacion=datetime.utcnow(),
+        medio_pago=medio_pago,
+        source='galia',
+        mesa_id=mesa_id,
+        total=Decimal(0),
+        estado='En curso',
+        tipo_venta='Local',
+    )
+
+    total = Decimal(0)
+    for item in items:
+        variant = ProductVariant.query.get(item['product_variant_id'])
+        quantity = item['quantity']
+        unit_price = variant.price
+        subtotal = Decimal(str(unit_price)) * quantity
+        total += subtotal
+
+        sale_item = SaleItem(
+            sale=sale,
+            product_variant_id=variant.id,
+            quantity=quantity,
+            unit_price=unit_price,
+            subtotal=subtotal,
+        )
+        db.session.add(sale_item)
+
+    sale.total = total
+    db.session.add(sale)
+    db.session.commit()
+
+    return jsonify(sale.to_dict()), 201
+
+
 @bp.route('', methods=['POST'])
 @token_required
 def create_sale(current_user):
     """Create a new sale"""
     data = request.get_json()
-    
+
     if not data.get('fecha'):
         return jsonify({'error': 'La fecha es requerida'}), 400
-    
+
     try:
         fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
     except ValueError:
         return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
-    
+
     creacion = datetime.now()
     if data.get('creacion'):
         try:
@@ -151,7 +215,7 @@ def create_sale(current_user):
                 creacion = datetime.strptime(data['creacion'], '%Y-%m-%dT%H:%M')
             except ValueError:
                 pass
-    
+
     cerrada = None
     if data.get('cerrada'):
         try:
@@ -161,7 +225,7 @@ def create_sale(current_user):
                 cerrada = datetime.strptime(data['cerrada'], '%Y-%m-%dT%H:%M')
             except ValueError:
                 pass
-    
+
     sale = Sale(
         external_id=data.get('external_id'),
         fecha=fecha,
@@ -182,20 +246,22 @@ def create_sale(current_user):
         origen=data.get('origen'),
         id_origen=data.get('id_origen')
     )
-    
+
     db.session.add(sale)
     db.session.commit()
-    
+
     return jsonify(sale.to_dict()), 201
 
 
 @bp.route('/<int:sale_id>', methods=['GET'])
 @token_required
-@admin_required
 def get_sale(current_user, sale_id):
-    """Get a single sale by ID"""
+    """Obtener detalle de venta con items"""
     sale = Sale.query.get_or_404(sale_id)
-    return jsonify(sale.to_dict()), 200
+    data = sale.to_dict()
+    items = SaleItem.query.filter_by(sale_id=sale_id).all()
+    data['items'] = [i.to_dict() for i in items]
+    return jsonify(data), 200
 
 
 @bp.route('/<int:sale_id>', methods=['PUT'])
@@ -399,3 +465,96 @@ def get_filter_options(current_user):
         'salas': [s[0] for s in salas if s[0]],
         'medios_pago': [m[0] for m in medios_pago if m[0]]
     }), 200
+
+
+@bp.route('/daily-summary', methods=['GET'])
+@token_required
+def get_daily_summary(current_user):
+    """Stats del día: total vendido, cantidad de ventas, top productos"""
+    today = date.today()
+
+    sales = Sale.query.filter(
+        Sale.fecha == today,
+        Sale.source == 'galia'
+    ).all()
+
+    total_vendido = sum(float(s.total) for s in sales)
+    cantidad_ventas = len(sales)
+
+    top_products = db.session.query(
+        ProductVariant.id,
+        ProductVariant.name,
+        func.sum(SaleItem.quantity).label('cantidad'),
+        func.sum(SaleItem.subtotal).label('total')
+    ).join(SaleItem).join(Sale).filter(
+        Sale.fecha == today,
+        Sale.source == 'galia'
+    ).group_by(ProductVariant.id, ProductVariant.name).order_by(
+        func.sum(SaleItem.subtotal).desc()
+    ).limit(5).all()
+
+    top_list = []
+    for variant_id, name, cantidad, total in top_products:
+        top_list.append({
+            'product_variant_id': variant_id,
+            'name': name,
+            'quantity': cantidad,
+            'total': float(total) if total else 0,
+        })
+
+    low_stock = db.session.query(ProductVariant).filter(
+        ProductVariant.stock_quantity <= ProductVariant.min_stock,
+        ProductVariant.is_active == True
+    ).count()
+
+    return jsonify({
+        'total_vendido': total_vendido,
+        'cantidad_ventas': cantidad_ventas,
+        'top_products': top_list,
+        'bajo_stock_count': low_stock,
+    }), 200
+
+
+@bp.route('/top-products', methods=['GET'])
+@token_required
+def get_top_products(current_user):
+    """Ranking de productos más vendidos con filtro de fecha"""
+    fecha_desde = request.args.get('fecha_desde')
+    fecha_hasta = request.args.get('fecha_hasta')
+    limit = request.args.get('limit', 10, type=int)
+
+    query = db.session.query(
+        ProductVariant.id,
+        ProductVariant.name,
+        func.sum(SaleItem.quantity).label('cantidad'),
+        func.sum(SaleItem.subtotal).label('total')
+    ).join(SaleItem).join(Sale).filter(Sale.source == 'galia')
+
+    if fecha_desde:
+        try:
+            desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+            query = query.filter(Sale.fecha >= desde)
+        except ValueError:
+            pass
+
+    if fecha_hasta:
+        try:
+            hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+            query = query.filter(Sale.fecha <= hasta)
+        except ValueError:
+            pass
+
+    results = query.group_by(ProductVariant.id, ProductVariant.name).order_by(
+        func.sum(SaleItem.subtotal).desc()
+    ).limit(limit).all()
+
+    top_list = []
+    for variant_id, name, cantidad, total in results:
+        top_list.append({
+            'product_variant_id': variant_id,
+            'name': name,
+            'quantity': cantidad,
+            'total': float(total) if total else 0,
+        })
+
+    return jsonify({'top_products': top_list}), 200
