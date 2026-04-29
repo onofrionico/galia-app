@@ -472,3 +472,6 @@ graph TD
     E --> E3[Ver mis ventas]
     E --> E4[Ver mi información]
 ```
+- **Grilla Horaria**: Representa la planificación de turnos. Atributos: período (fecha inicio, fecha fin), estado (borrador/publicada), fecha de creación, creador.
+
+- **Turno**: Representa un turno asignado a un empleado. Atributos: empleado asignado, fecha, hora inicio, hora fin, horas totales, relación con Grilla Horaria.
