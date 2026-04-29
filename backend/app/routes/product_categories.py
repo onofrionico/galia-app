@@ -69,7 +69,7 @@ def update_category(current_user, category_id):
     for field in ('description', 'color', 'icon'):
         if field in data:
             val = data[field]
-            setattr(category, field, val.strip() if val else None)
+            setattr(category, field, val.strip() or None)
 
     if 'is_active' in data:
         category.is_active = bool(data['is_active'])

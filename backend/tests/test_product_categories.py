@@ -102,9 +102,17 @@ def test_list_categories_exclude_inactive(client, admin_user):
     cat_id = json.loads(response.data)['id']
     client.delete(f'/api/v1/product-categories/{cat_id}', headers={'Authorization': f'Bearer {token}'})
 
+    # Verify inactive categories are excluded by default
     response = client.get('/api/v1/product-categories', headers={'Authorization': f'Bearer {token}'})
     data = json.loads(response.data)
     assert data['total'] == 0
+
+    # Verify they appear when include_inactive=true
+    response = client.get('/api/v1/product-categories?include_inactive=true', headers={'Authorization': f'Bearer {token}'})
+    data = json.loads(response.data)
+    assert data['total'] == 1
+    assert data['categories'][0]['id'] == cat_id
+    assert data['categories'][0]['is_active'] == False
 
 
 def test_get_category(client, admin_user):
@@ -160,3 +168,129 @@ def test_delete_category(client, admin_user):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['is_active'] == False
+
+
+def test_create_category_unauthorized(client):
+    """Test that non-admin users cannot create categories"""
+    # First create a non-admin user
+    with client.application.app_context():
+        user = User(email='user@test.com', role='employee', is_active=True)
+        user.set_password('user123')
+        db.session.add(user)
+        db.session.commit()
+
+    token = get_auth_token(client, 'user@test.com', 'user123')
+    response = client.post(
+        '/api/v1/product-categories',
+        json={'name': 'Cafés'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 403
+
+
+def test_update_category_unauthorized(client):
+    """Test that non-admin users cannot update categories"""
+    with client.application.app_context():
+        # Create admin user first
+        admin = User(email='admin@test.com', role='admin', is_active=True)
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+
+        # Create a category as admin
+        cat = ProductCategory(name='Cafés')
+        db.session.add(cat)
+        db.session.commit()
+        cat_id = cat.id
+
+        # Create non-admin user
+        user = User(email='user@test.com', role='employee', is_active=True)
+        user.set_password('user123')
+        db.session.add(user)
+        db.session.commit()
+
+    token = get_auth_token(client, 'user@test.com', 'user123')
+    response = client.put(
+        f'/api/v1/product-categories/{cat_id}',
+        json={'name': 'Cafés Premium'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 403
+
+
+def test_delete_category_unauthorized(client):
+    """Test that non-admin users cannot delete categories"""
+    with client.application.app_context():
+        # Create admin user first
+        admin = User(email='admin@test.com', role='admin', is_active=True)
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+
+        # Create a category as admin
+        cat = ProductCategory(name='Cafés')
+        db.session.add(cat)
+        db.session.commit()
+        cat_id = cat.id
+
+        # Create non-admin user
+        user = User(email='user@test.com', role='employee', is_active=True)
+        user.set_password('user123')
+        db.session.add(user)
+        db.session.commit()
+
+    token = get_auth_token(client, 'user@test.com', 'user123')
+    response = client.delete(
+        f'/api/v1/product-categories/{cat_id}',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 403
+
+
+def test_missing_auth_header(client):
+    """Test that requests without auth header fail"""
+    response = client.get('/api/v1/product-categories')
+    assert response.status_code == 401
+
+
+def test_update_category_empty_name(client, admin_user):
+    """Test that empty/whitespace-only name is rejected"""
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+    create_resp = client.post(
+        '/api/v1/product-categories',
+        json={'name': 'Cafés'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    cat_id = json.loads(create_resp.data)['id']
+
+    response = client.put(
+        f'/api/v1/product-categories/{cat_id}',
+        json={'name': '   '},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 400
+
+
+def test_update_category_duplicate_name(client, admin_user):
+    """Test that duplicate names are rejected on update"""
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    resp1 = client.post(
+        '/api/v1/product-categories',
+        json={'name': 'Cafés'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    cat1_id = json.loads(resp1.data)['id']
+
+    client.post(
+        '/api/v1/product-categories',
+        json={'name': 'Panadería'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+
+    response = client.put(
+        f'/api/v1/product-categories/{cat1_id}',
+        json={'name': 'Panadería'},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 409
