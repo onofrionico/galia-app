@@ -32,6 +32,11 @@ import AdminTimeTracking from './pages/AdminTimeTracking'
 import MyDocuments from './pages/MyDocuments'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
+import Pos from './pages/Pos'
+import ProductCategories from './pages/ProductCategories'
+import Products from './pages/Products'
+import ProductDetail from './pages/ProductDetail'
+import Stock from './pages/Stock'
 
 function App() {
   return (
@@ -71,6 +76,11 @@ function App() {
             <Route path="/vacation-periods" element={<VacationPeriods />} />
             <Route path="/suppliers" element={<Suppliers />} />
             <Route path="/suppliers/:id" element={<SupplierDetail />} />
+            <Route path="/pos" element={<Pos />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/:id" element={<ProductDetail />} />
+            <Route path="/product-categories" element={<ProductCategories />} />
+            <Route path="/stock" element={<Stock />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
