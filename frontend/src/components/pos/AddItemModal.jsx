@@ -18,6 +18,16 @@ const AddItemModal = ({ orderId, onClose, onItemAdded }) => {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
   const fetchData = async () => {
     try {
       const [catsRes, prodsRes] = await Promise.all([
@@ -94,14 +104,15 @@ const AddItemModal = ({ orderId, onClose, onItemAdded }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center p-6 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-6 border-b bg-gray-50">
           <h2 className="text-2xl font-bold">Agregar Ítem a Orden</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded"
+            className="p-2 hover:bg-gray-200 rounded transition"
             disabled={saving}
+            title="Cerrar (ESC)"
           >
             <X size={24} />
           </button>

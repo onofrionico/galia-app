@@ -198,13 +198,7 @@ def create_sale(current_user):
     """Create a new sale"""
     data = request.get_json()
 
-    if data.get('fecha'):
-        try:
-            fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
-    else:
-        fecha = datetime.utcnow().date()
+    fecha = datetime.utcnow().date()
 
     creacion = datetime.now()
     if data.get('creacion'):

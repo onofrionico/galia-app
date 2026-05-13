@@ -5,6 +5,11 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
     if (!isEditMode) return
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('mesaId', mesa.id)
+
+    // Create a custom drag image to fix cursor offset
+    const img = new Image()
+    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%23ddd" stroke="%23999" stroke-width="2" rx="4"/><text x="30" y="35" text-anchor="middle" font-size="12" fill="%23333">Moving</text></svg>'
+    e.dataTransfer.setDragImage(img, 30, 30)
   }
 
   const handleDragOver = (e) => {
@@ -36,8 +41,15 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
       onDragOver={handleDragOver}
       onDrop={(e) => {
         const rect = e.currentTarget.getBoundingClientRect()
-        const x = ((e.clientX - rect.left) / rect.width) * 100
-        const y = ((e.clientY - rect.top) / rect.height) * 100
+        let x = ((e.clientX - rect.left) / rect.width) * 100
+        let y = ((e.clientY - rect.top) / rect.height) * 100
+        // Center the mesa on the cursor position
+        const mesaId = parseInt(e.dataTransfer.getData('mesaId'))
+        const mesa = mesas.find(m => m.id === mesaId)
+        if (mesa) {
+          x = Math.max(0, x - mesa.width / 2)
+          y = Math.max(0, y - mesa.height / 2)
+        }
         handleDrop(e, x, y)
       }}
     >

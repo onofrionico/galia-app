@@ -128,23 +128,42 @@ const Pos = () => {
   const handleMesaDrag = async (mesaId, x, y) => {
     if (!activeSalon) return
     try {
-      // Update mesa position via API
       const newMesas = [...(allMesas[activeSalon] || [])]
       const mesaIndex = newMesas.findIndex((m) => m.id === mesaId)
       if (mesaIndex >= 0) {
+        const mesa = newMesas[mesaIndex]
+        const newX = Math.max(0, Math.min(100 - mesa.width, x))
+        const newY = Math.max(0, Math.min(100 - mesa.height, y))
+
+        // Check for collisions with other mesas
+        const hasCollision = newMesas.some((m, idx) => {
+          if (idx === mesaIndex) return false
+          const minDistance = 3 // % of floor plan
+          return (
+            Math.abs((newX + mesa.width / 2) - (m.pos_x + m.width / 2)) < minDistance &&
+            Math.abs((newY + mesa.height / 2) - (m.pos_y + m.height / 2)) < minDistance
+          )
+        })
+
+        if (hasCollision) {
+          setError('Las mesas no pueden superponerse. Sepáralas más.')
+          return
+        }
+
         newMesas[mesaIndex] = {
-          ...newMesas[mesaIndex],
-          pos_x: x,
-          pos_y: y,
+          ...mesa,
+          pos_x: newX,
+          pos_y: newY,
         }
         await salonsService.updateMesa(activeSalon, mesaId, {
-          pos_x: x,
-          pos_y: y,
+          pos_x: newX,
+          pos_y: newY,
         })
         setAllMesas({
           ...allMesas,
           [activeSalon]: newMesas,
         })
+        setError('')
       }
     } catch (err) {
       console.error('Error updating mesa position:', err)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 
 const OrderDrawer = ({ order, onAddItem, onClose, onCobrar }) => {
@@ -6,19 +6,31 @@ const OrderDrawer = ({ order, onAddItem, onClose, onCobrar }) => {
   const total = order?.total || 0
   const mesa = order?.mesa_id
 
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
   const handlePayment = (medioPago) => {
     onCobrar(medioPago)
     setShowPaymentOptions(false)
   }
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-xl z-40 flex flex-col">
-      <div className="border-b p-4 flex justify-between items-center">
-        <h3 className="text-lg font-bold">Mesa {mesa}</h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-          <X size={20} />
-        </button>
-      </div>
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-30 z-30" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-xl z-40 flex flex-col">
+        <div className="border-b p-4 flex justify-between items-center bg-gray-50">
+          <h3 className="text-lg font-bold">Mesa {mesa}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded transition" title="Cerrar (ESC)">
+            <X size={20} />
+          </button>
+        </div>
 
       <div className="text-xs text-gray-600 px-4 pt-3">
         Orden #{order?.id || 'N/A'}
@@ -106,7 +118,7 @@ const OrderDrawer = ({ order, onAddItem, onClose, onCobrar }) => {
           </>
         )}
       </div>
-    </div>
+    </>
   )
 }
 
