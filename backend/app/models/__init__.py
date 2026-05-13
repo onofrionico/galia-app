@@ -27,6 +27,7 @@ from app.models.product_recipe_item import ProductRecipeItem
 from app.models.sale_item import SaleItem
 from app.models.salon import Salon
 from app.models.mesa import Mesa
+from app.models.order import Order, OrderItem
 
 __all__ = [
     'User',
@@ -61,5 +62,7 @@ __all__ = [
     'ProductRecipeItem',
     'SaleItem',
     'Salon',
-    'Mesa'
+    'Mesa',
+    'Order',
+    'OrderItem'
 ]
