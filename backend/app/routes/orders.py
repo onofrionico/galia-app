@@ -222,7 +222,8 @@ def cobrar_order(current_user, order_id):
             medio_pago=medio_pago,
             fecha=datetime.utcnow().date(),
             creacion=datetime.utcnow(),
-            estado='En curso',
+            cerrada=datetime.utcnow(),
+            estado='Cerrada',
             tipo_venta='Local',
             total=Decimal(0)
         )

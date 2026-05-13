@@ -194,17 +194,17 @@ const PosModal = ({ mesaId, onClose, onSale }) => {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => handleAddProduct(product)}
-                    className="border-2 border-gray-300 rounded-lg p-3 hover:border-blue-500 hover:bg-blue-50 transition text-center"
+                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition text-center min-h-32 flex flex-col items-center justify-center"
                   >
-                    <div className="text-3xl mb-2">📦</div>
-                    <div className="font-medium text-sm">{product.name}</div>
+                    <div className="text-4xl mb-3">📦</div>
+                    <div className="font-bold text-base leading-snug mb-2 line-clamp-2">{product.name}</div>
                     {product.variants && product.variants.length > 0 && (
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="text-sm text-gray-700 font-semibold mt-1">
                         ${product.variants[0].price}
                         {product.variants.length > 1 && ` +${product.variants.length - 1}`}
                       </div>

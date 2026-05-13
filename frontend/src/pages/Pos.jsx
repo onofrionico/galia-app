@@ -125,6 +125,32 @@ const Pos = () => {
     }
   }
 
+  const handleMesaDrag = async (mesaId, x, y) => {
+    if (!activeSalon) return
+    try {
+      // Update mesa position via API
+      const newMesas = [...(allMesas[activeSalon] || [])]
+      const mesaIndex = newMesas.findIndex((m) => m.id === mesaId)
+      if (mesaIndex >= 0) {
+        newMesas[mesaIndex] = {
+          ...newMesas[mesaIndex],
+          pos_x: x,
+          pos_y: y,
+        }
+        await salonsService.updateMesa(activeSalon, mesaId, {
+          pos_x: x,
+          pos_y: y,
+        })
+        setAllMesas({
+          ...allMesas,
+          [activeSalon]: newMesas,
+        })
+      }
+    } catch (err) {
+      console.error('Error updating mesa position:', err)
+    }
+  }
+
   if (loading) {
     return <div className="p-6">Cargando POS...</div>
   }
@@ -188,6 +214,7 @@ const Pos = () => {
           <SalonFloorPlan
             mesas={mesasWithOrders}
             onMesaClick={handleMesaClick}
+            onMesaDrag={handleMesaDrag}
             isEditMode={editMode}
             style={{
               background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
