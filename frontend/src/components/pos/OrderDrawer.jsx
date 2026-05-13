@@ -118,6 +118,7 @@ const OrderDrawer = ({ order, onAddItem, onClose, onCobrar }) => {
           </>
         )}
       </div>
+      </div>
     </>
   )
 }
