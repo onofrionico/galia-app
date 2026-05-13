@@ -23,6 +23,7 @@ from app.models.employee_document import EmployeeDocument
 from app.models.product_category import ProductCategory
 from app.models.product import Product, ProductVariant
 from app.models.product_recipe_item import ProductRecipeItem
+from app.models.salon import Salon, Mesa
 
 __all__ = [
     'User',
@@ -54,5 +55,7 @@ __all__ = [
     'ProductCategory',
     'Product',
     'ProductVariant',
-    'ProductRecipeItem'
+    'ProductRecipeItem',
+    'Salon',
+    'Mesa'
 ]
