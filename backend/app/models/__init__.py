@@ -21,6 +21,7 @@ from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
 from app.models.product_category import ProductCategory
+from app.models.product import Product, ProductVariant
 
 __all__ = [
     'User',
@@ -49,5 +50,7 @@ __all__ = [
     'AbsenceRequest',
     'SocialSecurityDocument',
     'EmployeeDocument',
-    'ProductCategory'
+    'ProductCategory',
+    'Product',
+    'ProductVariant'
 ]
