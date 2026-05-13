@@ -28,8 +28,10 @@ class Sale(db.Model):
     comentario = db.Column(db.Text, nullable=True)
     origen = db.Column(db.String(100), nullable=True)
     id_origen = db.Column(db.String(100), nullable=True)
+    source = db.Column(db.String(50), default='galia')
+    mesa_id = db.Column(db.Integer, db.ForeignKey('mesas.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     __table_args__ = (
         db.Index('idx_sales_fecha', 'fecha'),
         db.Index('idx_sales_estado', 'estado'),
