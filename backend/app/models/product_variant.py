@@ -1,27 +1,27 @@
 from datetime import datetime
 from app.extensions import db
 
-class ProductCategory(db.Model):
-    __tablename__ = 'product_categories'
+class ProductVariant(db.Model):
+    __tablename__ = 'product_variants'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
-    description = db.Column(db.Text, nullable=True)
-    color = db.Column(db.String(20), nullable=True)
-    icon = db.Column(db.String(10), nullable=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    stock_quantity = db.Column(db.Numeric(10, 3), nullable=False, default=0)
+    min_stock = db.Column(db.Numeric(10, 3), nullable=False, default=0)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    products = db.relationship('Product', backref='category', lazy='dynamic')
-
     def to_dict(self):
         return {
             'id': self.id,
+            'product_id': self.product_id,
             'name': self.name,
-            'description': self.description,
-            'color': self.color,
-            'icon': self.icon,
+            'price': float(self.price),
+            'stock_quantity': float(self.stock_quantity),
+            'min_stock': float(self.min_stock),
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),

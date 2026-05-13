@@ -1,0 +1,105 @@
+<h2>¿Cómo agrupar los ítems del sidebar?</h2>
+<p class="subtitle">Tres mecanismos distintos — elegí el que mejor se siente para Galia</p>
+
+<div class="options">
+
+  <!-- Opción A: Section headers -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Secciones con headers fijos</h3>
+      <p>Labels estáticos que separan visualmente los grupos. Todos los ítems siempre visibles.</p>
+      <div style="margin-top: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-size: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="background: #4f46e5; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px;">⬛ Dashboard</div>
+          <div style="color: #9ca3af; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 8px 4px 2px; text-transform: uppercase;">Personal</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">📅 Horarios</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">🕐 Gestión de Horas</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">👥 Empleados</div>
+          <div style="color: #9ca3af; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 8px 4px 2px; text-transform: uppercase;">Finanzas</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">🛒 Ventas</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">🧾 Gastos</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">💼 Sueldos</div>
+          <div style="color: #9ca3af; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 8px 4px 2px; text-transform: uppercase;">Análisis</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">📊 Reportes</div>
+          <div style="padding: 5px 10px; border-radius: 4px; color: #374151; background: #f9fafb; font-size: 11px;">🧠 Dashboard ML</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 10px; font-size: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Más simple de implementar</li><li>Todo visible sin clicks</li><li>Fácil de aprender</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Sigue siendo largo (todos los ítems visibles)</li><li>No reduce la lista</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opción B: Accordion collapsible -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Grupos colapsables (accordion)</h3>
+      <p>Cada sección se abre/cierra con click. Reduce el ruido visual al enfocarse en un área.</p>
+      <div style="margin-top: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-size: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <div style="background: #4f46e5; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px;">⬛ Dashboard</div>
+          <!-- Personal abierto -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; overflow: hidden;">
+            <div style="padding: 6px 10px; font-weight: 600; color: #16a34a; font-size: 11px; display: flex; justify-content: space-between;">👥 Personal <span>▾</span></div>
+            <div style="padding: 0 0 4px 18px; display: flex; flex-direction: column; gap: 2px;">
+              <div style="padding: 4px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">📅 Horarios</div>
+              <div style="padding: 4px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">🕐 Gestión de Horas</div>
+              <div style="padding: 4px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">👤 Empleados</div>
+              <div style="padding: 4px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">📄 Ausencias</div>
+            </div>
+          </div>
+          <!-- Finanzas cerrado -->
+          <div style="border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden;">
+            <div style="padding: 6px 10px; font-weight: 600; color: #374151; font-size: 11px; display: flex; justify-content: space-between;">💰 Finanzas <span style="color:#9ca3af">▸</span></div>
+          </div>
+          <!-- Análisis cerrado -->
+          <div style="border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden;">
+            <div style="padding: 6px 10px; font-weight: 600; color: #374151; font-size: 11px; display: flex; justify-content: space-between;">📊 Análisis <span style="color:#9ca3af">▸</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 10px; font-size: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Reduce carga visual</li><li>Foco en un área a la vez</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Requiere más clicks</li><li>Estado del accordion a persistir</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opción C: Icon rail + sidebar expandido -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Sidebar compacto + iconos por categoría</h3>
+      <p>Sidebar colapsado a solo íconos de categoría. Al hacer click, se expande mostrando los sub-ítems de esa categoría.</p>
+      <div style="margin-top: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-size: 12px; display: flex; gap: 0;">
+        <!-- Icon rail -->
+        <div style="width: 44px; background: #1e1b4b; border-radius: 6px 0 0 6px; padding: 8px 4px; display: flex; flex-direction: column; gap: 4px; align-items: center;">
+          <div style="color: white; padding: 6px; border-radius: 4px; font-size: 14px;">⬛</div>
+          <div style="color: white; padding: 6px; border-radius: 4px; font-size: 14px; background: #4f46e5; width: 32px; text-align:center;">👥</div>
+          <div style="color: #a5b4fc; padding: 6px; border-radius: 4px; font-size: 14px;">💰</div>
+          <div style="color: #a5b4fc; padding: 6px; border-radius: 4px; font-size: 14px;">📊</div>
+        </div>
+        <!-- Expanded panel for selected category -->
+        <div style="flex: 1; border: 1px solid #e5e7eb; border-left: none; border-radius: 0 6px 6px 0; padding: 8px;">
+          <div style="color: #6b7280; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px;">Personal</div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="padding: 5px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">📅 Horarios</div>
+            <div style="padding: 5px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">🕐 Gestión de Horas</div>
+            <div style="padding: 5px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">👤 Empleados</div>
+            <div style="padding: 5px 8px; border-radius: 3px; color: #374151; background: #f9fafb; font-size: 10px;">📄 Ausencias</div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 10px; font-size: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Muy compacto</li><li>Alta jerarquía visual</li><li>Aspecto moderno/profesional</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Mayor complejidad de implementación</li><li>Curva de aprendizaje para el usuario</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 16px;">Hacé click para seleccionar la opción que preferís, luego confirmá en el chat.</p>

@@ -1,0 +1,94 @@
+<h2>¿Cómo registra el operador una venta?</h2>
+<p class="subtitle">Elegí el layout que mejor se adapta al flujo de trabajo de la cafetería</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;color:#e0e0e0">
+      <div style="display:flex;gap:8px;height:160px">
+        <div style="flex:1;background:#16213e;border-radius:4px;padding:8px;overflow:hidden">
+          <div style="color:#a78bfa;font-size:10px;margin-bottom:6px;font-weight:bold">MENÚ</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <div style="background:#0f3460;border-radius:3px;padding:4px;text-align:center;font-size:10px">☕ Café<br/><span style="color:#a78bfa">$800</span></div>
+            <div style="background:#0f3460;border-radius:3px;padding:4px;text-align:center;font-size:10px">🥐 Medialuna<br/><span style="color:#a78bfa">$450</span></div>
+            <div style="background:#0f3460;border-radius:3px;padding:4px;text-align:center;font-size:10px">🥤 Jugo<br/><span style="color:#a78bfa">$1200</span></div>
+            <div style="background:#0f3460;border-radius:3px;padding:4px;text-align:center;font-size:10px">🍰 Tarta<br/><span style="color:#a78bfa">$2100</span></div>
+          </div>
+        </div>
+        <div style="width:110px;background:#16213e;border-radius:4px;padding:8px">
+          <div style="color:#a78bfa;font-size:10px;margin-bottom:6px;font-weight:bold">COMANDA</div>
+          <div style="font-size:10px;border-bottom:1px solid #333;padding-bottom:4px;margin-bottom:4px">☕ Café x2 <span style="float:right">$1600</span></div>
+          <div style="font-size:10px;border-bottom:1px solid #333;padding-bottom:4px;margin-bottom:4px">🥐 Medialuna x1 <span style="float:right">$450</span></div>
+          <div style="margin-top:8px;color:#4ade80;font-size:11px;font-weight:bold">TOTAL: $2050</div>
+          <div style="margin-top:6px;background:#4ade80;color:#000;border-radius:3px;padding:3px;text-align:center;font-size:10px;font-weight:bold">COBRAR</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — POS Táctil</h3>
+      <p>Grilla de productos a la izquierda, comanda a la derecha. Click para agregar ítems. Diseñado para uso rápido en caja.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;color:#e0e0e0">
+      <div style="height:160px;background:#16213e;border-radius:4px;padding:10px">
+        <div style="color:#a78bfa;font-size:10px;margin-bottom:8px;font-weight:bold">NUEVA VENTA</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <div style="flex:1;background:#0f3460;border-radius:3px;padding:4px;font-size:10px">📅 27/04/2026</div>
+          <div style="flex:1;background:#0f3460;border-radius:3px;padding:4px;font-size:10px">💳 Efectivo</div>
+        </div>
+        <div style="background:#0f3460;border-radius:3px;padding:6px;margin-bottom:6px">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">+ Agregar ítem</div>
+          <div style="display:flex;gap:4px">
+            <div style="flex:2;background:#1e3a5f;border-radius:2px;padding:3px;font-size:9px">Café con leche</div>
+            <div style="flex:1;background:#1e3a5f;border-radius:2px;padding:3px;font-size:9px;text-align:center">2</div>
+            <div style="flex:1;background:#1e3a5f;border-radius:2px;padding:3px;font-size:9px;text-align:right">$1600</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <div style="font-size:11px;font-weight:bold;color:#4ade80">Total: $1600</div>
+          <div style="background:#4ade80;color:#000;border-radius:3px;padding:3px 8px;font-size:10px;font-weight:bold">Guardar</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Formulario de venta</h3>
+      <p>Formulario estilo backoffice: fecha, medio de pago, y tabla de ítems donde se buscan productos por nombre. Para uso administrativo, no en caja.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;color:#e0e0e0">
+      <div style="height:160px;background:#16213e;border-radius:4px;padding:10px">
+        <div style="color:#a78bfa;font-size:10px;margin-bottom:8px;font-weight:bold">VENTAS DEL DÍA — 27/04/2026</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px">
+          <div style="background:#4ade8022;border-radius:3px;padding:5px;text-align:center">
+            <div style="font-size:9px;color:#94a3b8">Ventas</div>
+            <div style="font-size:13px;font-weight:bold;color:#4ade80">24</div>
+          </div>
+          <div style="background:#a78bfa22;border-radius:3px;padding:5px;text-align:center">
+            <div style="font-size:9px;color:#94a3b8">Total</div>
+            <div style="font-size:13px;font-weight:bold;color:#a78bfa">$48.2k</div>
+          </div>
+          <div style="background:#fb923c22;border-radius:3px;padding:5px;text-align:center">
+            <div style="font-size:9px;color:#94a3b8">Top ítem</div>
+            <div style="font-size:11px;font-weight:bold;color:#fb923c">Café</div>
+          </div>
+        </div>
+        <div style="background:#0f3460;border-radius:3px;padding:5px;font-size:9px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>☕ Café x18</span><span style="color:#4ade80">$14.4k</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>🥐 Medialuna x12</span><span style="color:#4ade80">$5.4k</span></div>
+          <div style="display:flex;justify-content:space-between"><span>🥤 Jugo x6</span><span style="color:#4ade80">$7.2k</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Dashboard de ventas del día</h3>
+      <p>Vista operativa con resumen del día + botón "Nueva Venta" que abre el POS táctil. Combina A + panel de control diario.</p>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:16px;color:#94a3b8;font-size:13px">Podés seleccionar más de una opción si querés combinar enfoques.</p>

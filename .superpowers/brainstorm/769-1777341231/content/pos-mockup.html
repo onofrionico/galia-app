@@ -1,0 +1,151 @@
+<h2>Sección 4 — Mockup del POS / Caja</h2>
+<p class="subtitle">Dashboard del día (siempre visible) + modal de nueva venta al hacer click en "Nueva Venta"</p>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+
+  <!-- Dashboard del día -->
+  <div style="flex:1;min-width:300px">
+    <div class="label" style="margin-bottom:8px">VISTA /pos — Dashboard del día</div>
+    <div class="mockup">
+      <div class="mockup-header">🛒 Caja — Lunes 27 de abril</div>
+      <div class="mockup-body" style="background:#0f172a;padding:12px">
+
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:#14532d;border-radius:6px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:#86efac">Ventas hoy</div>
+            <div style="font-size:20px;font-weight:bold;color:#4ade80">24</div>
+          </div>
+          <div style="background:#1e1b4b;border-radius:6px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:#c4b5fd">Total</div>
+            <div style="font-size:20px;font-weight:bold;color:#a78bfa">$48.2k</div>
+          </div>
+          <div style="background:#431407;border-radius:6px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:#fdba74">Top producto</div>
+            <div style="font-size:14px;font-weight:bold;color:#fb923c">☕ Café</div>
+          </div>
+        </div>
+
+        <!-- Top productos hoy -->
+        <div style="background:#1e293b;border-radius:6px;padding:8px;margin-bottom:12px">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px">PRODUCTOS MÁS VENDIDOS HOY</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0;margin-bottom:3px">
+            <span>☕ Café con leche</span><span style="color:#4ade80">×18 — $14.4k</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0;margin-bottom:3px">
+            <span>🥐 Medialuna</span><span style="color:#4ade80">×12 — $5.4k</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0">
+            <span>🥤 Jugo naranja</span><span style="color:#4ade80">×6 — $7.2k</span>
+          </div>
+        </div>
+
+        <!-- Alerta stock -->
+        <div style="background:#431407;border:1px solid #7c2d12;border-radius:6px;padding:8px;margin-bottom:12px;font-size:11px;color:#fdba74">
+          ⚠️ <strong>Stock bajo:</strong> Medialunas (3 unid), Leche entera (0.5L)
+        </div>
+
+        <!-- Botón nueva venta -->
+        <div style="background:#16a34a;color:white;border-radius:8px;padding:12px;text-align:center;font-size:14px;font-weight:bold;cursor:pointer">
+          + Nueva Venta
+        </div>
+
+        <!-- Ventas recientes -->
+        <div style="margin-top:12px">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px">ÚLTIMAS VENTAS</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0;border-bottom:1px solid #1e293b;padding:4px 0">
+            <span>#024 — 14:32</span><span style="color:#94a3b8">Débito</span><span style="color:#4ade80">$2.850</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0;border-bottom:1px solid #1e293b;padding:4px 0">
+            <span>#023 — 14:15</span><span style="color:#94a3b8">Efectivo</span><span style="color:#4ade80">$1.200</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#e2e8f0;padding:4px 0">
+            <span>#022 — 13:58</span><span style="color:#94a3b8">QR/MP</span><span style="color:#4ade80">$4.500</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal POS -->
+  <div style="flex:1;min-width:320px">
+    <div class="label" style="margin-bottom:8px">MODAL "Nueva Venta" — POS Táctil</div>
+    <div class="mockup">
+      <div class="mockup-header">Nueva Venta</div>
+      <div class="mockup-body" style="background:#0f172a;padding:10px;display:flex;gap:8px">
+
+        <!-- Grilla de productos -->
+        <div style="flex:1">
+          <!-- Filtro categorías -->
+          <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="background:#16a34a;color:white;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:bold">Todo</div>
+            <div style="background:#1e293b;color:#94a3b8;border-radius:4px;padding:3px 8px;font-size:10px">☕ Cafés</div>
+            <div style="background:#1e293b;color:#94a3b8;border-radius:4px;padding:3px 8px;font-size:10px">🥐 Panadería</div>
+            <div style="background:#1e293b;color:#94a3b8;border-radius:4px;padding:3px 8px;font-size:10px">🥤 Bebidas</div>
+          </div>
+
+          <!-- Grilla productos -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="background:#14532d;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">☕</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Café</div>
+              <div style="font-size:9px;color:#86efac">Ch $700</div>
+            </div>
+            <div style="background:#14532d;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">☕</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Cortado</div>
+              <div style="font-size:9px;color:#86efac">$850</div>
+            </div>
+            <div style="background:#1e3a5f;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">🥐</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Medialuna</div>
+              <div style="font-size:9px;color:#93c5fd">$450</div>
+            </div>
+            <div style="background:#1e3a5f;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">🥪</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Sandwich</div>
+              <div style="font-size:9px;color:#93c5fd">$2.100</div>
+            </div>
+            <div style="background:#312e81;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">🥤</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Jugo</div>
+              <div style="font-size:9px;color:#c4b5fd">$1.200</div>
+            </div>
+            <div style="background:#312e81;border-radius:6px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:16px">💧</div>
+              <div style="font-size:10px;color:#e2e8f0;font-weight:bold">Agua</div>
+              <div style="font-size:9px;color:#c4b5fd">$600</div>
+            </div>
+          </div>
+          <!-- Nota variantes -->
+          <div style="margin-top:6px;font-size:10px;color:#64748b">Al tocar un producto con variantes → seleccionar tamaño</div>
+        </div>
+
+        <!-- Comanda -->
+        <div style="width:130px;display:flex;flex-direction:column">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px">COMANDA</div>
+          <div style="flex:1;background:#1e293b;border-radius:6px;padding:6px;font-size:10px;min-height:80px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#e2e8f0">
+              <span>☕ Café ×2</span><span style="color:#4ade80">$1.600</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:#e2e8f0">
+              <span>🥐 ×1</span><span style="color:#4ade80">$450</span>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;font-weight:bold;color:#4ade80;text-align:right">$2.050</div>
+          <!-- Medio de pago -->
+          <div style="display:flex;gap:3px;margin-top:6px">
+            <div style="flex:1;background:#16a34a;color:white;border-radius:3px;padding:3px;text-align:center;font-size:9px">Efec</div>
+            <div style="flex:1;background:#1e293b;color:#94a3b8;border-radius:3px;padding:3px;text-align:center;font-size:9px">Déb</div>
+            <div style="flex:1;background:#1e293b;color:#94a3b8;border-radius:3px;padding:3px;text-align:center;font-size:9px">QR</div>
+          </div>
+          <div style="margin-top:6px;background:#16a34a;color:white;border-radius:6px;padding:8px;text-align:center;font-size:12px;font-weight:bold">
+            COBRAR
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

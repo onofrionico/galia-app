@@ -1,0 +1,81 @@
+<h2>Comportamiento del accordion</h2>
+<p class="subtitle">¿Cómo se comportan los grupos cuando hacés click?</p>
+
+<div class="options">
+
+  <!-- Opción A: Solo uno abierto -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Solo uno abierto a la vez</h3>
+      <p>Al abrir un grupo, el anterior se cierra automáticamente. Más compacto, menos scroll.</p>
+      <div style="margin-top: 12px; display: flex; gap: 12px;">
+        <!-- Estado 1 -->
+        <div style="flex: 1;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px; text-align:center;">Click en "Finanzas" →</div>
+          <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px; font-size: 11px; display:flex;flex-direction:column;gap:2px;">
+            <div style="background:#4f46e5;color:white;padding:5px 8px;border-radius:4px;">⬛ Dashboard</div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:5px 8px;color:#16a34a;font-weight:600;display:flex;justify-content:space-between;">👥 Personal <span>▾</span></div>
+            <div style="padding-left:12px;display:flex;flex-direction:column;gap:1px;">
+              <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">📅 Horarios</div>
+              <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🕐 Horas</div>
+            </div>
+            <div style="border:1px solid #e5e7eb;border-radius:4px;padding:5px 8px;color:#374151;font-weight:600;display:flex;justify-content:space-between;">💰 Finanzas <span style="color:#9ca3af">▸</span></div>
+            <div style="border:1px solid #e5e7eb;border-radius:4px;padding:5px 8px;color:#374151;font-weight:600;display:flex;justify-content:space-between;">📊 Análisis <span style="color:#9ca3af">▸</span></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:18px;">→</div>
+        <!-- Estado 2 -->
+        <div style="flex: 1;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px; text-align:center;">Personal se cierra solo</div>
+          <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px; font-size: 11px; display:flex;flex-direction:column;gap:2px;">
+            <div style="background:#4f46e5;color:white;padding:5px 8px;border-radius:4px;">⬛ Dashboard</div>
+            <div style="border:1px solid #e5e7eb;border-radius:4px;padding:5px 8px;color:#374151;font-weight:600;display:flex;justify-content:space-between;">👥 Personal <span style="color:#9ca3af">▸</span></div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:5px 8px;color:#1d4ed8;font-weight:600;display:flex;justify-content:space-between;">💰 Finanzas <span>▾</span></div>
+            <div style="padding-left:12px;display:flex;flex-direction:column;gap:1px;">
+              <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🛒 Ventas</div>
+              <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🧾 Gastos</div>
+            </div>
+            <div style="border:1px solid #e5e7eb;border-radius:4px;padding:5px 8px;color:#374151;font-weight:600;display:flex;justify-content:space-between;">📊 Análisis <span style="color:#9ca3af">▸</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opción B: Múltiples abiertos -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Múltiples grupos abiertos</h3>
+      <p>Cada grupo se abre/cierra de forma independiente. Podés ver varios al mismo tiempo.</p>
+      <div style="margin-top: 12px;">
+        <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px; text-align:center;">Personal y Finanzas abiertos simultáneamente</div>
+        <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px; font-size: 11px; display:flex;flex-direction:column;gap:2px;">
+          <div style="background:#4f46e5;color:white;padding:5px 8px;border-radius:4px;">⬛ Dashboard</div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:5px 8px;color:#16a34a;font-weight:600;display:flex;justify-content:space-between;">👥 Personal <span>▾</span></div>
+          <div style="padding-left:12px;display:flex;flex-direction:column;gap:1px;">
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">📅 Horarios</div>
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🕐 Gestión de Horas</div>
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">👤 Empleados</div>
+          </div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:5px 8px;color:#1d4ed8;font-weight:600;display:flex;justify-content:space-between;">💰 Finanzas <span>▾</span></div>
+          <div style="padding-left:12px;display:flex;flex-direction:column;gap:1px;">
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🛒 Ventas</div>
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">🧾 Gastos</div>
+            <div style="padding:3px 6px;background:#f9fafb;border-radius:3px;color:#6b7280;">💼 Sueldos</div>
+          </div>
+          <div style="border:1px solid #e5e7eb;border-radius:4px;padding:5px 8px;color:#374151;font-weight:600;display:flex;justify-content:space-between;">📊 Análisis <span style="color:#9ca3af">▸</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #475569;">
+  <strong>💡 En ambos casos:</strong> el grupo activo (con la página actual) se abre automáticamente al navegar.
+  El estado también se puede guardar en <code>localStorage</code> para que el sidebar recuerde qué grupos tenías abiertos.
+</div>
+
+<p class="subtitle" style="margin-top: 12px;">Hacé click en la opción preferida y confirmá en el chat.</p>

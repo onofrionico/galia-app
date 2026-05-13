@@ -1,0 +1,138 @@
+<h2>POS — Vista de mesas (revisado)</h2>
+<p class="subtitle">La vista principal muestra el salón con el estado de cada mesa. Click en mesa libre → nueva venta. Click en mesa ocupada → ver/editar comanda activa.</p>
+
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+
+  <!-- Vista principal mesas -->
+  <div style="flex:2;min-width:320px">
+    <div class="label" style="margin-bottom:8px">VISTA /pos — Salón</div>
+    <div class="mockup">
+      <div class="mockup-header" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🛒 Caja — Lunes 27 de abril</span>
+        <div style="display:flex;gap:8px;font-size:11px">
+          <span style="color:#4ade80">● 3 libres</span>
+          <span style="color:#f87171">● 5 ocupadas</span>
+          <span style="color:#fbbf24">● 1 reservada</span>
+        </div>
+      </div>
+      <div class="mockup-body" style="background:#0f172a;padding:14px">
+
+        <!-- Leyenda -->
+        <div style="display:flex;gap:12px;margin-bottom:12px;font-size:10px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#14532d;border-radius:2px;display:inline-block"></span>Libre</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#7f1d1d;border-radius:2px;display:inline-block"></span>Ocupada</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#78350f;border-radius:2px;display:inline-block"></span>Reservada</span>
+        </div>
+
+        <!-- Grilla de mesas -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+
+          <!-- Mesa 1 - ocupada -->
+          <div style="background:#7f1d1d;border:1px solid #dc2626;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#fca5a5">Mesa 1</div>
+            <div style="font-size:10px;color:#f87171">$4.200</div>
+            <div style="font-size:9px;color:#9f6e6e;margin-top:2px">32 min</div>
+          </div>
+
+          <!-- Mesa 2 - libre -->
+          <div style="background:#14532d;border:1px solid #16a34a;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#86efac">Mesa 2</div>
+            <div style="font-size:10px;color:#4ade80">Libre</div>
+          </div>
+
+          <!-- Mesa 3 - ocupada -->
+          <div style="background:#7f1d1d;border:1px solid #dc2626;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#fca5a5">Mesa 3</div>
+            <div style="font-size:10px;color:#f87171">$1.800</div>
+            <div style="font-size:9px;color:#9f6e6e;margin-top:2px">8 min</div>
+          </div>
+
+          <!-- Mesa 4 - libre -->
+          <div style="background:#14532d;border:1px solid #16a34a;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#86efac">Mesa 4</div>
+            <div style="font-size:10px;color:#4ade80">Libre</div>
+          </div>
+
+          <!-- Mesa 5 - ocupada -->
+          <div style="background:#7f1d1d;border:1px solid #dc2626;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#fca5a5">Mesa 5</div>
+            <div style="font-size:10px;color:#f87171">$6.750</div>
+            <div style="font-size:9px;color:#9f6e6e;margin-top:2px">51 min</div>
+          </div>
+
+          <!-- Mesa 6 - reservada -->
+          <div style="background:#78350f;border:1px solid #d97706;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">📋</div>
+            <div style="font-size:11px;font-weight:bold;color:#fde68a">Mesa 6</div>
+            <div style="font-size:10px;color:#fbbf24">Reservada</div>
+            <div style="font-size:9px;color:#92400e;margin-top:2px">15:00</div>
+          </div>
+
+          <!-- Mesa 7 - ocupada -->
+          <div style="background:#7f1d1d;border:1px solid #dc2626;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#fca5a5">Mesa 7</div>
+            <div style="font-size:10px;color:#f87171">$2.300</div>
+            <div style="font-size:9px;color:#9f6e6e;margin-top:2px">18 min</div>
+          </div>
+
+          <!-- Mesa 8 - libre -->
+          <div style="background:#14532d;border:1px solid #16a34a;border-radius:8px;padding:10px;text-align:center;cursor:pointer">
+            <div style="font-size:18px">🪑</div>
+            <div style="font-size:11px;font-weight:bold;color:#86efac">Mesa 8</div>
+            <div style="font-size:10px;color:#4ade80">Libre</div>
+          </div>
+
+        </div>
+
+        <!-- Barra de resumen del día (secundaria, abajo) -->
+        <div style="margin-top:14px;background:#1e293b;border-radius:6px;padding:8px;display:flex;gap:16px;font-size:11px">
+          <span style="color:#94a3b8">Hoy:</span>
+          <span><span style="color:#4ade80">$48.200</span> vendidos</span>
+          <span><span style="color:#a78bfa">24</span> ventas</span>
+          <span style="color:#f87171">⚠️ 2 ítems con stock bajo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer comanda activa -->
+  <div style="flex:1;min-width:200px">
+    <div class="label" style="margin-bottom:8px">CLICK EN MESA OCUPADA → comanda activa</div>
+    <div class="mockup">
+      <div class="mockup-header">Mesa 1 — comanda activa</div>
+      <div class="mockup-body" style="background:#0f172a;padding:10px">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:6px">32 min abierta</div>
+        <div style="font-size:11px;color:#e2e8f0;border-bottom:1px solid #1e293b;padding-bottom:4px;margin-bottom:4px;display:flex;justify-content:space-between"><span>☕ Café ×2</span><span>$1.600</span></div>
+        <div style="font-size:11px;color:#e2e8f0;border-bottom:1px solid #1e293b;padding-bottom:4px;margin-bottom:4px;display:flex;justify-content:space-between"><span>🥐 Medialuna ×3</span><span>$1.350</span></div>
+        <div style="font-size:11px;color:#e2e8f0;border-bottom:1px solid #1e293b;padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between"><span>🥤 Jugo ×1</span><span>$1.200</span></div>
+        <div style="font-size:13px;font-weight:bold;color:#4ade80;text-align:right;margin-bottom:10px">$4.200</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:#1e3a5f;color:#93c5fd;border-radius:5px;padding:6px;text-align:center;font-size:11px">+ Agregar ítem</div>
+          <div style="background:#16a34a;color:white;border-radius:5px;padding:6px;text-align:center;font-size:11px;font-weight:bold">Cobrar</div>
+          <div style="background:#7f1d1d;color:#fca5a5;border-radius:5px;padding:6px;text-align:center;font-size:10px">Cerrar mesa</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modelo de datos adicional -->
+    <div style="margin-top:12px;background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px;font-size:11px">
+      <div style="font-weight:bold;color:#a78bfa;margin-bottom:6px">Mesa — nueva entidad</div>
+      <div style="color:#c4b5fd;line-height:1.7;font-size:11px">
+        id, number, name<br/>
+        capacity<br/>
+        status: libre | ocupada | reservada<br/>
+        is_active<br/>
+        <br/>
+        <span style="color:#94a3b8">Sale agrega:</span><br/>
+        mesa_id → Mesa
+      </div>
+    </div>
+  </div>
+
+</div>

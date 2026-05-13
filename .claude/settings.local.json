@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(node --input-type=module --eval ':*)",
+      "Bash(node -e ':*)",
+      "Bash(node_modules/.bin/eslint src/components/layout/Sidebar.jsx)",
+      "Bash(npx eslint:*)"
+    ]
+  }
+}

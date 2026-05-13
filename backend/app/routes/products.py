@@ -1,273 +1,279 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
-from app.models import Product, ProductVariant, ProductRecipeItem, Supply
+from app.models.product import Product
+from app.models.product_variant import ProductVariant
+from app.models.product_recipe_item import ProductRecipeItem
+from app.models.product_category import ProductCategory
+from app.models.supply import Supply
 from app.utils.jwt_utils import token_required
-from sqlalchemy import or_
+from app.utils.decorators import admin_required
+from sqlalchemy.exc import IntegrityError
 
 bp = Blueprint('products', __name__, url_prefix='/api/v1/products')
 
-@bp.route('/', methods=['GET'])
-def get_products():
-    """Lista de productos con filtros y paginación"""
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+
+@bp.route('', methods=['GET'])
+@token_required
+def list_products(current_user):
     category_id = request.args.get('category_id', type=int)
-    search = request.args.get('search', '')
-    is_active = request.args.get('is_active', 'true').lower() == 'true'
+    search = request.args.get('search', '').strip()
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
 
     query = Product.query
-
-    if is_active:
-        query = query.filter_by(is_active=True)
-
+    if not include_inactive:
+        query = query.filter(Product.is_active == True)
     if category_id:
-        query = query.filter_by(category_id=category_id)
-
+        query = query.filter(Product.category_id == category_id)
     if search:
-        query = query.filter(or_(
-            Product.name.ilike(f'%{search}%'),
-            Product.description.ilike(f'%{search}%')
-        ))
+        query = query.filter(Product.name.ilike(f'%{search}%'))
 
-    pagination = query.paginate(page=page, per_page=per_page)
+    paginated = query.order_by(Product.name).paginate(page=page, per_page=per_page, error_out=False)
+    products = [p.to_dict() for p in paginated.items]
+
+    for p in products:
+        variants = ProductVariant.query.filter_by(product_id=p['id'], is_active=True).all()
+        p['variants'] = [v.to_dict() for v in variants]
 
     return jsonify({
-        'items': [p.to_dict(include_variants=True) for p in pagination.items],
-        'total': pagination.total,
-        'pages': pagination.pages,
-        'current_page': page
+        'products': products,
+        'total': paginated.total,
+        'page': page,
+        'per_page': per_page,
+        'pages': paginated.pages
     }), 200
 
-@bp.route('/', methods=['POST'])
-@token_required
-def create_product(current_user):
-    """Crear producto"""
-    data = request.get_json()
 
-    if not data or not data.get('name') or not data.get('category_id'):
-        return jsonify({'error': 'Nombre y categoría son requeridos'}), 400
+@bp.route('', methods=['POST'])
+@token_required
+@admin_required
+def create_product(current_user):
+    data = request.get_json() or {}
+
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'El nombre del producto es requerido'}), 400
+    if not data.get('category_id'):
+        return jsonify({'error': 'El category_id es requerido'}), 400
+
+    if not ProductCategory.query.get(data['category_id']):
+        return jsonify({'error': 'Categoría no encontrada'}), 404
 
     product = Product(
-        name=data['name'],
-        description=data.get('description'),
+        name=data['name'].strip(),
+        description=data.get('description', '').strip() or None,
         category_id=data['category_id'],
-        image_url=data.get('image_url'),
-        has_recipe=data.get('has_recipe', False),
-        is_active=True
+        image_url=data.get('image_url', '').strip() or None,
+        has_recipe=bool(data.get('has_recipe', False)),
     )
 
     db.session.add(product)
     db.session.commit()
-
     return jsonify(product.to_dict()), 201
 
-@bp.route('/<int:product_id>', methods=['GET'])
-def get_product(product_id):
-    """Detalle de producto"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
 
-    return jsonify(product.to_dict(include_variants=True, include_recipe=True)), 200
+@bp.route('/<int:product_id>', methods=['GET'])
+@token_required
+def get_product(current_user, product_id):
+    product = Product.query.get_or_404(product_id)
+    data = product.to_dict()
+
+    variants = ProductVariant.query.filter_by(product_id=product_id).all()
+    data['variants'] = [v.to_dict() for v in variants]
+
+    if product.has_recipe:
+        recipe = ProductRecipeItem.query.filter_by(product_id=product_id).all()
+        data['recipe'] = [r.to_dict() for r in recipe]
+
+    return jsonify(data), 200
+
 
 @bp.route('/<int:product_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_product(current_user, product_id):
-    """Editar producto"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
-
-    data = request.get_json()
+    product = Product.query.get_or_404(product_id)
+    data = request.get_json() or {}
 
     if 'name' in data:
-        product.name = data['name']
-    if 'description' in data:
-        product.description = data['description']
+        if not data['name'].strip():
+            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+        product.name = data['name'].strip()
+
     if 'category_id' in data:
+        if not ProductCategory.query.get(data['category_id']):
+            return jsonify({'error': 'Categoría no encontrada'}), 404
         product.category_id = data['category_id']
-    if 'image_url' in data:
-        product.image_url = data['image_url']
+
+    for field in ('description', 'image_url'):
+        if field in data:
+            val = data[field]
+            setattr(product, field, val.strip() if val else None)
+
     if 'has_recipe' in data:
-        product.has_recipe = data['has_recipe']
+        product.has_recipe = bool(data['has_recipe'])
+
+    if 'is_active' in data:
+        product.is_active = bool(data['is_active'])
 
     db.session.commit()
     return jsonify(product.to_dict()), 200
 
+
 @bp.route('/<int:product_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_product(current_user, product_id):
-    """Desactivar producto"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
-
+    product = Product.query.get_or_404(product_id)
     product.is_active = False
     db.session.commit()
+    return jsonify({'message': 'Producto desactivado correctamente'}), 200
 
-    return jsonify({'message': 'Producto desactivado'}), 200
-
-# VARIANTES
 
 @bp.route('/<int:product_id>/variants', methods=['GET'])
-def get_product_variants(product_id):
-    """Lista de variantes del producto"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
+@token_required
+def get_variants(current_user, product_id):
+    Product.query.get_or_404(product_id)
+    variants = ProductVariant.query.filter_by(product_id=product_id, is_active=True).order_by(ProductVariant.name).all()
+    return jsonify({'variants': [v.to_dict() for v in variants], 'total': len(variants)}), 200
 
-    return jsonify([v.to_dict() for v in product.variants]), 200
 
 @bp.route('/<int:product_id>/variants', methods=['POST'])
 @token_required
+@admin_required
 def create_variant(current_user, product_id):
-    """Crear variante"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
+    Product.query.get_or_404(product_id)
+    data = request.get_json() or {}
 
-    data = request.get_json()
-
-    if not data or not data.get('name') or data.get('price') is None:
-        return jsonify({'error': 'Nombre y precio son requeridos'}), 400
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'El nombre de la variante es requerido'}), 400
+    if not data.get('price'):
+        return jsonify({'error': 'El precio es requerido'}), 400
 
     variant = ProductVariant(
         product_id=product_id,
-        name=data['name'],
-        price=data['price'],
-        stock_quantity=data.get('stock_quantity', 0),
-        min_stock=data.get('min_stock', 0),
-        is_active=True
+        name=data['name'].strip(),
+        price=float(data['price']),
+        stock_quantity=float(data.get('stock_quantity', 0)),
+        min_stock=float(data.get('min_stock', 0)),
     )
 
     db.session.add(variant)
     db.session.commit()
-
     return jsonify(variant.to_dict()), 201
+
 
 @bp.route('/<int:product_id>/variants/<int:variant_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_variant(current_user, product_id, variant_id):
-    """Editar variante"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
-
-    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first()
-    if not variant:
-        return jsonify({'error': 'Variante no encontrada'}), 404
-
-    data = request.get_json()
+    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
+    data = request.get_json() or {}
 
     if 'name' in data:
-        variant.name = data['name']
+        if not data['name'].strip():
+            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+        variant.name = data['name'].strip()
+
     if 'price' in data:
-        variant.price = data['price']
+        variant.price = float(data['price'])
+
     if 'stock_quantity' in data:
-        variant.stock_quantity = data['stock_quantity']
+        variant.stock_quantity = float(data['stock_quantity'])
+
     if 'min_stock' in data:
-        variant.min_stock = data['min_stock']
+        variant.min_stock = float(data['min_stock'])
+
+    if 'is_active' in data:
+        variant.is_active = bool(data['is_active'])
 
     db.session.commit()
     return jsonify(variant.to_dict()), 200
 
+
 @bp.route('/<int:product_id>/variants/<int:variant_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_variant(current_user, product_id, variant_id):
-    """Desactivar variante"""
-    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first()
-    if not variant:
-        return jsonify({'error': 'Variante no encontrada'}), 404
-
+    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
     variant.is_active = False
     db.session.commit()
+    return jsonify({'message': 'Variante desactivada correctamente'}), 200
 
-    return jsonify({'message': 'Variante desactivada'}), 200
-
-# RECIPE
 
 @bp.route('/<int:product_id>/recipe', methods=['GET'])
-def get_recipe(product_id):
-    """Receta del producto"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
-
+@token_required
+def get_recipe(current_user, product_id):
+    product = Product.query.get_or_404(product_id)
     if not product.has_recipe:
-        return jsonify({'error': 'Producto no tiene receta'}), 400
+        return jsonify({'recipe': []}), 200
 
-    return jsonify([r.to_dict() for r in product.recipe_items]), 200
+    items = ProductRecipeItem.query.filter_by(product_id=product_id).all()
+    return jsonify({'recipe': [i.to_dict() for i in items], 'total': len(items)}), 200
+
 
 @bp.route('/<int:product_id>/recipe', methods=['PUT'])
 @token_required
+@admin_required
 def update_recipe(current_user, product_id):
-    """Reemplazar receta completa"""
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
+    product = Product.query.get_or_404(product_id)
+    data = request.get_json() or {}
+    items = data.get('items', [])
 
-    data = request.get_json()
-
-    if not isinstance(data, list):
-        return jsonify({'error': 'Receta debe ser un array de items'}), 400
-
-    # Eliminar items anteriores
     ProductRecipeItem.query.filter_by(product_id=product_id).delete()
 
-    # Crear nuevos items
-    for item_data in data:
-        if not item_data.get('supply_id') or not item_data.get('quantity') or not item_data.get('unit'):
-            return jsonify({'error': 'Cada item requiere supply_id, quantity, unit'}), 400
+    for item in items:
+        if not item.get('supply_id') or not item.get('quantity'):
+            continue
 
-        # Verificar que el insumo existe
-        supply = Supply.query.get(item_data['supply_id'])
-        if not supply:
-            return jsonify({'error': f'Insumo {item_data["supply_id"]} no encontrado'}), 404
+        if not Supply.query.get(item['supply_id']):
+            db.session.rollback()
+            return jsonify({'error': f"Supply {item['supply_id']} no encontrado"}), 404
 
         recipe_item = ProductRecipeItem(
             product_id=product_id,
-            supply_id=item_data['supply_id'],
-            quantity=item_data['quantity'],
-            unit=item_data['unit']
+            supply_id=item['supply_id'],
+            quantity=float(item['quantity']),
+            unit=item.get('unit', ''),
         )
         db.session.add(recipe_item)
 
     db.session.commit()
-    return jsonify([r.to_dict() for r in product.recipe_items]), 200
+    items = ProductRecipeItem.query.filter_by(product_id=product_id).all()
+    return jsonify({'recipe': [i.to_dict() for i in items]}), 200
 
-# STOCK
 
 @bp.route('/low-stock', methods=['GET'])
-def get_low_stock():
-    """Variantes y/o insumos por debajo de min_stock"""
-    low_variants = ProductVariant.query.filter(
+@token_required
+def get_low_stock(current_user):
+    low_variants = db.session.query(ProductVariant).filter(
         ProductVariant.stock_quantity <= ProductVariant.min_stock,
         ProductVariant.is_active == True
     ).all()
 
-    low_supplies = Supply.query.filter(
-        Supply.stock_quantity <= Supply.min_stock
+    low_supplies = db.session.query(Supply).filter(
+        Supply.stock_quantity <= Supply.min_stock,
+        Supply.is_active == True
     ).all()
 
     return jsonify({
         'variants': [v.to_dict() for v in low_variants],
-        'supplies': [s.to_dict() for s in low_supplies]
+        'supplies': [s.to_dict() for s in low_supplies],
+        'total_variants': len(low_variants),
+        'total_supplies': len(low_supplies),
     }), 200
+
 
 @bp.route('/<int:product_id>/variants/<int:variant_id>/stock', methods=['PUT'])
 @token_required
-def adjust_variant_stock(current_user, product_id, variant_id):
-    """Ajuste manual de stock de variante"""
-    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first()
-    if not variant:
-        return jsonify({'error': 'Variante no encontrada'}), 404
+@admin_required
+def adjust_stock(current_user, product_id, variant_id):
+    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
+    data = request.get_json() or {}
 
-    data = request.get_json()
+    if 'stock_quantity' not in data:
+        return jsonify({'error': 'stock_quantity es requerido'}), 400
 
-    if 'quantity' not in data:
-        return jsonify({'error': 'Cantidad es requerida'}), 400
-
-    variant.stock_quantity = data['quantity']
+    variant.stock_quantity = float(data['stock_quantity'])
     db.session.commit()
-
     return jsonify(variant.to_dict()), 200

@@ -1,82 +1,93 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
-from app.models import ProductCategory
+from app.models.product_category import ProductCategory
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import admin_required
+from sqlalchemy.exc import IntegrityError
 
 bp = Blueprint('product_categories', __name__, url_prefix='/api/v1/product-categories')
 
-@bp.route('/', methods=['GET'])
-def get_categories():
-    """Lista de categorías activas"""
-    categories = ProductCategory.query.filter_by(is_active=True).all()
-    return jsonify([c.to_dict() for c in categories]), 200
 
-@bp.route('/', methods=['POST'])
+@bp.route('', methods=['GET'])
 @token_required
+def list_categories(current_user):
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+
+    query = ProductCategory.query
+    if not include_inactive:
+        query = query.filter(ProductCategory.is_active == True)
+
+    categories = query.order_by(ProductCategory.name).all()
+    return jsonify({'categories': [c.to_dict() for c in categories], 'total': len(categories)}), 200
+
+
+@bp.route('', methods=['POST'])
+@token_required
+@admin_required
 def create_category(current_user):
-    """Crear categoría"""
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    if not data or not data.get('name'):
-        return jsonify({'error': 'Nombre es requerido'}), 400
-
-    # Verificar que no exista
-    existing = ProductCategory.query.filter_by(name=data['name']).first()
-    if existing:
-        return jsonify({'error': 'Categoría ya existe'}), 400
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'El nombre de la categoría es requerido'}), 400
 
     category = ProductCategory(
-        name=data['name'],
-        description=data.get('description'),
-        color=data.get('color'),
-        icon=data.get('icon'),
-        is_active=True
+        name=data['name'].strip(),
+        description=data.get('description', '').strip() or None,
+        color=data.get('color', '').strip() or None,
+        icon=data.get('icon', '').strip() or None,
     )
 
     db.session.add(category)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'Ya existe una categoría con ese nombre'}), 409
 
     return jsonify(category.to_dict()), 201
 
+
+@bp.route('/<int:category_id>', methods=['GET'])
+@token_required
+def get_category(current_user, category_id):
+    category = ProductCategory.query.get_or_404(category_id)
+    return jsonify(category.to_dict()), 200
+
+
 @bp.route('/<int:category_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_category(current_user, category_id):
-    """Editar categoría"""
-    category = ProductCategory.query.get(category_id)
-    if not category:
-        return jsonify({'error': 'Categoría no encontrada'}), 404
-
-    data = request.get_json()
+    category = ProductCategory.query.get_or_404(category_id)
+    data = request.get_json() or {}
 
     if 'name' in data:
-        # Verificar que no exista otro con ese nombre
-        existing = ProductCategory.query.filter(
-            ProductCategory.name == data['name'],
-            ProductCategory.id != category_id
-        ).first()
-        if existing:
-            return jsonify({'error': 'Nombre ya existe'}), 400
-        category.name = data['name']
+        if not data['name'].strip():
+            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+        category.name = data['name'].strip()
 
-    if 'description' in data:
-        category.description = data['description']
-    if 'color' in data:
-        category.color = data['color']
-    if 'icon' in data:
-        category.icon = data['icon']
+    for field in ('description', 'color', 'icon'):
+        if field in data:
+            val = data[field]
+            setattr(category, field, val.strip() or None)
 
-    db.session.commit()
+    if 'is_active' in data:
+        category.is_active = bool(data['is_active'])
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'Ya existe una categoría con ese nombre'}), 409
+
     return jsonify(category.to_dict()), 200
+
 
 @bp.route('/<int:category_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_category(current_user, category_id):
-    """Desactivar categoría (soft delete)"""
-    category = ProductCategory.query.get(category_id)
-    if not category:
-        return jsonify({'error': 'Categoría no encontrada'}), 404
-
+    category = ProductCategory.query.get_or_404(category_id)
     category.is_active = False
     db.session.commit()
-
-    return jsonify({'message': 'Categoría desactivada'}), 200
+    return jsonify({'message': 'Categoría desactivada correctamente'}), 200

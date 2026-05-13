@@ -1,170 +1,179 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
-from app.models import Salon, Mesa
+from app.models.salon import Salon
+from app.models.mesa import Mesa
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import admin_required
 
 bp = Blueprint('salons', __name__, url_prefix='/api/v1/salons')
 
-@bp.route('/', methods=['GET'])
-def get_salons():
-    """Lista de salones activos"""
-    salons = Salon.query.filter_by(is_active=True).all()
-    return jsonify([s.to_dict() for s in salons]), 200
 
-@bp.route('/', methods=['POST'])
+@bp.route('', methods=['GET'])
 @token_required
+def list_salons(current_user):
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+
+    query = Salon.query
+    if not include_inactive:
+        query = query.filter(Salon.is_active == True)
+
+    salons = query.order_by(Salon.name).all()
+    result = []
+    for salon in salons:
+        data = salon.to_dict()
+        mesas = Mesa.query.filter_by(salon_id=salon.id, is_active=True).count()
+        data['mesa_count'] = mesas
+        result.append(data)
+
+    return jsonify({'salons': result, 'total': len(result)}), 200
+
+
+@bp.route('', methods=['POST'])
+@token_required
+@admin_required
 def create_salon(current_user):
-    """Crear salón"""
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    if not data or not data.get('name'):
-        return jsonify({'error': 'Nombre es requerido'}), 400
-
-    # Verificar que no exista
-    existing = Salon.query.filter_by(name=data['name']).first()
-    if existing:
-        return jsonify({'error': 'Salón ya existe'}), 400
+    if not data.get('name', '').strip():
+        return jsonify({'error': 'El nombre del salón es requerido'}), 400
 
     salon = Salon(
-        name=data['name'],
-        description=data.get('description'),
-        is_active=True
+        name=data['name'].strip(),
+        description=data.get('description', '').strip() or None,
     )
 
     db.session.add(salon)
     db.session.commit()
 
-    return jsonify(salon.to_dict()), 201
+    result = salon.to_dict()
+    result['mesa_count'] = 0
+    return jsonify(result), 201
+
+
+@bp.route('/<int:salon_id>', methods=['GET'])
+@token_required
+def get_salon(current_user, salon_id):
+    salon = Salon.query.get_or_404(salon_id)
+    data = salon.to_dict()
+    mesas = Mesa.query.filter_by(salon_id=salon_id).all()
+    data['mesas'] = [m.to_dict() for m in mesas]
+    data['mesa_count'] = len(mesas)
+    return jsonify(data), 200
+
 
 @bp.route('/<int:salon_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_salon(current_user, salon_id):
-    """Editar salón"""
-    salon = Salon.query.get(salon_id)
-    if not salon:
-        return jsonify({'error': 'Salón no encontrado'}), 404
-
-    data = request.get_json()
+    salon = Salon.query.get_or_404(salon_id)
+    data = request.get_json() or {}
 
     if 'name' in data:
-        # Verificar que no exista otro con ese nombre
-        existing = Salon.query.filter(
-            Salon.name == data['name'],
-            Salon.id != salon_id
-        ).first()
-        if existing:
-            return jsonify({'error': 'Nombre ya existe'}), 400
-        salon.name = data['name']
+        if not data['name'].strip():
+            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+        salon.name = data['name'].strip()
 
     if 'description' in data:
-        salon.description = data['description']
+        val = data['description']
+        salon.description = val.strip() if val else None
+
+    if 'is_active' in data:
+        salon.is_active = bool(data['is_active'])
 
     db.session.commit()
-    return jsonify(salon.to_dict()), 200
+
+    result = salon.to_dict()
+    mesas = Mesa.query.filter_by(salon_id=salon_id, is_active=True).count()
+    result['mesa_count'] = mesas
+    return jsonify(result), 200
+
 
 @bp.route('/<int:salon_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_salon(current_user, salon_id):
-    """Desactivar salón"""
-    salon = Salon.query.get(salon_id)
-    if not salon:
-        return jsonify({'error': 'Salón no encontrado'}), 404
-
+    salon = Salon.query.get_or_404(salon_id)
     salon.is_active = False
     db.session.commit()
+    return jsonify({'message': 'Salón desactivado correctamente'}), 200
 
-    return jsonify({'message': 'Salón desactivado'}), 200
-
-# MESAS
 
 @bp.route('/<int:salon_id>/mesas', methods=['GET'])
-def get_salon_mesas(salon_id):
-    """Mesas del salón"""
-    salon = Salon.query.get(salon_id)
-    if not salon:
-        return jsonify({'error': 'Salón no encontrado'}), 404
+@token_required
+def list_mesas(current_user, salon_id):
+    Salon.query.get_or_404(salon_id)
+    mesas = Mesa.query.filter_by(salon_id=salon_id).order_by(Mesa.number).all()
+    return jsonify({'mesas': [m.to_dict() for m in mesas], 'total': len(mesas)}), 200
 
-    return jsonify([m.to_dict() for m in salon.mesas]), 200
 
 @bp.route('/<int:salon_id>/mesas', methods=['POST'])
 @token_required
+@admin_required
 def create_mesa(current_user, salon_id):
-    """Crear mesa en salón"""
-    salon = Salon.query.get(salon_id)
-    if not salon:
-        return jsonify({'error': 'Salón no encontrado'}), 404
+    Salon.query.get_or_404(salon_id)
+    data = request.get_json() or {}
 
-    data = request.get_json()
-
-    if not data or not data.get('number'):
-        return jsonify({'error': 'Número de mesa es requerido'}), 400
-
-    # Verificar que no exista mesa con ese número en el salón
-    existing = Mesa.query.filter_by(salon_id=salon_id, number=data['number']).first()
-    if existing:
-        return jsonify({'error': 'Mesa con ese número ya existe en el salón'}), 400
+    if not data.get('number'):
+        return jsonify({'error': 'El número de mesa es requerido'}), 400
 
     mesa = Mesa(
         salon_id=salon_id,
-        number=data['number'],
-        name=data.get('name'),
-        capacity=data.get('capacity', 4),
-        pos_x=data.get('pos_x', 0),
-        pos_y=data.get('pos_y', 0),
-        width=data.get('width', 10),
-        height=data.get('height', 10),
-        status='libre',
-        is_active=True
+        number=int(data['number']),
+        name=data.get('name', '').strip() or None,
+        capacity=int(data['capacity']) if data.get('capacity') else None,
+        pos_x=float(data.get('pos_x', 10.0)),
+        pos_y=float(data.get('pos_y', 10.0)),
+        width=float(data.get('width', 10.0)),
+        height=float(data.get('height', 10.0)),
+        status=data.get('status', 'libre'),
     )
 
     db.session.add(mesa)
     db.session.commit()
-
     return jsonify(mesa.to_dict()), 201
+
+
+@bp.route('/<int:salon_id>/mesas/<int:mesa_id>', methods=['GET'])
+@token_required
+def get_mesa(current_user, salon_id, mesa_id):
+    mesa = Mesa.query.filter_by(id=mesa_id, salon_id=salon_id).first_or_404()
+    return jsonify(mesa.to_dict()), 200
+
 
 @bp.route('/<int:salon_id>/mesas/<int:mesa_id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_mesa(current_user, salon_id, mesa_id):
-    """Editar mesa (incluye posición en plano)"""
-    salon = Salon.query.get(salon_id)
-    if not salon:
-        return jsonify({'error': 'Salón no encontrado'}), 404
+    mesa = Mesa.query.filter_by(id=mesa_id, salon_id=salon_id).first_or_404()
+    data = request.get_json() or {}
 
-    mesa = Mesa.query.filter_by(id=mesa_id, salon_id=salon_id).first()
-    if not mesa:
-        return jsonify({'error': 'Mesa no encontrada'}), 404
+    if 'number' in data:
+        mesa.number = int(data['number'])
 
-    data = request.get_json()
+    for field in ('name', 'status'):
+        if field in data:
+            val = data[field]
+            setattr(mesa, field, val.strip() if val else None)
 
-    if 'name' in data:
-        mesa.name = data['name']
     if 'capacity' in data:
-        mesa.capacity = data['capacity']
-    if 'pos_x' in data:
-        mesa.pos_x = data['pos_x']
-    if 'pos_y' in data:
-        mesa.pos_y = data['pos_y']
-    if 'width' in data:
-        mesa.width = data['width']
-    if 'height' in data:
-        mesa.height = data['height']
-    if 'status' in data:
-        if data['status'] not in ['libre', 'ocupada', 'reservada']:
-            return jsonify({'error': 'Status inválido'}), 400
-        mesa.status = data['status']
+        mesa.capacity = int(data['capacity']) if data['capacity'] else None
+
+    for field in ('pos_x', 'pos_y', 'width', 'height'):
+        if field in data:
+            setattr(mesa, field, float(data[field]))
+
+    if 'is_active' in data:
+        mesa.is_active = bool(data['is_active'])
 
     db.session.commit()
     return jsonify(mesa.to_dict()), 200
 
+
 @bp.route('/<int:salon_id>/mesas/<int:mesa_id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_mesa(current_user, salon_id, mesa_id):
-    """Desactivar mesa"""
-    mesa = Mesa.query.filter_by(id=mesa_id, salon_id=salon_id).first()
-    if not mesa:
-        return jsonify({'error': 'Mesa no encontrada'}), 404
-
+    mesa = Mesa.query.filter_by(id=mesa_id, salon_id=salon_id).first_or_404()
     mesa.is_active = False
     db.session.commit()
-
-    return jsonify({'message': 'Mesa desactivada'}), 200
+    return jsonify({'message': 'Mesa desactivada correctamente'}), 200

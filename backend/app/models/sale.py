@@ -28,9 +28,11 @@ class Sale(db.Model):
     comentario = db.Column(db.Text, nullable=True)
     origen = db.Column(db.String(100), nullable=True)
     id_origen = db.Column(db.String(100), nullable=True)
-    source = db.Column(db.String(50), default='galia')
+    source = db.Column(db.String(20), nullable=False, default='fudo')
     mesa_id = db.Column(db.Integer, db.ForeignKey('mesas.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    items = db.relationship('SaleItem', backref='sale', lazy='dynamic', cascade='all, delete-orphan')
 
     __table_args__ = (
         db.Index('idx_sales_fecha', 'fecha'),
@@ -60,6 +62,8 @@ class Sale(db.Model):
             'comentario': self.comentario,
             'origen': self.origen,
             'id_origen': self.id_origen,
+            'source': self.source,
+            'mesa_id': self.mesa_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

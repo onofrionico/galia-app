@@ -1,0 +1,114 @@
+<h2>Sección 3 — Frontend: páginas y navegación</h2>
+<p class="subtitle">Nuevas páginas + grupo en sidebar + POS táctil</p>
+
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+  <!-- Sidebar -->
+  <div style="min-width:180px;max-width:200px">
+    <div class="label" style="margin-bottom:8px">SIDEBAR</div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px;font-size:12px">
+      <div style="color:#94a3b8;font-size:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Personal</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">📅 Horarios</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">👥 Empleados</div>
+
+      <div style="color:#94a3b8;font-size:10px;margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px">Finanzas</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">💰 Ventas</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">📊 Gastos</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">💵 Sueldos</div>
+
+      <div style="color:#94a3b8;font-size:10px;margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px">Compras</div>
+      <div style="color:#e2e8f0;padding:3px 8px;border-radius:4px;margin-bottom:2px">🏪 Proveedores</div>
+
+      <div style="color:#22c55e;font-size:10px;margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px">Menú ✨ nuevo</div>
+      <div style="background:#14532d;color:#4ade80;padding:3px 8px;border-radius:4px;margin-bottom:2px;font-weight:bold">🛒 Caja (POS)</div>
+      <div style="background:#14532d;color:#4ade80;padding:3px 8px;border-radius:4px;margin-bottom:2px">🍽️ Productos</div>
+      <div style="background:#14532d;color:#4ade80;padding:3px 8px;border-radius:4px;margin-bottom:2px">🏷️ Categorías</div>
+      <div style="background:#14532d;color:#4ade80;padding:3px 8px;border-radius:4px;margin-bottom:2px">📦 Stock</div>
+    </div>
+  </div>
+
+  <!-- Páginas -->
+  <div style="flex:1;min-width:280px">
+    <div class="label" style="margin-bottom:8px">PÁGINAS NUEVAS</div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+
+      <div style="background:#052e16;border:1px solid #166534;border-radius:8px;padding:10px">
+        <div style="font-weight:bold;color:#4ade80;margin-bottom:4px">🛒 /pos — Caja (dashboard + POS)</div>
+        <div style="font-size:12px;color:#86efac">
+          Vista principal del día: total vendido, cantidad de ventas, top productos.<br/>
+          Botón "Nueva Venta" → abre modal/drawer con grilla de productos táctil + comanda lateral.
+          Al cobrar: descuenta stock y registra la venta.
+        </div>
+      </div>
+
+      <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px">
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">🍽️ /products — Lista de productos</div>
+        <div style="font-size:12px;color:#c4b5fd">
+          Tabla/grilla de productos con filtros por categoría. Cada fila muestra nombre, categoría,
+          variantes con precios, estado. Botón crear + acciones editar/desactivar.
+        </div>
+      </div>
+
+      <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px">
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">🍽️ /products/:id — Detalle de producto</div>
+        <div style="font-size:12px;color:#c4b5fd">
+          Tabs: <strong>Info</strong> (nombre, descripción, categoría, imagen) |
+          <strong>Variantes</strong> (tabla editable de variantes + precios) |
+          <strong>Receta</strong> (si has_recipe: lista de insumos + cantidades) |
+          <strong>Historial</strong> (ventas recientes del producto)
+        </div>
+      </div>
+
+      <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px">
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">🏷️ /product-categories — Categorías</div>
+        <div style="font-size:12px;color:#c4b5fd">
+          CRUD simple de categorías. Similar a la página ExpenseCategories existente.
+          Color + ícono configurables.
+        </div>
+      </div>
+
+      <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px">
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">📦 /stock — Inventario</div>
+        <div style="font-size:12px;color:#c4b5fd">
+          Vista unificada de stock: productos simples (stock por variante) + insumos de recetas
+          (supply stock). Alertas visuales para ítems bajo mínimo. Ajuste manual de cantidades.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Servicios -->
+  <div style="min-width:200px;max-width:240px">
+    <div class="label" style="margin-bottom:8px">SERVICIOS JS</div>
+    <div style="background:#1e293b;border-radius:8px;padding:10px;font-size:12px;color:#94a3b8;font-family:monospace">
+      <div style="color:#e2e8f0;margin-bottom:6px">productsService.js</div>
+      <div style="padding-left:8px;line-height:1.8">
+        getProducts()<br/>
+        getProduct(id)<br/>
+        createProduct()<br/>
+        updateProduct()<br/>
+        getVariants(id)<br/>
+        saveVariants(id)<br/>
+        getRecipe(id)<br/>
+        saveRecipe(id)<br/>
+        getLowStock()
+      </div>
+      <div style="color:#e2e8f0;margin:10px 0 6px">productCategoriesService.js</div>
+      <div style="padding-left:8px;line-height:1.8">
+        getCategories()<br/>
+        createCategory()<br/>
+        updateCategory()<br/>
+        deleteCategory()
+      </div>
+      <div style="color:#e2e8f0;margin:10px 0 6px">salesService.js (extendido)</div>
+      <div style="padding-left:8px;line-height:1.8">
+        createSale(items[])<br/>
+        getDailySummary()<br/>
+        getTopProducts()
+      </div>
+    </div>
+  </div>
+
+</div>

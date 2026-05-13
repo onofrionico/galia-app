@@ -1,0 +1,155 @@
+<h2>POS — Salones con layout físico</h2>
+<p class="subtitle">Tabs por salón · Las mesas se ubican en el plano real · Drag-and-drop en modo configuración</p>
+
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+
+  <!-- Vista principal -->
+  <div style="flex:2;min-width:340px">
+    <div class="label" style="margin-bottom:8px">VISTA /pos</div>
+    <div class="mockup">
+      <div class="mockup-header" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🛒 Caja — 28 de abril</span>
+        <div style="display:flex;gap:6px;font-size:10px">
+          <span style="color:#4ade80">● 3 libres</span>
+          <span style="color:#f87171">● 5 ocupadas</span>
+        </div>
+      </div>
+      <div class="mockup-body" style="background:#0f172a;padding:10px">
+
+        <!-- Tabs de salones -->
+        <div style="display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid #1e293b;padding-bottom:8px">
+          <div style="background:#16a34a;color:white;border-radius:6px 6px 0 0;padding:5px 14px;font-size:11px;font-weight:bold">Salón Principal</div>
+          <div style="background:#1e293b;color:#94a3b8;border-radius:6px 6px 0 0;padding:5px 14px;font-size:11px">Terraza</div>
+          <div style="background:#1e293b;color:#94a3b8;border-radius:6px 6px 0 0;padding:5px 14px;font-size:11px">Salón VIP</div>
+          <div style="margin-left:auto;background:#1e293b;color:#64748b;border-radius:6px 6px 0 0;padding:5px 10px;font-size:11px">+ Salón</div>
+        </div>
+
+        <!-- Plano del salón — grid posicional -->
+        <div style="position:relative;background:#1e293b;border-radius:8px;height:280px;overflow:hidden;border:1px solid #334155">
+
+          <!-- Elementos decorativos del salón -->
+          <div style="position:absolute;top:8px;left:8px;right:8px;height:16px;background:#0f172a;border-radius:3px;opacity:0.5;font-size:9px;color:#475569;display:flex;align-items:center;padding:0 8px">ENTRADA</div>
+
+          <!-- Barra/mostrador -->
+          <div style="position:absolute;right:8px;top:30px;bottom:30px;width:30px;background:#312e81;border-radius:4px;display:flex;align-items:center;justify-content:center">
+            <div style="writing-mode:vertical-rl;font-size:9px;color:#a78bfa;transform:rotate(180deg)">BARRA</div>
+          </div>
+
+          <!-- Mesas posicionadas en el plano -->
+
+          <!-- Mesa 1 - ocupada, arriba izq -->
+          <div style="position:absolute;top:35px;left:20px;width:64px;height:64px;background:#7f1d1d;border:2px solid #dc2626;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#fca5a5">Mesa 1</div>
+            <div style="font-size:9px;color:#f87171">$4.200</div>
+          </div>
+
+          <!-- Mesa 2 - libre, arriba centro-izq -->
+          <div style="position:absolute;top:35px;left:100px;width:64px;height:64px;background:#14532d;border:2px solid #16a34a;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#86efac">Mesa 2</div>
+            <div style="font-size:9px;color:#4ade80">Libre</div>
+          </div>
+
+          <!-- Mesa 3 - ocupada, arriba centro -->
+          <div style="position:absolute;top:35px;left:185px;width:64px;height:64px;background:#7f1d1d;border:2px solid #dc2626;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#fca5a5">Mesa 3</div>
+            <div style="font-size:9px;color:#f87171">$1.800</div>
+          </div>
+
+          <!-- Mesa 4 - libre, medio izq -->
+          <div style="position:absolute;top:130px;left:20px;width:64px;height:64px;background:#14532d;border:2px solid #16a34a;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#86efac">Mesa 4</div>
+            <div style="font-size:9px;color:#4ade80">Libre</div>
+          </div>
+
+          <!-- Mesa 5 - ocupada, medio centro -->
+          <div style="position:absolute;top:130px;left:100px;width:64px;height:64px;background:#7f1d1d;border:2px solid #dc2626;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#fca5a5">Mesa 5</div>
+            <div style="font-size:9px;color:#f87171">$6.750</div>
+          </div>
+
+          <!-- Mesa 6 - reservada, medio centro-der -->
+          <div style="position:absolute;top:130px;left:185px;width:64px;height:64px;background:#78350f;border:2px solid #d97706;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:14px">📋</div>
+            <div style="font-size:9px;font-weight:bold;color:#fde68a">Mesa 6</div>
+            <div style="font-size:9px;color:#fbbf24">15:00</div>
+          </div>
+
+          <!-- Mesa 7 - ocupada, abajo izq -->
+          <div style="position:absolute;top:210px;left:20px;width:64px;height:55px;background:#7f1d1d;border:2px solid #dc2626;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:13px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#fca5a5">Mesa 7</div>
+            <div style="font-size:9px;color:#f87171">$2.300</div>
+          </div>
+
+          <!-- Mesa 8 - libre, abajo centro -->
+          <div style="position:absolute;top:210px;left:100px;width:64px;height:55px;background:#14532d;border:2px solid #16a34a;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:13px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#86efac">Mesa 8</div>
+            <div style="font-size:9px;color:#4ade80">Libre</div>
+          </div>
+
+          <!-- Mesa larga - abajo centro-der -->
+          <div style="position:absolute;top:210px;left:180px;width:90px;height:55px;background:#7f1d1d;border:2px solid #dc2626;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer">
+            <div style="font-size:13px">🪑</div>
+            <div style="font-size:9px;font-weight:bold;color:#fca5a5">Mesa 9 (grande)</div>
+            <div style="font-size:9px;color:#f87171">$8.400</div>
+          </div>
+
+          <!-- Botón modo edición -->
+          <div style="position:absolute;bottom:6px;right:40px;background:#1e293b;border:1px solid #334155;color:#64748b;border-radius:4px;padding:3px 8px;font-size:9px;cursor:pointer">⚙️ Editar plano</div>
+        </div>
+
+        <!-- Resumen -->
+        <div style="margin-top:8px;background:#1e293b;border-radius:6px;padding:6px 10px;display:flex;gap:16px;font-size:11px">
+          <span style="color:#4ade80">$48.200 vendidos hoy</span>
+          <span style="color:#a78bfa">24 ventas</span>
+          <span style="color:#f87171">⚠️ 2 con stock bajo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel derecho: modelo + modo edición -->
+  <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:12px">
+
+    <!-- Modelo de datos -->
+    <div>
+      <div class="label" style="margin-bottom:8px">MODELO DE DATOS ACTUALIZADO</div>
+      <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:10px;font-size:11px">
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">Salon (nuevo)</div>
+        <div style="color:#c4b5fd;line-height:1.6;margin-bottom:10px">id, name<br/>description, is_active</div>
+        <div style="font-weight:bold;color:#a78bfa;margin-bottom:4px">Mesa (nuevo)</div>
+        <div style="color:#c4b5fd;line-height:1.6;margin-bottom:10px">
+          id, salon_id → Salon<br/>
+          number, name, capacity<br/>
+          <span style="background:#312e81;border-radius:3px;padding:1px 4px">pos_x, pos_y</span><br/>
+          <span style="background:#312e81;border-radius:3px;padding:1px 4px">width, height</span><br/>
+          status: libre|ocupada|reservada<br/>
+          is_active
+        </div>
+        <div style="font-weight:bold;color:#86efac;margin-bottom:4px">Sale (extendido)</div>
+        <div style="color:#86efac;line-height:1.6">+ mesa_id → Mesa</div>
+      </div>
+    </div>
+
+    <!-- Modo edición plano -->
+    <div>
+      <div class="label" style="margin-bottom:8px">MODO "EDITAR PLANO"</div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px;font-size:11px;color:#94a3b8">
+        Al activar "⚙️ Editar plano":<br/><br/>
+        • Las mesas se vuelven arrastrables (drag)<br/>
+        • Se puede redimensionar mesas largas<br/>
+        • Botón "+ Mesa" para agregar<br/>
+        • Click derecho → renombrar / desactivar<br/>
+        • Botón "Guardar plano" persiste pos_x / pos_y en la DB
+      </div>
+    </div>
+
+  </div>
+
+</div>

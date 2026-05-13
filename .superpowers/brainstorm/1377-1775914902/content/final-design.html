@@ -1,0 +1,136 @@
+<h2>Diseño Final — Sidebar con Accordion</h2>
+<p class="subtitle">Mockup interactivo del sidebar admin. Hacé click en los grupos para abrir/cerrar.</p>
+
+<div style="display: flex; gap: 32px; flex-wrap: wrap; margin-top: 12px; align-items: flex-start;">
+
+  <!-- Sidebar interactivo -->
+  <div style="flex: 0 0 240px;">
+    <div class="mockup" style="padding: 0;">
+      <div class="mockup-header">Sidebar Admin — Final</div>
+      <div class="mockup-body" style="padding: 8px; background: #f9fafb; min-height: 400px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;" id="sidebar">
+
+          <!-- Dashboard -->
+          <a href="#" style="background: #4f46e5; color: white; padding: 9px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; text-decoration:none;">
+            <span>⬛</span> <span style="font-weight:500;">Dashboard</span>
+          </a>
+
+          <!-- Mi Perfil -->
+          <a href="#" style="padding: 9px 12px; border-radius: 6px; color: #374151; background: white; border: 1px solid #e5e7eb; display:flex;align-items:center;gap:8px;text-decoration:none;">
+            <span>👤</span> <span style="font-weight:500;">Mi Perfil</span>
+          </a>
+
+          <!-- Grupo Personal -->
+          <div style="border-radius: 6px; overflow: hidden; border: 1px solid #bbf7d0; background: white;" id="group-personal">
+            <button onclick="toggleGroup('personal')" style="width:100%;padding: 9px 12px; font-weight: 600; color: #16a34a; background: #f0fdf4; display: flex; justify-content: space-between; align-items: center; border:none;cursor:pointer;font-size:12px;">
+              <span style="display:flex;align-items:center;gap:8px;"><span>👥</span> Personal</span>
+              <span id="arrow-personal" style="font-size:10px;transition:transform 0.2s;">▾</span>
+            </button>
+            <div id="items-personal" style="padding: 4px 8px 8px 20px; display: flex; flex-direction: column; gap: 2px;">
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">📅 Horarios</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">🕐 Gestión de Horas</a>
+              <a href="#" style="padding:4px 8px 4px 20px;border-radius:4px;color:#6b7280;background:#f9fafb;text-decoration:none;display:block;font-size:11px;">↳ ⬆️ Importar Horas</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">📄 Ausencias</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">👥 Empleados</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">💼 Puestos</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">📆 Feriados</a>
+            </div>
+          </div>
+
+          <!-- Grupo Finanzas -->
+          <div style="border-radius: 6px; overflow: hidden; border: 1px solid #e5e7eb; background: white;" id="group-finanzas">
+            <button onclick="toggleGroup('finanzas')" style="width:100%;padding: 9px 12px; font-weight: 600; color: #374151; background: white; display: flex; justify-content: space-between; align-items: center; border:none;cursor:pointer;font-size:12px;">
+              <span style="display:flex;align-items:center;gap:8px;"><span>💰</span> Finanzas</span>
+              <span id="arrow-finanzas" style="font-size:10px;color:#9ca3af;transform:rotate(-90deg);display:inline-block;transition:transform 0.2s;">▾</span>
+            </button>
+            <div id="items-finanzas" style="padding: 4px 8px 8px 20px; display: none; flex-direction: column; gap: 2px;">
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">🛒 Ventas</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">🧾 Gastos</a>
+              <a href="#" style="padding:4px 8px 4px 20px;border-radius:4px;color:#6b7280;background:#f9fafb;text-decoration:none;display:block;font-size:11px;">↳ 🏷️ Categorías de Gastos</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">💼 Sueldos</a>
+              <a href="#" style="padding:4px 8px 4px 20px;border-radius:4px;color:#6b7280;background:#f9fafb;text-decoration:none;display:block;font-size:11px;">↳ ⚠️ Reclamos de Nóminas</a>
+            </div>
+          </div>
+
+          <!-- Grupo Análisis -->
+          <div style="border-radius: 6px; overflow: hidden; border: 1px solid #e5e7eb; background: white;" id="group-analisis">
+            <button onclick="toggleGroup('analisis')" style="width:100%;padding: 9px 12px; font-weight: 600; color: #374151; background: white; display: flex; justify-content: space-between; align-items: center; border:none;cursor:pointer;font-size:12px;">
+              <span style="display:flex;align-items:center;gap:8px;"><span>📊</span> Análisis</span>
+              <span id="arrow-analisis" style="font-size:10px;color:#9ca3af;transform:rotate(-90deg);display:inline-block;transition:transform 0.2s;">▾</span>
+            </button>
+            <div id="items-analisis" style="padding: 4px 8px 8px 20px; display: none; flex-direction: column; gap: 2px;">
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">📊 Reportes</a>
+              <a href="#" style="padding:6px 8px;border-radius:4px;color:#374151;background:#f9fafb;text-decoration:none;display:block;">🧠 Dashboard ML</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Especificaciones -->
+  <div style="flex: 1; min-width: 280px;">
+    <h3>Especificaciones de comportamiento</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;font-size:13px;">
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;">
+        <strong style="color:#374151;">🔄 Accordion exclusivo</strong>
+        <p style="margin:4px 0 0;color:#6b7280;">Solo un grupo abierto a la vez. Al abrir otro, el anterior se cierra con animación suave.</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;">
+        <strong style="color:#374151;">🎯 Auto-apertura por ruta activa</strong>
+        <p style="margin:4px 0 0;color:#6b7280;">Al navegar a cualquier página, el grupo que la contiene se abre automáticamente y el ítem activo se resalta.</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;">
+        <strong style="color:#374151;">💾 Estado persistente</strong>
+        <p style="margin:4px 0 0;color:#6b7280;">El grupo abierto se guarda en <code>localStorage</code> para que el sidebar recuerde la posición entre navegaciones.</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;">
+        <strong style="color:#374151;">↳ Sub-ítems</strong>
+        <p style="margin:4px 0 0;color:#6b7280;">Importar Horas, Categorías de Gastos y Reclamos de Nóminas aparecen indentados y con fuente menor bajo su ítem padre.</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;">
+        <strong style="color:#374151;">📱 Empleados (mobile) — sin cambios</strong>
+        <p style="margin:4px 0 0;color:#6b7280;">Los empleados tienen solo 6 ítems. Su sidebar drawer queda igual — limpio y simple.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const groups = ['personal', 'finanzas', 'analisis'];
+
+function toggleGroup(name) {
+  const isOpen = document.getElementById('items-' + name).style.display !== 'none';
+  // Close all
+  groups.forEach(g => {
+    document.getElementById('items-' + g).style.display = 'none';
+    document.getElementById('arrow-' + g).style.transform = 'rotate(-90deg)';
+    document.getElementById('arrow-' + g).style.color = '#9ca3af';
+    document.getElementById('group-' + g).style.border = '1px solid #e5e7eb';
+    document.getElementById('group-' + g).querySelector('button').style.color = '#374151';
+    document.getElementById('group-' + g).querySelector('button').style.background = 'white';
+  });
+  // Open clicked if it was closed
+  if (!isOpen) {
+    const items = document.getElementById('items-' + name);
+    items.style.display = 'flex';
+    const arrow = document.getElementById('arrow-' + name);
+    arrow.style.transform = 'rotate(0deg)';
+    arrow.style.color = '';
+    const colors = { personal: {border:'#bbf7d0', color:'#16a34a', bg:'#f0fdf4'}, finanzas: {border:'#bfdbfe', color:'#1d4ed8', bg:'#eff6ff'}, analisis: {border:'#e9d5ff', color:'#7c3aed', bg:'#faf5ff'} };
+    const c = colors[name];
+    document.getElementById('group-' + name).style.border = '1px solid ' + c.border;
+    document.getElementById('group-' + name).querySelector('button').style.color = c.color;
+    document.getElementById('group-' + name).querySelector('button').style.background = c.bg;
+  }
+}
+</script>
+
+<p class="subtitle" style="margin-top:20px;">¿Aprobás este diseño? Confirmá en el chat para avanzar al plan de implementación.</p>

@@ -20,6 +20,8 @@ import {
   DollarSign,
   LogIn,
   Building2,
+  UtensilsCrossed,
+  Package,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -87,6 +89,19 @@ const navGroups = [
     headerClass: 'text-orange-700 bg-orange-50',
     items: [
       { to: '/suppliers', icon: Building2, label: 'Proveedores' },
+    ],
+  },
+  {
+    id: 'menu',
+    label: 'Menú',
+    icon: ShoppingCart,
+    activeClass: 'text-green-700 bg-green-50 border-green-200',
+    headerClass: 'text-green-700 bg-green-50',
+    items: [
+      { to: '/pos', icon: ShoppingCart, label: 'Caja (POS)' },
+      { to: '/products', icon: UtensilsCrossed, label: 'Productos' },
+      { to: '/product-categories', icon: Tag, label: 'Categorías' },
+      { to: '/stock', icon: Package, label: 'Stock' },
     ],
   },
 ]

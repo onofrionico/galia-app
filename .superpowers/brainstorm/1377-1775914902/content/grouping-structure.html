@@ -1,0 +1,112 @@
+<h2>¿Cómo quedan los grupos?</h2>
+<p class="subtitle">Propuesta de agrupación para el sidebar accordion — revisá si los ítems están en el lugar correcto</p>
+
+<div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px;">
+
+  <!-- Sidebar con accordion propuesto -->
+  <div style="flex: 0 0 230px;">
+    <div class="mockup" style="padding: 0;">
+      <div class="mockup-header">Sidebar Admin — Propuesta</div>
+      <div class="mockup-body" style="padding: 8px; background: #f9fafb;">
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+
+          <!-- Dashboard siempre visible -->
+          <div style="background: #4f46e5; color: white; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+            ⬛ Dashboard
+          </div>
+          <div style="padding: 8px 12px; border-radius: 6px; color: #374151; background: white; border: 1px solid #e5e7eb; font-size: 12px; display:flex;align-items:center;gap:8px;">
+            👤 Mi Perfil
+          </div>
+
+          <!-- Grupo Personal (abierto) -->
+          <div style="border: 1px solid #bbf7d0; border-radius: 6px; overflow: hidden; background: white;">
+            <div style="padding: 8px 12px; font-weight: 600; color: #16a34a; background: #f0fdf4; display: flex; justify-content: space-between; align-items: center;">
+              <span>👥 Personal</span> <span style="font-size:10px;">▾ 6 ítems</span>
+            </div>
+            <div style="padding: 4px 8px 8px 20px; display: flex; flex-direction: column; gap: 2px;">
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">📅 Horarios</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">🕐 Gestión de Horas</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb; padding-left: 20px; font-size: 11px; color: #6b7280;">↳ ⬆️ Importar Horas</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">📄 Ausencias</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">👤 Empleados</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">💼 Puestos</div>
+              <div style="padding: 5px 8px; border-radius: 4px; color: #374151; background: #f9fafb;">📆 Feriados</div>
+            </div>
+          </div>
+
+          <!-- Grupo Finanzas (cerrado) -->
+          <div style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; background: white;">
+            <div style="padding: 8px 12px; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center;">
+              <span>💰 Finanzas</span> <span style="font-size:10px; color:#9ca3af;">▸ 5 ítems</span>
+            </div>
+          </div>
+
+          <!-- Grupo Análisis (cerrado) -->
+          <div style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; background: white;">
+            <div style="padding: 8px 12px; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center;">
+              <span>📊 Análisis</span> <span style="font-size:10px; color:#9ca3af;">▸ 2 ítems</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detalle de los grupos -->
+  <div style="flex: 1; min-width: 280px;">
+    <h3 style="margin-bottom: 12px;">Detalle de cada grupo</h3>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+
+      <!-- Personal -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px;">
+        <div style="font-weight: 700; color: #15803d; margin-bottom: 8px;">👥 Personal <span style="font-weight: 400; color: #6b7280; font-size: 12px;">(6 ítems)</span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151;">
+          <div>📅 Horarios</div>
+          <div>🕐 Gestión de Horas</div>
+          <div style="padding-left: 16px; color: #6b7280; font-size: 12px;">↳ ⬆️ Importar Horas <span style="background:#fef9c3; color:#854d0e; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">sub-ítem</span></div>
+          <div>📄 Solicitudes de Ausencia</div>
+          <div>👤 Empleados</div>
+          <div>💼 Puestos</div>
+          <div>📆 Feriados</div>
+        </div>
+      </div>
+
+      <!-- Finanzas -->
+      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px;">
+        <div style="font-weight: 700; color: #1d4ed8; margin-bottom: 8px;">💰 Finanzas <span style="font-weight: 400; color: #6b7280; font-size: 12px;">(5 ítems)</span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151;">
+          <div>🛒 Ventas</div>
+          <div>🧾 Gastos</div>
+          <div style="padding-left: 16px; color: #6b7280; font-size: 12px;">↳ 🏷️ Categorías de Gastos <span style="background:#fef9c3; color:#854d0e; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">sub-ítem</span></div>
+          <div>💼 Sueldos</div>
+          <div style="padding-left: 16px; color: #6b7280; font-size: 12px;">↳ ⚠️ Reclamos de Nóminas <span style="background:#fef9c3; color:#854d0e; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">sub-ítem</span></div>
+        </div>
+      </div>
+
+      <!-- Análisis -->
+      <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 14px 16px;">
+        <div style="font-weight: 700; color: #7c3aed; margin-bottom: 8px;">📊 Análisis <span style="font-weight: 400; color: #6b7280; font-size: 12px;">(2 ítems)</span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151;">
+          <div>📊 Reportes</div>
+          <div>🧠 Dashboard ML</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top: 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px 14px;">
+      <strong style="color: #c2410c; font-size: 13px;">💡 Nota sobre sub-ítems</strong>
+      <p style="margin: 6px 0 0; color: #7c2d12; font-size: 12px;">
+        "Importar Horas" es una tarea auxiliar de "Gestión de Horas", no una sección principal.<br>
+        "Categorías de Gastos" es configuración de "Gastos".<br>
+        "Reclamos de Nóminas" es un flujo secundario de "Sueldos".<br><br>
+        Los <strong>sub-ítems</strong> pueden mostrarse con indentación y tamaño de fuente menor dentro del grupo.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 20px;">¿Te parece correcta esta distribución? Confirmá en el chat o decime qué moverías.</p>

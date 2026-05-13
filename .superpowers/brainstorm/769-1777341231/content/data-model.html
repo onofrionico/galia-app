@@ -1,0 +1,96 @@
+<h2>Sección 1 — Modelo de datos</h2>
+<p class="subtitle">7 entidades nuevas + 2 modificadas. ¿Tiene sentido esta estructura?</p>
+
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+  <!-- Columna izquierda: Catálogo -->
+  <div style="flex:1;min-width:220px">
+    <div class="label" style="color:#a78bfa;margin-bottom:8px">CATÁLOGO (nuevo)</div>
+
+    <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:bold;color:#a78bfa;margin-bottom:6px">ProductCategory</div>
+      <div style="font-size:12px;color:#c4b5fd;line-height:1.6">
+        id, name, description<br/>color, icon<br/>is_active
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#6d6d8a;font-size:18px;margin-bottom:4px">↓ 1:N</div>
+
+    <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:bold;color:#a78bfa;margin-bottom:6px">Product</div>
+      <div style="font-size:12px;color:#c4b5fd;line-height:1.6">
+        id, name, description<br/>category_id, image_url<br/>
+        <span style="background:#312e81;border-radius:3px;padding:1px 5px">has_recipe: bool</span><br/>
+        is_active
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#6d6d8a;font-size:18px;margin-bottom:4px">↓ 1:N</div>
+
+    <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:bold;color:#a78bfa;margin-bottom:6px">ProductVariant</div>
+      <div style="font-size:12px;color:#c4b5fd;line-height:1.6">
+        id, product_id<br/>name (Chico/Med/Grande)<br/>price<br/>
+        <span style="background:#312e81;border-radius:3px;padding:1px 5px">stock_quantity (simple)</span><br/>
+        min_stock, is_active
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#6d6d8a;font-size:18px;margin-bottom:4px">↓ 1:N (si has_recipe)</div>
+
+    <div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;padding:12px">
+      <div style="font-weight:bold;color:#a78bfa;margin-bottom:6px">ProductRecipeItem</div>
+      <div style="font-size:12px;color:#c4b5fd;line-height:1.6">
+        id, product_id<br/>supply_id → <span style="color:#fb923c">Supply</span><br/>quantity, unit
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna centro: flecha -->
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:60px;padding-top:80px">
+    <div style="color:#4ade80;font-size:13px;font-weight:bold;text-align:center">SaleItem<br/>vincula</div>
+    <div style="color:#4ade80;font-size:22px">↔</div>
+  </div>
+
+  <!-- Columna derecha: Ventas -->
+  <div style="flex:1;min-width:220px">
+    <div class="label" style="color:#4ade80;margin-bottom:8px">VENTAS (modificado/nuevo)</div>
+
+    <div style="background:#052e16;border:1px solid #166534;border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:bold;color:#4ade80;margin-bottom:6px">Sale <span style="font-size:11px;font-weight:normal;color:#86efac">(existente, extendido)</span></div>
+      <div style="font-size:12px;color:#86efac;line-height:1.6">
+        id, fecha, total, medio_pago<br/>external_id (Fudo legacy)<br/>
+        <span style="background:#14532d;border-radius:3px;padding:1px 5px">source: 'fudo' | 'galia'</span><br/>
+        notes
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#6d6d8a;font-size:18px;margin-bottom:4px">↓ 1:N</div>
+
+    <div style="background:#052e16;border:1px solid #166534;border-radius:8px;padding:12px;margin-bottom:20px">
+      <div style="font-weight:bold;color:#4ade80;margin-bottom:6px">SaleItem <span style="font-size:11px;font-weight:normal;color:#86efac">(nuevo)</span></div>
+      <div style="font-size:12px;color:#86efac;line-height:1.6">
+        id, sale_id<br/>product_variant_id<br/>quantity<br/>unit_price (snapshot)<br/>subtotal
+      </div>
+    </div>
+
+    <div class="label" style="color:#fb923c;margin-bottom:8px">INSUMOS (existente)</div>
+
+    <div style="background:#431407;border:1px solid #7c2d12;border-radius:8px;padding:12px">
+      <div style="font-weight:bold;color:#fb923c;margin-bottom:6px">Supply <span style="font-size:11px;font-weight:normal;color:#fdba74">(existente)</span></div>
+      <div style="font-size:12px;color:#fdba74;line-height:1.6">
+        id, nombre, unidad<br/>categoría, estado<br/>
+        <span style="background:#7c2d12;border-radius:3px;padding:1px 5px">stock_quantity (agregar)</span><br/>
+        min_stock (agregar)
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:#1e293b;border-radius:8px;padding:12px;font-size:12px;color:#94a3b8">
+  <strong style="color:#e2e8f0">Lógica de stock:</strong>
+  Al guardar una venta → para cada SaleItem:
+  <br/>• Si <code>product.has_recipe = false</code>: descuenta <code>ProductVariant.stock_quantity -= qty</code>
+  <br/>• Si <code>product.has_recipe = true</code>: recorre <code>ProductRecipeItem</code> y descuenta <code>Supply.stock_quantity -= (recipe_qty × sale_qty)</code>
+</div>
