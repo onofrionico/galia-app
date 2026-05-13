@@ -51,10 +51,13 @@ const MesaCard = ({ mesa, onClick, isDragging, style }) => {
         Mesa {mesa.number}
         {mesa.name && <span className="text-xs block">{mesa.name}</span>}
       </div>
-      {mesa.status === 'ocupada' && mesa.total !== undefined && (
-        <div className={`text-sm font-semibold ${getStatusTextColor()}`}>
-          ${mesa.total}
-        </div>
+      {mesa.status === 'ocupada' && mesa.openOrder && (
+        <>
+          <div className="text-xs text-gray-300">{mesa.openOrder.items?.length || 0} ítems</div>
+          <div className="text-sm font-semibold text-white">
+            ${parseFloat(mesa.openOrder.total).toFixed(2)}
+          </div>
+        </>
       )}
       {mesa.status === 'reservada' && mesa.time && (
         <div className="text-xs text-yellow-600">{mesa.time}</div>
