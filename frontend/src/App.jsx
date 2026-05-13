@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/layout/Layout'
+import PosLayout from './components/layout/PosLayout'
+import CamareroLayout from './components/layout/CamareroLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Schedules from './pages/Schedules'
@@ -33,6 +35,8 @@ import MyDocuments from './pages/MyDocuments'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import Pos from './pages/Pos'
+import Camarero from './pages/Camarero'
+import CamareroMesa from './pages/CamareroMesa'
 import ProductCategories from './pages/ProductCategories'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
@@ -44,7 +48,19 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          
+
+          {/* Admin POS — fullscreen layout */}
+          <Route element={<ProtectedRoute><PosLayout /></ProtectedRoute>}>
+            <Route path="/pos" element={<Pos />} />
+          </Route>
+
+          {/* Camarero — mobile layout */}
+          <Route element={<ProtectedRoute><CamareroLayout /></ProtectedRoute>}>
+            <Route path="/camarero" element={<Camarero />} />
+            <Route path="/camarero/mesa/:mesaId" element={<CamareroMesa />} />
+          </Route>
+
+          {/* Regular layout (existing routes) */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -76,7 +92,6 @@ function App() {
             <Route path="/vacation-periods" element={<VacationPeriods />} />
             <Route path="/suppliers" element={<Suppliers />} />
             <Route path="/suppliers/:id" element={<SupplierDetail />} />
-            <Route path="/pos" element={<Pos />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/product-categories" element={<ProductCategories />} />

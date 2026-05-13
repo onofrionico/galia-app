@@ -36,6 +36,7 @@ const alwaysVisibleEmployee = [
   { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas' },
   { to: '/my-documents', icon: FileText, label: 'Mis Recibos' },
   { to: '/my-absence-requests', icon: FileText, label: 'Mis Ausencias' },
+  { to: '/camarero', icon: UtensilsCrossed, label: 'Mi Turno' },
   { to: '/profile', icon: User, label: 'Mi Perfil' },
 ]
 
