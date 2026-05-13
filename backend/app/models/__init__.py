@@ -22,6 +22,7 @@ from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
 from app.models.product_category import ProductCategory
 from app.models.product import Product, ProductVariant
+from app.models.product_recipe_item import ProductRecipeItem
 
 __all__ = [
     'User',
@@ -52,5 +53,6 @@ __all__ = [
     'EmployeeDocument',
     'ProductCategory',
     'Product',
-    'ProductVariant'
+    'ProductVariant',
+    'ProductRecipeItem'
 ]
