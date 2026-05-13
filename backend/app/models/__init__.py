@@ -20,6 +20,7 @@ from app.models.vacation_period import VacationPeriod
 from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
+from app.models.product_category import ProductCategory
 
 __all__ = [
     'User',
@@ -47,5 +48,6 @@ __all__ = [
     'VacationPeriod',
     'AbsenceRequest',
     'SocialSecurityDocument',
-    'EmployeeDocument'
+    'EmployeeDocument',
+    'ProductCategory'
 ]
