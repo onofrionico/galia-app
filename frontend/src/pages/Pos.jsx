@@ -145,13 +145,19 @@ const Pos = () => {
 
       <div className="flex flex-1 overflow-hidden">
         {isEditMode ? (
-          <div className="flex-1 overflow-auto p-4">
-            <SalonFloorPlan
-              mesas={activeSalonMesas}
-              onMesaClick={handleMesaClick}
-              isEditMode={true}
-              onMesaDrag={handleMesaDrag}
-            />
+          <div className="flex-1 flex flex-col">
+            <div className="bg-blue-50 border-b p-3 text-sm text-blue-900">
+              Arrastra las mesas para reorganizar. Las posiciones se guardan automáticamente.
+            </div>
+            <div className="flex-1 overflow-auto p-4 bg-gray-100">
+              <SalonFloorPlan
+                mesas={activeSalonMesas}
+                onMesaClick={handleMesaClick}
+                isEditMode={true}
+                onMesaDrag={handleMesaDrag}
+                style={{ minHeight: '800px', width: '1400px' }}
+              />
+            </div>
           </div>
         ) : (
           <PosMain
