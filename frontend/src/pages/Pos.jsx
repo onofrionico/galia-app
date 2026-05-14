@@ -121,10 +121,13 @@ const Pos = () => {
 
   const handleMesaDrag = async (mesaId, x, y) => {
     try {
+      console.log(`Moviendo mesa ${mesaId} a (${x.toFixed(1)}%, ${y.toFixed(1)}%)`)
       await salonsService.updateMesa(activeSalon, mesaId, { pos_x: x, pos_y: y })
+      console.log(`Mesa movida exitosamente`)
       await fetchAll()
     } catch (err) {
-      setError('Error al mover mesa')
+      console.error('Error al mover mesa:', err)
+      setError('Error al mover mesa: ' + (err.response?.data?.error || err.message))
     }
   }
 
