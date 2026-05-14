@@ -86,10 +86,11 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
           }}
           className={`${isEditMode ? 'opacity-85 hover:opacity-100' : ''} transition-opacity`}
         >
-          <div className={`w-full h-full rounded-lg border-2 flex items-center justify-center font-bold text-lg cursor-grab active:cursor-grabbing shadow-md transition-all ${
+          <div className={`w-full h-full rounded-lg border-2 flex flex-col items-center justify-center font-bold cursor-grab active:cursor-grabbing shadow-md transition-all ${
             isEditMode ? 'bg-blue-100 border-blue-400 hover:shadow-lg' : 'bg-white border-gray-300'
           }`} style={{ color: mesa.status === 'libre' ? '#22c55e' : '#f59e0b' }}>
-            {mesa.numero || mesa.number || mesa.id}
+            <div className="text-2xl">{mesa.number || mesa.numero || mesa.id}</div>
+            <div className="text-xs opacity-75">{mesa.status === 'libre' ? 'Libre' : 'Ocupada'}</div>
           </div>
         </div>
       ))}
