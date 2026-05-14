@@ -162,8 +162,13 @@ const Pos = () => {
 
       <AddItemModal
         isOpen={showAddItemModal}
+        orderId={selectedOrder?.id}
         onClose={() => setShowAddItemModal(false)}
-        onAddItem={handleAddItem}
+        onItemAdded={(updatedOrder) => {
+          setSelectedOrder(updatedOrder)
+          setShowAddItemModal(false)
+          fetchAll()
+        }}
       />
 
       {error && (

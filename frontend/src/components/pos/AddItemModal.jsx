@@ -4,7 +4,8 @@ import productCategoriesService from '../../services/productCategoriesService'
 import productsService from '../../services/productsService'
 import ordersService from '../../services/ordersService'
 
-const AddItemModal = ({ orderId, onClose, onItemAdded }) => {
+const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
+  if (!isOpen) return null
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
