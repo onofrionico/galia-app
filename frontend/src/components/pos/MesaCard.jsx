@@ -1,75 +1,75 @@
+import GALIA from '../../constants/colors'
+
 const MesaCard = ({ mesa, onClick, isDragging, style }) => {
-  const getStatusColor = () => {
+  const getStatusBadgeColor = () => {
     switch (mesa.status) {
       case 'libre':
-        return 'bg-green-100 border-green-500'
+        return { bg: GALIA.verde, text: 'white' }
       case 'ocupada':
-        return 'bg-red-100 border-red-500'
+        return { bg: GALIA.amarillo, text: GALIA.marron }
       case 'reservada':
-        return 'bg-yellow-100 border-yellow-500'
+        return { bg: GALIA.grisLigero, text: GALIA.grisClaro }
       default:
-        return 'bg-gray-100 border-gray-400'
+        return { bg: GALIA.grisLigero, text: GALIA.grisClaro }
     }
   }
 
-  const getStatusTextColor = () => {
+  const getStatusText = () => {
     switch (mesa.status) {
       case 'libre':
-        return 'text-green-700'
+        return 'Libre'
       case 'ocupada':
-        return 'text-red-700'
+        return 'Ocupada'
       case 'reservada':
-        return 'text-yellow-700'
+        return 'Reservada'
       default:
-        return 'text-gray-700'
+        return 'Desconocido'
     }
   }
 
-  const getStatusIcon = () => {
-    switch (mesa.status) {
-      case 'ocupada':
-        return '🪑'
-      case 'reservada':
-        return '📋'
-      default:
-        return '🪑'
-    }
-  }
+  const statusColors = getStatusBadgeColor()
 
   return (
     <div
       onClick={onClick}
-      style={style}
-      className={`
-        border-2 rounded-lg p-3 text-center cursor-pointer transition-all
-        ${getStatusColor()}
-        ${isDragging ? 'shadow-lg scale-110' : 'hover:shadow-md'}
-      `}
+      style={{
+        backgroundColor: GALIA.blanco,
+        borderWidth: '2px',
+        borderColor: isDragging ? GALIA.amarillo : GALIA.grisLigero,
+        boxShadow: isDragging ? '0 10px 15px rgba(0, 0, 0, 0.1)' : 'none',
+        ...style
+      }}
+      className="rounded-lg p-4 cursor-pointer transition-all duration-200"
     >
-      <div className="text-2xl mb-1">{getStatusIcon()}</div>
-      <div className={`font-bold text-sm mb-1 ${getStatusTextColor()}`}>
-        Mesa {mesa.number}
-        {mesa.name && <span className="text-xs block">{mesa.name}</span>}
+      {/* Mesa Number */}
+      <div className="text-4xl font-bold mb-2" style={{ color: GALIA.marron }}>
+        {mesa.number}
       </div>
+
+      {/* Status Badge */}
+      <div
+        className="rounded-full px-3 py-1 text-xs font-semibold mb-2 inline-block"
+        style={{ backgroundColor: statusColors.bg, color: statusColors.text }}
+      >
+        {getStatusText()}
+      </div>
+
+      {/* Items & Total (only if occupied) */}
       {mesa.status === 'ocupada' && mesa.openOrder && (
-        <>
-          <div className="text-xs text-gray-300">{mesa.openOrder.items?.length || 0} ítems</div>
-          <div className="text-sm font-semibold text-white">
+        <div className="text-sm mt-2" style={{ color: GALIA.grisClaro }}>
+          <div>{mesa.openOrder.items?.length || 0} ítems</div>
+          <div className="font-semibold" style={{ color: GALIA.marron }}>
             ${parseFloat(mesa.openOrder.total).toFixed(2)}
           </div>
-        </>
+        </div>
       )}
-      {mesa.status === 'reservada' && mesa.time && (
-        <div className="text-xs text-yellow-600">{mesa.time}</div>
-      )}
+
+      {/* Capacity */}
       {mesa.capacity && (
-        <div className="text-xs text-gray-600 mt-1">Cap: {mesa.capacity}</div>
+        <div className="text-xs mt-2" style={{ color: GALIA.grisClaro }}>
+          Cap: {mesa.capacity}
+        </div>
       )}
-      <div className={`text-xs font-medium mt-1 ${getStatusTextColor()}`}>
-        {mesa.status === 'libre' && 'Libre'}
-        {mesa.status === 'ocupada' && 'Ocupada'}
-        {mesa.status === 'reservada' && 'Reservada'}
-      </div>
     </div>
   )
 }
