@@ -121,7 +121,7 @@ const Pos = () => {
 
   const handleMesaDrag = async (mesaId, x, y) => {
     try {
-      await salonsService.updateMesa(mesaId, { pos_x: x, pos_y: y })
+      await salonsService.updateMesa(activeSalon, mesaId, { pos_x: x, pos_y: y })
       await fetchAll()
     } catch (err) {
       setError('Error al mover mesa')
