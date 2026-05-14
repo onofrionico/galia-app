@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 import GALIA from '../../constants/colors'
 
-const PosHeader = ({ salons, activeSalon, onSalonChange }) => {
+const POS_MODES = ['Mesas', 'Mostrador', 'Delivery', 'Mostrador express']
+
+const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch }) => {
   const navigate = useNavigate()
 
   const handleExit = () => {
@@ -10,46 +12,46 @@ const PosHeader = ({ salons, activeSalon, onSalonChange }) => {
   }
 
   return (
-    <header
-      className="h-16 flex items-center justify-between px-6"
-      style={{ backgroundColor: GALIA.crema }}
-    >
-      {/* Logo/Title */}
-      <h1 className="text-2xl font-bold" style={{ color: GALIA.marron }}>
-        GALIA POS
-      </h1>
-
-      {/* Salon Selector - Tabs */}
-      <div className="flex gap-4">
-        {salons.map((salon) => (
+    <header style={{ backgroundColor: '#4a4a4a' }} className="flex flex-col">
+      {/* Top bar with modes */}
+      <div className="h-12 flex items-center px-6 gap-6 text-white text-sm font-medium">
+        {POS_MODES.map((mode) => (
           <button
-            key={salon.id}
-            onClick={() => onSalonChange(salon.id)}
-            className="px-4 py-2 text-sm font-medium transition-colors duration-200"
+            key={mode}
+            onClick={() => onModeChange?.(mode)}
+            className="transition-colors"
             style={{
-              color: activeSalon === salon.id ? GALIA.marron : GALIA.grisClaro,
-              borderBottom: activeSalon === salon.id ? `2px solid ${GALIA.amarillo}` : 'none',
+              color: activeMode === mode ? '#fff' : '#ccc',
+              borderBottom: activeMode === mode ? `3px solid ${GALIA.amarillo}` : 'none',
+              paddingBottom: '6px'
             }}
           >
-            {salon.name}
+            {mode}
           </button>
         ))}
-      </div>
 
-      {/* Exit Button */}
-      <button
-        onClick={handleExit}
-        className="flex items-center gap-2 px-4 py-2 rounded transition-colors duration-200"
-        style={{
-          color: GALIA.marron,
-          backgroundColor: 'transparent',
-        }}
-        onMouseEnter={(e) => (e.target.style.backgroundColor = GALIA.amarillo)}
-        onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-      >
-        <LogOut size={18} />
-        Salir
-      </button>
+        <div className="ml-auto flex items-center gap-3">
+          {/* Search */}
+          <div className="flex items-center gap-2 bg-gray-600 rounded px-3 py-1">
+            <Search size={16} className="text-gray-400" />
+            <input
+              type="text"
+              placeholder="Ir a mesa"
+              className="bg-transparent text-white text-sm outline-none placeholder-gray-400"
+              onChange={(e) => onSearch?.(e.target.value)}
+            />
+          </div>
+
+          {/* Hamburger menu */}
+          <button className="p-1 hover:bg-gray-600 rounded">
+            <div className="space-y-1">
+              <div className="w-5 h-0.5 bg-white"></div>
+              <div className="w-5 h-0.5 bg-white"></div>
+              <div className="w-5 h-0.5 bg-white"></div>
+            </div>
+          </button>
+        </div>
+      </div>
     </header>
   )
 }

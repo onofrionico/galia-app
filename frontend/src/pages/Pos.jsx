@@ -20,6 +20,7 @@ const Pos = () => {
   const [showOrderDrawer, setShowOrderDrawer] = useState(false)
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showCobrarSheet, setShowCobrarSheet] = useState(false)
+  const [posMode, setPosMode] = useState('Mesas')
 
   useEffect(() => {
     fetchAll()
@@ -125,16 +126,18 @@ const Pos = () => {
   return (
     <div className="h-full flex flex-col">
       <PosHeader
-        salons={salons}
-        activeSalon={activeSalon}
-        onSalonChange={setActiveSalon}
+        activeMode={posMode}
+        onModeChange={setPosMode}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <PosMain
+          salons={salons}
           mesas={allMesas}
           onMesaClick={handleMesaClick}
           activeSalonMesas={activeSalonMesas}
+          activeSalon={activeSalon}
+          onSalonChange={setActiveSalon}
         />
 
         <OrderDrawer
