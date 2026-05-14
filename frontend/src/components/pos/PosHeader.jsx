@@ -42,13 +42,14 @@ const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch }) => {
             />
           </div>
 
-          {/* Hamburger menu */}
-          <button className="p-1 hover:bg-gray-600 rounded">
-            <div className="space-y-1">
-              <div className="w-5 h-0.5 bg-white"></div>
-              <div className="w-5 h-0.5 bg-white"></div>
-              <div className="w-5 h-0.5 bg-white"></div>
-            </div>
+          {/* Exit button */}
+          <button
+            onClick={handleExit}
+            className="flex items-center gap-2 px-4 py-1.5 rounded transition-colors hover:bg-gray-600"
+            title="Salir del POS"
+          >
+            <LogOut size={18} />
+            <span className="text-sm font-medium">Salir</span>
           </button>
         </div>
       </div>
