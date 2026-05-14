@@ -1,28 +1,25 @@
 import { useState, useEffect } from 'react'
-import { Settings2 } from 'lucide-react'
 import salonsService from '../services/salonsService'
-import salesService from '../services/salesService'
 import ordersService from '../services/ordersService'
-import PosModal from '../components/pos/PosModal'
+import salesService from '../services/salesService'
+import PosHeader from '../components/pos/PosHeader'
+import PosMain from '../components/pos/PosMain'
 import OrderDrawer from '../components/pos/OrderDrawer'
+import CobrarBottomSheet from '../components/pos/CobrarBottomSheet'
 import AddItemModal from '../components/pos/AddItemModal'
-import SalonFloorPlan from '../components/pos/SalonFloorPlan'
 
 const Pos = () => {
   const [salons, setSalons] = useState([])
   const [activeSalon, setActiveSalon] = useState(null)
   const [allMesas, setAllMesas] = useState({})
   const [openOrders, setOpenOrders] = useState([])
-  const [dailySummary, setDailySummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [editMode, setEditMode] = useState(false)
 
-  const [showPosModal, setShowPosModal] = useState(false)
-  const [showAddItemModal, setShowAddItemModal] = useState(false)
-  const [showDirectSale, setShowDirectSale] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [showOrderDrawer, setShowOrderDrawer] = useState(false)
+  const [showAddItemModal, setShowAddItemModal] = useState(false)
+  const [showCobrarSheet, setShowCobrarSheet] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -44,7 +41,11 @@ const Pos = () => {
       const mesasMap = {}
       for (const salon of salonRes.salons || []) {
         const mesasRes = await salonsService.getMesas(salon.id)
-        mesasMap[salon.id] = mesasRes.mesas || []
+        const mesasWithOrders = (mesasRes.mesas || []).map((mesa) => ({
+          ...mesa,
+          openOrder: (ordersRes.orders || []).find((o) => o.mesa_id === mesa.id),
+        }))
+        mesasMap[salon.id] = mesasWithOrders
       }
       setAllMesas(mesasMap)
 
@@ -52,7 +53,6 @@ const Pos = () => {
         setActiveSalon(salonRes.salons[0].id)
       }
 
-      await fetchDailySummary()
       setLoading(false)
     } catch (err) {
       setError('Error al cargar datos')
@@ -60,18 +60,8 @@ const Pos = () => {
     }
   }
 
-  const fetchDailySummary = async () => {
-    try {
-      const response = await salesService.getDailySummary()
-      setDailySummary(response)
-    } catch (err) {
-      console.error('Error fetching daily summary:', err)
-    }
-  }
-
   const handleMesaClick = async (mesa) => {
     if (mesa.status === 'libre') {
-      // Create new order
       try {
         const order = await ordersService.createOrder({
           mesa_id: mesa.id,
@@ -83,250 +73,98 @@ const Pos = () => {
       } catch (err) {
         setError('Error al crear orden')
       }
-    } else if (mesa.status === 'ocupada') {
-      // Open existing order
-      const order = openOrders.find((o) => o.mesa_id === mesa.id)
-      if (order) {
-        setSelectedOrder(order)
-        setShowOrderDrawer(true)
-      }
+    } else if (mesa.status === 'ocupada' && mesa.openOrder) {
+      setSelectedOrder(mesa.openOrder)
+      setShowOrderDrawer(true)
     }
   }
 
-  const handleSale = async (saleData) => {
+  const handleAddItem = async (productVariantId, quantity) => {
     try {
-      await salesService.createSale(
-        saleData.items,
-        saleData.mesa_id,
-        saleData.medio_pago
-      )
-
+      await ordersService.addItem(selectedOrder.id, {
+        product_variant_id: productVariantId,
+        quantity,
+      })
+      const updated = await ordersService.getOrder(selectedOrder.id)
+      setSelectedOrder(updated)
       await fetchAll()
-
-      setShowPosModal(false)
-      setShowDirectSale(false)
-      setError('')
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al registrar venta')
+      setError('Error al agregar item')
     }
   }
 
-  const handleItemAdded = async () => {
-    setShowAddItemModal(false)
-    await fetchAll()
-    // Re-fetch the current order to show updated items
-    if (selectedOrder) {
-      try {
-        const updatedOrder = await ordersService.getOrder(selectedOrder.id)
-        setSelectedOrder(updatedOrder)
-      } catch (err) {
-        console.error('Error fetching updated order:', err)
-      }
-    }
-  }
-
-  const handleMesaDrag = async (mesaId, x, y) => {
-    if (!activeSalon) return
+  const handleRemoveItem = async (itemId) => {
     try {
-      const newMesas = [...(allMesas[activeSalon] || [])]
-      const mesaIndex = newMesas.findIndex((m) => m.id === mesaId)
-      if (mesaIndex >= 0) {
-        const mesa = newMesas[mesaIndex]
-        const newX = Math.max(0, Math.min(100 - mesa.width, x))
-        const newY = Math.max(0, Math.min(100 - mesa.height, y))
-
-        // Check for collisions with other mesas
-        const hasCollision = newMesas.some((m, idx) => {
-          if (idx === mesaIndex) return false
-          const minDistance = 3 // % of floor plan
-          return (
-            Math.abs((newX + mesa.width / 2) - (m.pos_x + m.width / 2)) < minDistance &&
-            Math.abs((newY + mesa.height / 2) - (m.pos_y + m.height / 2)) < minDistance
-          )
-        })
-
-        if (hasCollision) {
-          setError('Las mesas no pueden superponerse. Sepáralas más.')
-          return
-        }
-
-        newMesas[mesaIndex] = {
-          ...mesa,
-          pos_x: newX,
-          pos_y: newY,
-        }
-        await salonsService.updateMesa(activeSalon, mesaId, {
-          pos_x: newX,
-          pos_y: newY,
-        })
-        setAllMesas({
-          ...allMesas,
-          [activeSalon]: newMesas,
-        })
-        setError('')
-      }
+      await ordersService.removeItem(selectedOrder.id, itemId)
+      const updated = await ordersService.getOrder(selectedOrder.id)
+      setSelectedOrder(updated)
+      await fetchAll()
     } catch (err) {
-      console.error('Error updating mesa position:', err)
+      setError('Error al eliminar item')
+    }
+  }
+
+  const handleCobrar = async (metodo_pago) => {
+    try {
+      await ordersService.cobrar(selectedOrder.id, { metodo_pago })
+      setShowCobrarSheet(false)
+      setShowOrderDrawer(false)
+      setSelectedOrder(null)
+      await fetchAll()
+    } catch (err) {
+      setError('Error al cobrar')
     }
   }
 
   if (loading) {
-    return <div className="p-6">Cargando POS...</div>
+    return <div className="p-6">Cargando...</div>
   }
 
-  const currentSalon = salons.find((s) => s.id === activeSalon)
-  const activeMesas = allMesas[activeSalon] || []
-  const mesasWithOrders = activeMesas.map((m) => ({
-    ...m,
-    openOrder: openOrders.find((o) => o.mesa_id === m.id) || null,
-    total: openOrders.find((o) => o.mesa_id === m.id)?.total || undefined,
-  }))
+  const activeSalonMesas = allMesas[activeSalon] || []
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 text-white">
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">🛒 Caja — {currentSalon?.name}</h1>
-          <div className="flex gap-2 text-xs">
-            <span className="text-green-400">● {activeMesas.filter((m) => m.status === 'libre').length} libres</span>
-            <span className="text-red-400">● {activeMesas.filter((m) => m.status === 'ocupada').length} ocupadas</span>
-            {activeMesas.filter((m) => m.status === 'reservada').length > 0 && (
-              <span className="text-yellow-400">
-                ● {activeMesas.filter((m) => m.status === 'reservada').length} reservadas
-              </span>
-            )}
-          </div>
-        </div>
+    <div className="h-full flex flex-col">
+      <PosHeader
+        salons={salons}
+        activeSalon={activeSalon}
+        onSalonChange={setActiveSalon}
+      />
 
-        <div className="flex gap-2 overflow-x-auto mb-3">
-          {salons.map((salon) => (
-            <button
-              key={salon.id}
-              onClick={() => setActiveSalon(salon.id)}
-              className={`px-4 py-2 rounded whitespace-nowrap transition ${
-                activeSalon === salon.id
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              {salon.name}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => setShowDirectSale(true)}
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-medium"
-        >
-          💳 Venta Directa
-        </button>
-      </div>
-
-      {error && (
-        <div className="bg-red-900 border-b border-red-700 text-red-200 px-4 py-2">
-          {error}
-        </div>
-      )}
-
-      <div className="flex-1 relative overflow-hidden p-4">
-        {activeSalon && (
-          <SalonFloorPlan
-            mesas={mesasWithOrders}
-            onMesaClick={handleMesaClick}
-            onMesaDrag={handleMesaDrag}
-            isEditMode={editMode}
-            style={{
-              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-            }}
-          />
-        )}
-
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className={`absolute bottom-6 right-6 flex items-center gap-2 px-4 py-2 rounded transition ${
-            editMode
-              ? 'bg-yellow-600 hover:bg-yellow-700'
-              : 'bg-slate-700 hover:bg-slate-600'
-          }`}
-        >
-          <Settings2 size={18} /> {editMode ? 'Guardar Plano' : '⚙️ Editar Plano'}
-        </button>
-      </div>
-
-      <div className="border-t border-slate-700 p-4 bg-slate-800">
-        <div className="flex gap-6 text-sm justify-center">
-          {dailySummary && (
-            <>
-              <div>
-                <span className="text-green-400 font-bold">
-                  ${dailySummary.total_vendido.toFixed(2)}
-                </span>
-                <span className="text-slate-400 ml-2">vendidos hoy</span>
-              </div>
-              <div>
-                <span className="text-purple-400 font-bold">
-                  {dailySummary.cantidad_ventas}
-                </span>
-                <span className="text-slate-400 ml-2">ventas</span>
-              </div>
-              {dailySummary.bajo_stock_count > 0 && (
-                <div className="text-red-400">
-                  ⚠️ {dailySummary.bajo_stock_count} con stock bajo
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {showPosModal && (
-        <PosModal
-          mesaId={null}
-          onClose={() => {
-            setShowPosModal(false)
-          }}
-          onSale={handleSale}
+      <div className="flex flex-1 overflow-hidden">
+        <PosMain
+          mesas={allMesas}
+          onMesaClick={handleMesaClick}
+          activeSalonMesas={activeSalonMesas}
         />
-      )}
 
-      {showDirectSale && (
-        <PosModal
-          mesaId={null}
-          onClose={() => {
-            setShowDirectSale(false)
-          }}
-          onSale={handleSale}
-        />
-      )}
-
-      {showOrderDrawer && selectedOrder && (
         <OrderDrawer
           order={selectedOrder}
+          isOpen={showOrderDrawer}
+          onClose={() => setShowOrderDrawer(false)}
           onAddItem={() => setShowAddItemModal(true)}
-          onClose={() => {
-            setShowOrderDrawer(false)
-            setSelectedOrder(null)
-          }}
-          onCobrar={async (medioPago) => {
-            try {
-              await ordersService.cobrar(selectedOrder.id, medioPago)
-              await fetchAll()
-              setShowOrderDrawer(false)
-              setSelectedOrder(null)
-              setError('')
-            } catch (err) {
-              setError(err.response?.data?.error || 'Error al cobrar orden')
-            }
-          }}
+          onRemoveItem={handleRemoveItem}
+          onCobrar={() => setShowCobrarSheet(true)}
         />
-      )}
+      </div>
 
-      {showAddItemModal && selectedOrder && (
-        <AddItemModal
-          orderId={selectedOrder.id}
-          onClose={() => setShowAddItemModal(false)}
-          onItemAdded={handleItemAdded}
-        />
+      <CobrarBottomSheet
+        isOpen={showCobrarSheet}
+        orderId={selectedOrder?.id}
+        total={selectedOrder?.total || 0}
+        onConfirm={handleCobrar}
+        onClose={() => setShowCobrarSheet(false)}
+      />
+
+      <AddItemModal
+        isOpen={showAddItemModal}
+        onClose={() => setShowAddItemModal(false)}
+        onAddItem={handleAddItem}
+      />
+
+      {error && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded">
+          {error}
+        </div>
       )}
     </div>
   )
