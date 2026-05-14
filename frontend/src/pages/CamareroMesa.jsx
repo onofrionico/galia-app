@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, Trash2 } from 'lucide-react'
+import { ChevronDown, Trash2, ChevronLeft } from 'lucide-react'
 import productCategoriesService from '../services/productCategoriesService'
 import productsService from '../services/productsService'
 import ordersService from '../services/ordersService'
+import GALIA from '../constants/colors'
 
 const CamareroMesa = () => {
   const { mesaId } = useParams()
@@ -103,14 +104,20 @@ const CamareroMesa = () => {
   const categoryProducts = products.filter(p => p.category_id === activeCategory)
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50">
+    <div className="h-full w-full flex flex-col" style={{ backgroundColor: GALIA.crema }}>
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 px-4 py-3 bg-white border-b shadow-sm">
+      <div className="sticky top-0 z-10 px-4 py-3 shadow-sm" style={{ backgroundColor: GALIA.marron }}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Mesa {mesaId}</h2>
+          <button
+            onClick={() => navigate('/camarero')}
+            className="flex items-center gap-2 text-white hover:opacity-80"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            <h2 className="text-lg font-semibold">Mesa {mesaId}</h2>
+          </button>
           <div className="text-right">
-            <div className="text-xs text-gray-500">Total</div>
-            <div className="text-xl font-bold text-blue-600">
+            <div className="text-xs text-white opacity-80">Total</div>
+            <div className="text-xl font-bold" style={{ color: GALIA.amarillo }}>
               ${order.total?.toFixed(2) || '0.00'}
             </div>
           </div>
@@ -118,16 +125,17 @@ const CamareroMesa = () => {
       </div>
 
       {/* Categories scroll tabs */}
-      <div className="flex gap-2 px-4 py-2 overflow-x-auto bg-white border-b">
+      <div className="flex gap-2 px-3 py-2 overflow-x-auto" style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
         {categories.map(cat => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`px-3 py-1 whitespace-nowrap text-sm rounded transition ${
-              activeCategory === cat.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700'
-            }`}
+            className="px-4 py-2 whitespace-nowrap text-sm rounded-full border transition"
+            style={{
+              backgroundColor: activeCategory === cat.id ? GALIA.amarillo : 'transparent',
+              color: activeCategory === cat.id ? GALIA.marron : GALIA.marron,
+              borderColor: activeCategory === cat.id ? GALIA.amarillo : GALIA.grisLigero
+            }}
           >
             {cat.name}
           </button>
@@ -135,24 +143,26 @@ const CamareroMesa = () => {
       </div>
 
       {/* Products grid - scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <div className="grid grid-cols-2 gap-3 pb-32">
+      <div className="flex-1 overflow-y-auto px-3 py-3 pb-32">
+        <div className="grid grid-cols-2 gap-2">
           {categoryProducts.map(product => (
             <div
               key={product.id}
-              className="bg-white rounded-lg shadow-sm p-3 cursor-pointer hover:shadow-md transition"
+              className="rounded-lg overflow-hidden cursor-pointer transition-shadow"
+              style={{ backgroundColor: GALIA.blanco }}
             >
               {product.variants && product.variants.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {product.variants.map(variant => (
                     <button
                       key={variant.id}
                       onClick={() => handleAddProduct(variant)}
-                      className="w-full text-left p-2 bg-gray-50 hover:bg-blue-50 rounded text-sm"
+                      className="w-full text-left p-2 transition"
+                      style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}
                     >
-                      <div className="font-medium text-gray-800">{product.name}</div>
-                      <div className="text-xs text-gray-600">{variant.name}</div>
-                      <div className="text-sm font-bold text-blue-600">
+                      <div className="font-semibold text-sm" style={{ color: GALIA.marron }}>{product.name}</div>
+                      <div className="text-xs" style={{ color: GALIA.grisClaro }}>{variant.name}</div>
+                      <div className="text-sm font-bold" style={{ color: GALIA.amarillo }}>
                         ${parseFloat(variant.price).toFixed(2)}
                       </div>
                     </button>
@@ -160,12 +170,10 @@ const CamareroMesa = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => {
-                    // Handle product without variants (shouldn't happen)
-                  }}
+                  onClick={() => {}}
                   className="text-center py-2"
                 >
-                  <div className="font-medium text-gray-800">{product.name}</div>
+                  <div className="font-medium" style={{ color: GALIA.marron }}>{product.name}</div>
                 </button>
               )}
             </div>
@@ -173,13 +181,14 @@ const CamareroMesa = () => {
         </div>
       </div>
 
-      {/* Bottom sheet - fixed order items + COBRAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t rounded-t-lg shadow-lg max-h-1/3 overflow-y-auto">
-        <div className="sticky top-0 px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
-          <span className="font-semibold text-gray-800">Orden ({order.items?.length || 0} ítems)</span>
+      {/* Bottom bar - fixed order items + COBRAR */}
+      <div className="fixed bottom-0 left-0 right-0 rounded-t-lg shadow-lg max-h-1/3 overflow-y-auto" style={{ backgroundColor: GALIA.blanco }}>
+        <div className="sticky top-0 px-4 py-2 flex items-center justify-between" style={{ backgroundColor: GALIA.crema, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
+          <span className="font-semibold" style={{ color: GALIA.marron }}>Orden ({order.items?.length || 0} ítems)</span>
           <button
             onClick={() => setShowPayment(!showPayment)}
-            className="p-1 hover:bg-gray-200 rounded"
+            className="p-1 rounded transition"
+            style={{ color: GALIA.marron }}
           >
             <ChevronDown className="h-5 w-5" />
           </button>
@@ -190,18 +199,19 @@ const CamareroMesa = () => {
             {/* Order items list */}
             <div className="px-4 py-2 space-y-2 max-h-32 overflow-y-auto">
               {order.items?.map(item => (
-                <div key={item.id} className="flex justify-between items-center py-1 border-b">
+                <div key={item.id} className="flex justify-between items-center py-1" style={{ borderBottom: `1px solid ${GALIA.grisLigero}` }}>
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{item.product_name}</div>
-                    <div className="text-xs text-gray-600">{item.variant_name}</div>
+                    <div className="text-sm font-medium" style={{ color: GALIA.marron }}>{item.product_name}</div>
+                    <div className="text-xs" style={{ color: GALIA.grisClaro }}>{item.variant_name}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-sm">
+                    <div className="text-sm" style={{ color: GALIA.marron }}>
                       {item.quantity}x ${parseFloat(item.unit_price).toFixed(2)}
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      className="p-1 rounded transition"
+                      style={{ color: '#dc2626' }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -211,17 +221,18 @@ const CamareroMesa = () => {
             </div>
 
             {/* Payment method selector */}
-            <div className="px-4 py-3 space-y-2 border-t">
-              <div className="text-sm font-semibold text-gray-800">Medio de pago</div>
-              {['Efectivo', 'Débito', 'QR'].map(metodo => (
+            <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
+              <div className="text-sm font-semibold" style={{ color: GALIA.marron }}>Medio de pago</div>
+              {['Efectivo', 'Tarjeta', 'Otro'].map(metodo => (
                 <button
                   key={metodo}
                   onClick={() => setMedioPago(metodo)}
-                  className={`w-full p-2 rounded text-sm font-medium transition ${
-                    medioPago === metodo
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                  }`}
+                  className="w-full p-2 rounded text-sm font-medium transition border-2"
+                  style={{
+                    backgroundColor: medioPago === metodo ? GALIA.amarillo : 'transparent',
+                    color: medioPago === metodo ? GALIA.marron : GALIA.marron,
+                    borderColor: medioPago === metodo ? GALIA.amarillo : GALIA.grisLigero
+                  }}
                 >
                   {metodo}
                 </button>
@@ -231,7 +242,11 @@ const CamareroMesa = () => {
               <button
                 onClick={handleCobrar}
                 disabled={saving || !order.items?.length}
-                className="w-full mt-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition"
+                className="w-full mt-2 py-3 font-bold rounded-lg transition"
+                style={{
+                  backgroundColor: saving || !order.items?.length ? GALIA.grisLigero : GALIA.marron,
+                  color: 'white'
+                }}
               >
                 {saving ? 'Cobrando...' : 'COBRAR'}
               </button>
@@ -240,10 +255,10 @@ const CamareroMesa = () => {
         ) : (
           // Collapsed view - just show total
           <div className="px-4 py-3 text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold" style={{ color: GALIA.amarillo }}>
               ${order.total?.toFixed(2) || '0.00'}
             </div>
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="text-xs mt-1" style={{ color: GALIA.grisClaro }}>
               {order.items?.length || 0} ítems
             </div>
           </div>

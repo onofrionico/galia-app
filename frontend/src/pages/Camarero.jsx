@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import salonsService from '../services/salonsService'
 import ordersService from '../services/ordersService'
-import SalonFloorPlan from '../components/pos/SalonFloorPlan'
-import { ChefHat } from 'lucide-react'
+import GALIA from '../constants/colors'
+import { ChevronLeft } from 'lucide-react'
 
 const Camarero = () => {
   const navigate = useNavigate()
@@ -70,7 +70,7 @@ const Camarero = () => {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full">Cargando...</div>
+  if (loading) return <div className="flex items-center justify-center h-full" style={{ backgroundColor: GALIA.crema }}>Cargando...</div>
 
   const activeMesas = allMesas[activeSalon] || []
   const mesasWithOrders = activeMesas.map(m => ({
@@ -79,42 +79,67 @@ const Camarero = () => {
   }))
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50">
-      {/* Custom header for this page */}
-      <div className="px-4 py-3 bg-white border-b">
-        <div className="flex items-center gap-2">
-          <ChefHat className="h-5 w-5 text-blue-600" />
-          <h1 className="text-lg font-semibold text-gray-800">Mi Turno</h1>
-        </div>
+    <div className="h-full w-full flex flex-col" style={{ backgroundColor: GALIA.crema }}>
+      {/* Header */}
+      <div className="h-14 flex items-center px-4 text-white font-semibold text-lg" style={{ backgroundColor: GALIA.marron }}>
+        Mi Turno - Camarero
       </div>
 
       {/* Salon tabs */}
-      <div className="flex gap-2 px-4 py-2 overflow-x-auto border-b bg-white">
+      <div className="flex gap-2 px-3 py-2 overflow-x-auto border-b" style={{ borderColor: GALIA.grisLigero }}>
         {salons.map(salon => (
           <button
             key={salon.id}
             onClick={() => setActiveSalon(salon.id)}
-            className={`px-4 py-2 whitespace-nowrap rounded transition ${
-              activeSalon === salon.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className="px-4 py-2 whitespace-nowrap text-sm rounded transition"
+            style={{
+              borderBottom: activeSalon === salon.id ? `3px solid ${GALIA.amarillo}` : 'none',
+              color: activeSalon === salon.id ? GALIA.marron : GALIA.grisClaro,
+              fontWeight: activeSalon === salon.id ? '600' : '400'
+            }}
           >
             {salon.name}
           </button>
         ))}
       </div>
 
-      {/* Floor plan */}
-      <div className="flex-1 overflow-hidden p-4">
-        <SalonFloorPlan
-          mesas={mesasWithOrders}
-          onMesaClick={handleMesaClick}
-        />
+      {/* Mesas grid */}
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="grid grid-cols-2 gap-3">
+          {mesasWithOrders.map(mesa => (
+            <button
+              key={mesa.id}
+              onClick={() => handleMesaClick(mesa)}
+              className="p-3 rounded-lg border transition-all cursor-pointer"
+              style={{
+                backgroundColor: GALIA.blanco,
+                borderColor: mesa.status === 'ocupada' ? GALIA.amarillo : GALIA.grisLigero,
+                borderWidth: mesa.status === 'ocupada' ? '2px' : '1px'
+              }}
+            >
+              <div className="text-2xl font-bold" style={{ color: GALIA.marron }}>
+                {mesa.numero}
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-xs font-semibold rounded-full px-2 py-1" style={{
+                  backgroundColor: mesa.status === 'libre' ? GALIA.verde : GALIA.amarillo,
+                  color: mesa.status === 'libre' ? 'white' : GALIA.marron
+                }}>
+                  {mesa.status === 'libre' ? 'Libre' : 'Ocupada'}
+                </div>
+              </div>
+              {mesa.openOrder && (
+                <div className="mt-2 text-xs" style={{ color: GALIA.grisClaro }}>
+                  {mesa.openOrder.items?.length || 0} ítems
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 text-sm">
+        <div className="p-3 text-sm" style={{ backgroundColor: '#fee', color: '#c33' }}>
           {error}
         </div>
       )}
