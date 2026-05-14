@@ -140,14 +140,16 @@ const Pos = () => {
           onSalonChange={setActiveSalon}
         />
 
-        <OrderDrawer
-          order={selectedOrder}
-          isOpen={showOrderDrawer}
-          onClose={() => setShowOrderDrawer(false)}
-          onAddItem={() => setShowAddItemModal(true)}
-          onRemoveItem={handleRemoveItem}
-          onCobrar={() => setShowCobrarSheet(true)}
-        />
+        {showOrderDrawer && (
+          <OrderDrawer
+            order={selectedOrder}
+            isOpen={showOrderDrawer}
+            onClose={() => setShowOrderDrawer(false)}
+            onAddItem={() => setShowAddItemModal(true)}
+            onRemoveItem={handleRemoveItem}
+            onCobrar={() => setShowCobrarSheet(true)}
+          />
+        )}
       </div>
 
       <CobrarBottomSheet

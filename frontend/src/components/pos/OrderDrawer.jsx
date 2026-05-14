@@ -6,8 +6,8 @@ const OrderDrawer = ({ order, isOpen, onClose, onAddItem, onRemoveItem, onCobrar
 
   return (
     <div
-      className="fixed right-0 top-0 h-full w-80 flex flex-col shadow-lg z-50"
-      style={{ backgroundColor: GALIA.blanco, borderLeft: `4px solid ${GALIA.amarillo}` }}
+      className="w-80 flex flex-col border-l"
+      style={{ backgroundColor: GALIA.blanco, borderColor: GALIA.grisLigero }}
     >
       {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: GALIA.crema }}>
