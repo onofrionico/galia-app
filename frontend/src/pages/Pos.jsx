@@ -154,13 +154,14 @@ const Pos = () => {
             </div>
           )}
           <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
-            <SalonFloorPlan
-              mesas={activeSalonMesas}
-              onMesaClick={handleMesaClick}
-              isEditMode={isEditMode}
-              onMesaDrag={handleMesaDrag}
-              style={{ minHeight: '800px', width: '1400px' }}
-            />
+            <div style={{ minHeight: '600px', minWidth: '100%' }}>
+              <SalonFloorPlan
+                mesas={activeSalonMesas}
+                onMesaClick={handleMesaClick}
+                isEditMode={isEditMode}
+                onMesaDrag={handleMesaDrag}
+              />
+            </div>
           </div>
         </div>
 

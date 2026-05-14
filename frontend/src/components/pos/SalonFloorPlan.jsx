@@ -34,10 +34,10 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
         ${isEditMode ? 'cursor-move' : 'cursor-default'}
       `}
       style={{
-        height: '800px',
-        minHeight: '800px',
-        width: '1400px',
-        minWidth: '1400px',
+        height: '100%',
+        minHeight: '600px',
+        width: '100%',
+        aspectRatio: '16 / 9',
         backgroundColor: '#fafafa',
         backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(200,200,200,.05) 25%, rgba(200,200,200,.05) 26%, transparent 27%, transparent 74%, rgba(200,200,200,.05) 75%, rgba(200,200,200,.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(200,200,200,.05) 25%, rgba(200,200,200,.05) 26%, transparent 27%, transparent 74%, rgba(200,200,200,.05) 75%, rgba(200,200,200,.05) 76%, transparent 77%, transparent)',
         backgroundSize: '50px 50px',

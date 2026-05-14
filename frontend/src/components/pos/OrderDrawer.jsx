@@ -6,7 +6,7 @@ const OrderDrawer = ({ order, isOpen, onClose, onAddItem, onRemoveItem, onCobrar
 
   return (
     <div
-      className="w-96 flex flex-col border-l lg:w-[450px]"
+      className="w-80 md:w-96 lg:w-[420px] flex flex-col border-l flex-shrink-0"
       style={{ backgroundColor: GALIA.blanco, borderColor: GALIA.grisLigero }}
     >
       {/* Header */}
