@@ -7,6 +7,7 @@ import PosMain from '../components/pos/PosMain'
 import OrderDrawer from '../components/pos/OrderDrawer'
 import CobrarBottomSheet from '../components/pos/CobrarBottomSheet'
 import AddItemModal from '../components/pos/AddItemModal'
+import SalonFloorPlan from '../components/pos/SalonFloorPlan'
 
 const Pos = () => {
   const [salons, setSalons] = useState([])
@@ -21,6 +22,7 @@ const Pos = () => {
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showCobrarSheet, setShowCobrarSheet] = useState(false)
   const [posMode, setPosMode] = useState('Mesas')
+  const [isEditMode, setIsEditMode] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -117,6 +119,15 @@ const Pos = () => {
     }
   }
 
+  const handleMesaDrag = async (mesaId, x, y) => {
+    try {
+      await salonsService.updateMesa(mesaId, { pos_x: x, pos_y: y })
+      await fetchAll()
+    } catch (err) {
+      setError('Error al mover mesa')
+    }
+  }
+
   if (loading) {
     return <div className="p-6">Cargando...</div>
   }
@@ -128,19 +139,32 @@ const Pos = () => {
       <PosHeader
         activeMode={posMode}
         onModeChange={setPosMode}
+        isEditMode={isEditMode}
+        onEditModeToggle={() => setIsEditMode(!isEditMode)}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <PosMain
-          salons={salons}
-          mesas={allMesas}
-          onMesaClick={handleMesaClick}
-          activeSalonMesas={activeSalonMesas}
-          activeSalon={activeSalon}
-          onSalonChange={setActiveSalon}
-        />
+        {isEditMode ? (
+          <div className="flex-1 overflow-auto p-4">
+            <SalonFloorPlan
+              mesas={activeSalonMesas}
+              onMesaClick={handleMesaClick}
+              isEditMode={true}
+              onMesaDrag={handleMesaDrag}
+            />
+          </div>
+        ) : (
+          <PosMain
+            salons={salons}
+            mesas={allMesas}
+            onMesaClick={handleMesaClick}
+            activeSalonMesas={activeSalonMesas}
+            activeSalon={activeSalon}
+            onSalonChange={setActiveSalon}
+          />
+        )}
 
-        {showOrderDrawer && (
+        {showOrderDrawer && !isEditMode && (
           <OrderDrawer
             order={selectedOrder}
             isOpen={showOrderDrawer}

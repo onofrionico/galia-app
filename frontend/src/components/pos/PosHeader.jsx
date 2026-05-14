@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut, Search } from 'lucide-react'
+import { LogOut, Search, Settings } from 'lucide-react'
 import GALIA from '../../constants/colors'
 
 const POS_MODES = ['Mesas', 'Mostrador', 'Delivery', 'Mostrador express']
 
-const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch }) => {
+const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch, isEditMode, onEditModeToggle }) => {
   const navigate = useNavigate()
 
   const handleExit = () => {
@@ -37,10 +37,24 @@ const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch }) => {
             <input
               type="text"
               placeholder="Ir a mesa"
-              className="bg-transparent text-white text-sm outline-none placeholder-gray-400"
+              className="bg-transparent text-white text-sm outline-none placeholder-gray-400 w-32"
               onChange={(e) => onSearch?.(e.target.value)}
             />
           </div>
+
+          {/* Edit mode toggle */}
+          <button
+            onClick={onEditModeToggle}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded transition-colors ${
+              isEditMode
+                ? 'bg-yellow-500 text-gray-900 hover:bg-yellow-600'
+                : 'text-white hover:bg-gray-600'
+            }`}
+            title={isEditMode ? 'Desactivar modo edición' : 'Activar modo edición (arrastra mesas)'}
+          >
+            <Settings size={18} />
+            <span className="text-sm font-medium">{isEditMode ? 'Edición' : 'Organizar'}</span>
+          </button>
 
           {/* Exit button */}
           <button
