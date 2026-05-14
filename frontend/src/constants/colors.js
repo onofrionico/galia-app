@@ -5,8 +5,8 @@ export const GALIA = {
   marron: '#6B4C5C',        // Secondary/brand
   crema: '#E8DCC4',         // Main background
   blanco: '#FFFBF8',        // Card/overlay background
-  grisClaro: '#8A8A8A',     // Secondary text
-  grisLigero: '#E5E5E5',    // Borders
+  grisSecondary: '#8A8A8A', // Secondary text, disabled states
+  grisBorder: '#E5E5E5',    // Borders, dividers, subtle separators
   verde: '#7CB342',         // Status: Libre
 }
 
@@ -16,8 +16,8 @@ export const galiaTailwind = {
   'galia-marron': GALIA.marron,
   'galia-crema': GALIA.crema,
   'galia-blanco': GALIA.blanco,
-  'galia-gris-claro': GALIA.grisClaro,
-  'galia-gris-ligero': GALIA.grisLigero,
+  'galia-gris-secondary': GALIA.grisSecondary,
+  'galia-gris-border': GALIA.grisBorder,
   'galia-verde': GALIA.verde,
 }
 
