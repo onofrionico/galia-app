@@ -262,18 +262,18 @@ def get_sale(current_user, sale_id):
 
 @bp.route('/<int:sale_id>', methods=['PUT'])
 @token_required
-@admin_required
 def update_sale(current_user, sale_id):
-    """Update a sale"""
+    """Update a sale with legacy and enhanced fields"""
     sale = Sale.query.get_or_404(sale_id)
-    data = request.get_json()
-    
+    data = request.get_json() or {}
+
+    # Legacy fields (original CSV-based fields)
     if data.get('fecha'):
         try:
             sale.fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
-    
+
     if data.get('cerrada'):
         try:
             sale.cerrada = datetime.strptime(data['cerrada'], '%Y-%m-%dT%H:%M:%S')
@@ -282,15 +282,49 @@ def update_sale(current_user, sale_id):
                 sale.cerrada = datetime.strptime(data['cerrada'], '%Y-%m-%dT%H:%M')
             except ValueError:
                 pass
-    
-    updatable_fields = ['caja', 'estado', 'cliente', 'mesa', 'sala', 'personas',
-                        'camarero_nombre', 'camarero_id', 'medio_pago', 'total', 'fiscal', 'tipo_venta',
-                        'comentario', 'origen', 'id_origen']
-    
-    for field in updatable_fields:
+
+    legacy_fields = ['caja', 'estado', 'cliente', 'mesa', 'sala', 'personas',
+                     'camarero_nombre', 'camarero_id', 'medio_pago', 'total', 'fiscal', 'tipo_venta',
+                     'comentario', 'origen', 'id_origen']
+
+    for field in legacy_fields:
         if field in data:
             setattr(sale, field, data[field])
-    
+
+    # Enhanced sale flow fields (Task 6)
+    if 'numero_personas' in data:
+        try:
+            sale.numero_personas = int(data['numero_personas'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'numero_personas must be an integer'}), 400
+
+    if 'comentarios' in data:
+        sale.comentarios = data['comentarios']
+
+    if 'status' in data:
+        if data['status'] not in ['abierta', 'pagando', 'cerrada']:
+            return jsonify({'error': 'status must be one of: abierta, pagando, cerrada'}), 400
+        sale.status = data['status']
+
+    if 'descuento_tipo' in data:
+        sale.descuento_tipo = data['descuento_tipo']
+        if data['descuento_tipo'] == 'porcentaje':
+            try:
+                valor = float(data.get('descuento_valor', 0))
+                sale.descuento_valor = valor
+                sale.descuento_monto = float(sale.total) * (valor / 100)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
+        elif data['descuento_tipo'] == 'monto_fijo':
+            try:
+                valor = float(data.get('descuento_valor', 0))
+                sale.descuento_valor = valor
+                sale.descuento_monto = valor
+            except (ValueError, TypeError):
+                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
+        else:
+            return jsonify({'error': 'descuento_tipo must be porcentaje or monto_fijo'}), 400
+
     db.session.commit()
     return jsonify(sale.to_dict()), 200
 
@@ -610,48 +644,4 @@ def close_sale(current_user, sale_id):
 
     db.session.commit()
 
-    return jsonify(sale.to_dict()), 200
-
-
-@bp.route('/<int:sale_id>', methods=['PUT'])
-@token_required
-def update_sale_full(current_user, sale_id):
-    """Update sale with enhanced fields (numero_personas, comentarios, status, discounts)"""
-    sale = Sale.query.get_or_404(sale_id)
-    data = request.get_json() or {}
-
-    if 'numero_personas' in data:
-        try:
-            sale.numero_personas = int(data['numero_personas'])
-        except (ValueError, TypeError):
-            return jsonify({'error': 'numero_personas must be an integer'}), 400
-
-    if 'comentarios' in data:
-        sale.comentarios = data['comentarios']
-
-    if 'status' in data:
-        if data['status'] not in ['abierta', 'pagando', 'cerrada']:
-            return jsonify({'error': 'status must be one of: abierta, pagando, cerrada'}), 400
-        sale.status = data['status']
-
-    if 'descuento_tipo' in data:
-        sale.descuento_tipo = data['descuento_tipo']
-        if data['descuento_tipo'] == 'porcentaje':
-            try:
-                valor = float(data.get('descuento_valor', 0))
-                sale.descuento_valor = valor
-                sale.descuento_monto = float(sale.total) * (valor / 100)
-            except (ValueError, TypeError):
-                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
-        elif data['descuento_tipo'] == 'monto_fijo':
-            try:
-                valor = float(data.get('descuento_valor', 0))
-                sale.descuento_valor = valor
-                sale.descuento_monto = valor
-            except (ValueError, TypeError):
-                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
-        else:
-            return jsonify({'error': 'descuento_tipo must be porcentaje or monto_fijo'}), 400
-
-    db.session.commit()
     return jsonify(sale.to_dict()), 200
