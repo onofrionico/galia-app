@@ -41,6 +41,8 @@ import ProductCategories from './pages/ProductCategories'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import Stock from './pages/Stock'
+import Supplies from './pages/Supplies'
+import POSConfiguration from './pages/POSConfiguration'
 
 function App() {
   return (
@@ -96,6 +98,8 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/product-categories" element={<ProductCategories />} />
             <Route path="/stock" element={<Stock />} />
+            <Route path="/supplies" element={<Supplies />} />
+            <Route path="/pos-configuration" element={<POSConfiguration />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import { ChevronDown, X, LayoutDashboard, User } from 'lucide-react'
+import { ChevronDown, X, LayoutDashboard, User, Settings } from 'lucide-react'
 import {
   Calendar,
   Clock,
@@ -90,6 +90,7 @@ const navGroups = [
     headerClass: 'text-orange-700 bg-orange-50',
     items: [
       { to: '/suppliers', icon: Building2, label: 'Proveedores' },
+      { to: '/supplies', icon: Package, label: 'Insumos' },
     ],
   },
   {
@@ -100,6 +101,7 @@ const navGroups = [
     headerClass: 'text-green-700 bg-green-50',
     items: [
       { to: '/pos', icon: ShoppingCart, label: 'Caja (POS)' },
+      { to: '/pos-configuration', icon: Settings, label: 'Configuración POS' },
       { to: '/products', icon: UtensilsCrossed, label: 'Productos' },
       { to: '/product-categories', icon: Tag, label: 'Categorías' },
       { to: '/stock', icon: Package, label: 'Stock' },
