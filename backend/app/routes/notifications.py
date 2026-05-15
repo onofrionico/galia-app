@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from app.extensions import db
+from app.models.notification_preference import NotificationPreference
 from app.services.notification_service import NotificationService
 from app.utils.jwt_utils import token_required
 
@@ -43,5 +45,41 @@ def mark_all_read(current_user):
 def get_unread_count(current_user):
     """Get count of unread notifications"""
     notifications = NotificationService.get_user_notifications(current_user.id, unread_only=True)
-    
+
     return jsonify({'count': len(notifications)}), 200
+
+@bp.route('/preferences', methods=['GET'])
+@token_required
+def get_preferences(current_user):
+    """Get notification preferences for current user"""
+    prefs = NotificationPreference.query.filter_by(user_id=current_user.id).first()
+    if not prefs:
+        # Create default preferences
+        prefs = NotificationPreference(
+            user_id=current_user.id,
+            comanda_enabled=True,
+            venta_cerrada_enabled=True,
+        )
+        db.session.add(prefs)
+        db.session.commit()
+
+    return jsonify(prefs.to_dict()), 200
+
+@bp.route('/preferences', methods=['PUT'])
+@token_required
+def update_preferences(current_user):
+    """Update notification preferences for current user"""
+    prefs = NotificationPreference.query.filter_by(user_id=current_user.id).first()
+    if not prefs:
+        prefs = NotificationPreference(user_id=current_user.id)
+
+    data = request.get_json() or {}
+    if 'comanda_enabled' in data:
+        prefs.comanda_enabled = bool(data['comanda_enabled'])
+    if 'venta_cerrada_enabled' in data:
+        prefs.venta_cerrada_enabled = bool(data['venta_cerrada_enabled'])
+
+    db.session.add(prefs)
+    db.session.commit()
+
+    return jsonify(prefs.to_dict()), 200
