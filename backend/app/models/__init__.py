@@ -28,6 +28,7 @@ from app.models.sale_item import SaleItem
 from app.models.salon import Salon
 from app.models.mesa import Mesa
 from app.models.order import Order, OrderItem
+from app.models.printer_device import PrinterDevice
 
 __all__ = [
     'User',
@@ -64,5 +65,6 @@ __all__ = [
     'Salon',
     'Mesa',
     'Order',
-    'OrderItem'
+    'OrderItem',
+    'PrinterDevice'
 ]
