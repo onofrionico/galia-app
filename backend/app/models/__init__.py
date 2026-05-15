@@ -30,6 +30,7 @@ from app.models.mesa import Mesa
 from app.models.order import Order, OrderItem
 from app.models.printer_device import PrinterDevice
 from app.models.payment import Payment
+from app.models.notification_preference import NotificationPreference
 
 __all__ = [
     'User',
@@ -68,5 +69,6 @@ __all__ = [
     'Order',
     'OrderItem',
     'PrinterDevice',
-    'Payment'
+    'Payment',
+    'NotificationPreference'
 ]
