@@ -231,7 +231,7 @@ def create_sale(current_user):
         mesa=data.get('mesa'),
         sala=data.get('sala'),
         personas=data.get('personas'),
-        camarero=data.get('camarero'),
+        camarero_nombre=data.get('camarero_nombre'),
         medio_pago=data.get('medio_pago'),
         total=data.get('total', 0),
         fiscal=data.get('fiscal', False),
@@ -282,7 +282,7 @@ def update_sale(current_user, sale_id):
                 pass
     
     updatable_fields = ['caja', 'estado', 'cliente', 'mesa', 'sala', 'personas',
-                        'camarero', 'medio_pago', 'total', 'fiscal', 'tipo_venta',
+                        'camarero_nombre', 'camarero_id', 'medio_pago', 'total', 'fiscal', 'tipo_venta',
                         'comentario', 'origen', 'id_origen']
     
     for field in updatable_fields:
@@ -422,7 +422,7 @@ def export_sales(current_user):
             sale.mesa or '',
             sale.sala or '',
             sale.personas or '',
-            sale.camarero or '',
+            sale.camarero_nombre or '',
             sale.medio_pago or '',
             sale.total or 0,
             'Si' if sale.fiscal else 'No',

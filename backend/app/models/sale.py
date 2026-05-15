@@ -20,7 +20,7 @@ class Sale(db.Model):
     mesa = db.Column(db.String(20), nullable=True)
     sala = db.Column(db.String(100), nullable=True)
     personas = db.Column(db.Integer, nullable=True)
-    camarero = db.Column(db.String(200), nullable=True)
+    camarero_nombre = db.Column(db.String(200), nullable=True)
     medio_pago = db.Column(db.String(100), nullable=True)
     total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     fiscal = db.Column(db.Boolean, nullable=False, default=False)
@@ -65,7 +65,7 @@ class Sale(db.Model):
             'mesa': self.mesa,
             'sala': self.sala,
             'personas': self.personas,
-            'camarero': self.camarero,
+            'camarero_nombre': self.camarero_nombre,
             'medio_pago': self.medio_pago,
             'total': float(self.total) if self.total else 0,
             'fiscal': self.fiscal,
@@ -143,7 +143,7 @@ class Sale(db.Model):
             mesa=row.get('Mesa', '').strip() or None,
             sala=row.get('Sala', '').strip() or None,
             personas=parse_int(row.get('Personas')),
-            camarero=row.get('Camarero / Repartidor', '').strip() or None,
+            camarero_nombre=row.get('Camarero / Repartidor', '').strip() or None,
             medio_pago=row.get('Medio de Pago', '').strip() or None,
             total=parse_decimal(row.get('Total')),
             fiscal=parse_bool(row.get('Fiscal')),

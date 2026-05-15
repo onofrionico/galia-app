@@ -506,7 +506,7 @@ def sales_report(current_user):
     if sala:
         query = query.filter(Sale.sala == sala)
     if camarero:
-        query = query.filter(Sale.camarero.ilike(f'%{camarero}%'))
+        query = query.filter(Sale.camarero_nombre.ilike(f'%{camarero}%'))
     
     sales = query.all()
     
@@ -572,7 +572,7 @@ def sales_by_employee(current_user):
         end_date = date.today()
     
     result = db.session.query(
-        Sale.camarero,
+        Sale.camarero_nombre,
         func.sum(Sale.total).label('total'),
         func.count(Sale.id).label('count'),
         func.avg(Sale.total).label('ticket_promedio')
@@ -580,17 +580,17 @@ def sales_by_employee(current_user):
         Sale.fecha >= start_date,
         Sale.fecha <= end_date,
         Sale.estado == 'Cerrada',
-        Sale.camarero.isnot(None),
-        Sale.camarero != ''
-    ).group_by(Sale.camarero).order_by(func.sum(Sale.total).desc()).all()
-    
+        Sale.camarero_nombre.isnot(None),
+        Sale.camarero_nombre != ''
+    ).group_by(Sale.camarero_nombre).order_by(func.sum(Sale.total).desc()).all()
+
     return jsonify({
         'period': {
             'start_date': start_date.isoformat(),
             'end_date': end_date.isoformat()
         },
         'by_employee': [{
-            'camarero': r.camarero,
+            'camarero': r.camarero_nombre,
             'total': float(r.total) if r.total else 0,
             'count': r.count,
             'ticket_promedio': round(float(r.ticket_promedio), 2) if r.ticket_promedio else 0
