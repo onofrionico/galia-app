@@ -613,7 +613,7 @@ def close_sale(current_user, sale_id):
     return jsonify(sale.to_dict()), 200
 
 
-@bp.route('/<int:sale_id>/update-full', methods=['PUT'])
+@bp.route('/<int:sale_id>', methods=['PUT'])
 @token_required
 def update_sale_full(current_user, sale_id):
     """Update sale with enhanced fields (numero_personas, comentarios, status, discounts)"""
