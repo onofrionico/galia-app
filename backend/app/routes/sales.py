@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.sale import Sale
+from app.models.payment import Payment
+from app.models.mesa import Mesa
 from app.models.product_variant import ProductVariant
 from app.models.sale_item import SaleItem
 from app.services.stock_service import deduct_stock_for_sale
@@ -552,3 +554,104 @@ def get_top_products(current_user):
         })
 
     return jsonify({'top_products': top_list}), 200
+
+
+@bp.route('/<int:sale_id>/payments', methods=['POST'])
+@token_required
+def register_payment(current_user, sale_id):
+    """Register a payment for a sale"""
+    sale = Sale.query.get_or_404(sale_id)
+    data = request.get_json() or {}
+
+    if not data.get('amount') or not data.get('method'):
+        return jsonify({'error': 'amount and method required'}), 400
+
+    try:
+        amount = float(data['amount'])
+    except (ValueError, TypeError):
+        return jsonify({'error': 'amount must be a valid number'}), 400
+
+    if amount <= 0:
+        return jsonify({'error': 'amount must be positive'}), 400
+
+    payment = Payment(
+        sale_id=sale_id,
+        amount=amount,
+        method=data['method'],
+        user_id=current_user.id,
+    )
+    sale.total_paid = float(sale.total_paid or 0) + amount
+
+    db.session.add(payment)
+    db.session.commit()
+
+    return jsonify({
+        'payment': payment.to_dict(),
+        'sale': sale.to_dict(),
+        'remaining': float(sale.total) - float(sale.total_paid),
+    }), 201
+
+
+@bp.route('/<int:sale_id>/close', methods=['POST'])
+@token_required
+def close_sale(current_user, sale_id):
+    """Close a sale and mark the mesa as available"""
+    sale = Sale.query.get_or_404(sale_id)
+
+    # Check if fully paid
+    if float(sale.total_paid or 0) < float(sale.total):
+        return jsonify({'error': 'Sale not fully paid'}), 400
+
+    sale.status = 'cerrada'
+    if sale.mesa_id:
+        mesa = Mesa.query.get(sale.mesa_id)
+        if mesa:
+            mesa.status = 'libre'
+
+    db.session.commit()
+
+    return jsonify(sale.to_dict()), 200
+
+
+@bp.route('/<int:sale_id>/update-full', methods=['PUT'])
+@token_required
+def update_sale_full(current_user, sale_id):
+    """Update sale with enhanced fields (numero_personas, comentarios, status, discounts)"""
+    sale = Sale.query.get_or_404(sale_id)
+    data = request.get_json() or {}
+
+    if 'numero_personas' in data:
+        try:
+            sale.numero_personas = int(data['numero_personas'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'numero_personas must be an integer'}), 400
+
+    if 'comentarios' in data:
+        sale.comentarios = data['comentarios']
+
+    if 'status' in data:
+        if data['status'] not in ['abierta', 'pagando', 'cerrada']:
+            return jsonify({'error': 'status must be one of: abierta, pagando, cerrada'}), 400
+        sale.status = data['status']
+
+    if 'descuento_tipo' in data:
+        sale.descuento_tipo = data['descuento_tipo']
+        if data['descuento_tipo'] == 'porcentaje':
+            try:
+                valor = float(data.get('descuento_valor', 0))
+                sale.descuento_valor = valor
+                sale.descuento_monto = float(sale.total) * (valor / 100)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
+        elif data['descuento_tipo'] == 'monto_fijo':
+            try:
+                valor = float(data.get('descuento_valor', 0))
+                sale.descuento_valor = valor
+                sale.descuento_monto = valor
+            except (ValueError, TypeError):
+                return jsonify({'error': 'descuento_valor must be a valid number'}), 400
+        else:
+            return jsonify({'error': 'descuento_tipo must be porcentaje or monto_fijo'}), 400
+
+    db.session.commit()
+    return jsonify(sale.to_dict()), 200
