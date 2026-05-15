@@ -33,17 +33,17 @@ class Sale(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     # Enhanced sale flow fields
-    status = db.Column(db.String(20), default='abierta')  # 'abierta', 'pagando', 'cerrada'
+    status = db.Column(db.String(20), default='abierta', nullable=False)  # 'abierta', 'pagando', 'cerrada'
     numero_personas = db.Column(db.Integer, nullable=False, default=1)
     comentarios = db.Column(db.Text, nullable=True)
     descuento_tipo = db.Column(db.String(20), nullable=True)  # 'porcentaje', 'monto_fijo'
     descuento_valor = db.Column(db.Numeric(10, 2), nullable=True)
     descuento_monto = db.Column(db.Numeric(10, 2), nullable=True)  # calculated amount
-    total_paid = db.Column(db.Numeric(10, 2), default=0)
+    total_paid = db.Column(db.Numeric(10, 2), default=0, nullable=False)
     camarero_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     items = db.relationship('SaleItem', backref='sale', lazy='dynamic', cascade='all, delete-orphan')
-    camarero_user = db.relationship('User', foreign_keys=[camarero_id], backref='sales_as_camarero')
+    camarero = db.relationship('User', foreign_keys=[camarero_id], backref='sales_as_camarero')
 
     __table_args__ = (
         db.Index('idx_sales_fecha', 'fecha'),
