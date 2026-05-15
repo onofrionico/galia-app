@@ -32,7 +32,18 @@ class Sale(db.Model):
     mesa_id = db.Column(db.Integer, db.ForeignKey('mesas.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    # Enhanced sale flow fields
+    status = db.Column(db.String(20), default='abierta')  # 'abierta', 'pagando', 'cerrada'
+    numero_personas = db.Column(db.Integer, nullable=False, default=1)
+    comentarios = db.Column(db.Text, nullable=True)
+    descuento_tipo = db.Column(db.String(20), nullable=True)  # 'porcentaje', 'monto_fijo'
+    descuento_valor = db.Column(db.Numeric(10, 2), nullable=True)
+    descuento_monto = db.Column(db.Numeric(10, 2), nullable=True)  # calculated amount
+    total_paid = db.Column(db.Numeric(10, 2), default=0)
+    camarero_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
     items = db.relationship('SaleItem', backref='sale', lazy='dynamic', cascade='all, delete-orphan')
+    camarero_user = db.relationship('User', foreign_keys=[camarero_id], backref='sales_as_camarero')
 
     __table_args__ = (
         db.Index('idx_sales_fecha', 'fecha'),
@@ -64,7 +75,16 @@ class Sale(db.Model):
             'id_origen': self.id_origen,
             'source': self.source,
             'mesa_id': self.mesa_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            # Enhanced sale flow fields
+            'status': self.status,
+            'numero_personas': self.numero_personas,
+            'comentarios': self.comentarios,
+            'descuento_tipo': self.descuento_tipo,
+            'descuento_valor': float(self.descuento_valor) if self.descuento_valor else None,
+            'descuento_monto': float(self.descuento_monto) if self.descuento_monto else None,
+            'total_paid': float(self.total_paid),
+            'camarero_id': self.camarero_id,
         }
 
     @staticmethod
