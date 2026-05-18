@@ -30,12 +30,12 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
   return (
     <div
       className={`
-        relative bg-white border-4 border-gray-400 rounded-xl
+        relative bg-white border-4 border-gray-400 rounded-lg md:rounded-xl
         ${isEditMode ? 'cursor-move' : 'cursor-default'}
       `}
       style={{
         height: '100%',
-        minHeight: '600px',
+        minHeight: '400px',
         width: '100%',
         aspectRatio: '16 / 9',
         backgroundColor: '#fafafa',
@@ -81,8 +81,8 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
             top: `${mesa.pos_y || 0}%`,
             width: `${mesa.width || 5}%`,
             height: `${mesa.height || 5}%`,
-            minWidth: '80px',
-            minHeight: '80px',
+            minWidth: '60px',
+            minHeight: '60px',
           }}
           className={`${isEditMode ? 'opacity-85 hover:opacity-100' : ''} transition-opacity`}
         >

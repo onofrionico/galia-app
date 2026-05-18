@@ -39,16 +39,16 @@ const MesaCard = ({ mesa, onClick, isDragging, style }) => {
         boxShadow: isDragging ? '0 10px 15px rgba(0, 0, 0, 0.1)' : 'none',
         ...style
       }}
-      className="rounded-lg p-4 cursor-pointer transition-all duration-200"
+      className="rounded-lg p-2 md:p-4 cursor-pointer transition-all duration-200"
     >
       {/* Mesa Number */}
-      <div className="text-4xl font-bold mb-2" style={{ color: GALIA.marron }}>
+      <div className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 break-words" style={{ color: GALIA.marron }}>
         {mesa.number}
       </div>
 
       {/* Status Badge */}
       <div
-        className="rounded-full px-3 py-1 text-xs font-semibold mb-2 inline-block"
+        className="rounded-full px-2 py-0.5 md:px-3 md:py-1 text-xs font-semibold mb-1 md:mb-2 inline-block whitespace-nowrap"
         style={{ backgroundColor: statusColors.bg, color: statusColors.text }}
       >
         {getStatusText()}
@@ -56,7 +56,7 @@ const MesaCard = ({ mesa, onClick, isDragging, style }) => {
 
       {/* Items & Total (only if occupied) */}
       {mesa.status === 'ocupada' && mesa.openOrder && (
-        <div className="text-sm mt-2" style={{ color: GALIA.grisClaro }}>
+        <div className="text-xs md:text-sm mt-1 md:mt-2" style={{ color: GALIA.grisClaro }}>
           <div>{mesa.openOrder.items?.length || 0} ítems</div>
           <div className="font-semibold" style={{ color: GALIA.marron }}>
             ${parseFloat(mesa.openOrder.total).toFixed(2)}
@@ -66,7 +66,7 @@ const MesaCard = ({ mesa, onClick, isDragging, style }) => {
 
       {/* Capacity */}
       {mesa.capacity && (
-        <div className="text-xs mt-2" style={{ color: GALIA.grisClaro }}>
+        <div className="text-xs mt-1 md:mt-2" style={{ color: GALIA.grisClaro }}>
           Cap: {mesa.capacity}
         </div>
       )}

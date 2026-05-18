@@ -174,8 +174,8 @@ const Pos = () => {
               Arrastra las mesas para reorganizar. Las posiciones se guardan automáticamente.
             </div>
           )}
-          <div className="flex-1 overflow-auto p-4 w-full" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
-            <div style={{ minHeight: '600px', width: '100%' }}>
+          <div className="flex-1 overflow-auto p-2 md:p-4 w-full" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
+            <div style={{ height: '100%', width: '100%' }}>
               <SalonFloorPlan
                 mesas={activeSalonMesas}
                 onMesaClick={handleMesaClick}
