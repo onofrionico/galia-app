@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react'
 import salonsService from '../services/salonsService'
 import ordersService from '../services/ordersService'
 import salesService from '../services/salesService'
+import { useNotification } from '../context/NotificationContext'
 import PosHeader from '../components/pos/PosHeader'
 import PosMain from '../components/pos/PosMain'
 import OrderDrawer from '../components/pos/OrderDrawer'
 import CobrarBottomSheet from '../components/pos/CobrarBottomSheet'
 import AddItemModal from '../components/pos/AddItemModal'
+import SalePanel from '../components/pos/SalePanel'
+import OpenSaleModal from '../components/pos/OpenSaleModal'
 import SalonFloorPlan from '../components/pos/SalonFloorPlan'
 
 const Pos = () => {
+  const { addNotification } = useNotification()
   const [salons, setSalons] = useState([])
   const [activeSalon, setActiveSalon] = useState(null)
   const [allMesas, setAllMesas] = useState({})
@@ -18,11 +22,15 @@ const Pos = () => {
   const [error, setError] = useState('')
 
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [selectedSale, setSelectedSale] = useState(null)
   const [showOrderDrawer, setShowOrderDrawer] = useState(false)
+  const [showSalePanel, setShowSalePanel] = useState(false)
+  const [showOpenSaleModal, setShowOpenSaleModal] = useState(false)
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showCobrarSheet, setShowCobrarSheet] = useState(false)
   const [posMode, setPosMode] = useState('Mesas')
   const [isEditMode, setIsEditMode] = useState(false)
+  const [selectedMesa, setSelectedMesa] = useState(null)
 
   useEffect(() => {
     fetchAll()
@@ -64,21 +72,21 @@ const Pos = () => {
   }
 
   const handleMesaClick = async (mesa) => {
+    setSelectedMesa(mesa)
     if (mesa.status === 'libre') {
-      try {
-        const order = await ordersService.createOrder({
-          mesa_id: mesa.id,
-          salon_id: activeSalon,
-        })
-        setSelectedOrder(order)
-        setShowOrderDrawer(true)
-        await fetchAll()
-      } catch (err) {
-        setError('Error al crear orden')
-      }
+      // Show modal to create new sale
+      setShowOpenSaleModal(true)
     } else if (mesa.status === 'ocupada' && mesa.openOrder) {
-      setSelectedOrder(mesa.openOrder)
-      setShowOrderDrawer(true)
+      // Open existing order/sale
+      try {
+        const sale = await salesService.getSale(mesa.openOrder.id)
+        setSelectedSale(sale)
+        setShowSalePanel(true)
+      } catch (err) {
+        // Fallback to order drawer if sale endpoint fails
+        setSelectedOrder(mesa.openOrder)
+        setShowOrderDrawer(true)
+      }
     }
   }
 
@@ -91,6 +99,9 @@ const Pos = () => {
       const updated = await ordersService.getOrder(selectedOrder.id)
       setSelectedOrder(updated)
       await fetchAll()
+      // Show notification for comanda printed
+      const mesaNumber = selectedMesa?.numero || selectedMesa?.id
+      addNotification(`Nueva comanda en Mesa ${mesaNumber}`, 'success')
     } catch (err) {
       setError('Error al agregar item')
     }
@@ -112,6 +123,14 @@ const Pos = () => {
       await ordersService.cobrar(selectedOrder.id, { metodo_pago })
       setShowCobrarSheet(false)
       setShowOrderDrawer(false)
+      // Get mesa info for notification
+      const mesa = activeSalonMesas.find((m) => m.id === selectedOrder.mesa_id)
+      const mesaNumber = mesa?.numero || selectedOrder.mesa_id
+      const total = selectedOrder.total || 0
+      addNotification(
+        `Venta cerrada - Mesa ${mesaNumber} - $${parseFloat(total).toFixed(2)}`,
+        'info'
+      )
       setSelectedOrder(null)
       await fetchAll()
     } catch (err) {
@@ -146,15 +165,17 @@ const Pos = () => {
         onEditModeToggle={() => setIsEditMode(!isEditMode)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col">
+      {/* Main layout - responsive: stack on mobile, side-by-side on desktop */}
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+        {/* Floor plan - full width on mobile, flex-1 on desktop */}
+        <div className="flex-1 flex flex-col min-h-0">
           {isEditMode && (
             <div className="bg-blue-50 border-b p-3 text-sm text-blue-900">
               Arrastra las mesas para reorganizar. Las posiciones se guardan automáticamente.
             </div>
           )}
-          <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
-            <div style={{ minHeight: '600px', minWidth: '100%' }}>
+          <div className="flex-1 overflow-auto p-4 w-full" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
+            <div style={{ minHeight: '600px', width: '100%' }}>
               <SalonFloorPlan
                 mesas={activeSalonMesas}
                 onMesaClick={handleMesaClick}
@@ -164,6 +185,68 @@ const Pos = () => {
             </div>
           </div>
         </div>
+
+        {/* Sale panel - hidden on mobile, visible on md+ */}
+        {showSalePanel && !isEditMode && (
+          <div className="hidden md:flex flex-shrink-0">
+            <SalePanel
+              sale={selectedSale}
+              isOpen={showSalePanel}
+              onClose={() => {
+                setShowSalePanel(false)
+                setSelectedSale(null)
+                fetchAll()
+              }}
+              onSaleUpdated={(updatedSale) => {
+                setSelectedSale(updatedSale)
+                fetchAll()
+              }}
+              onSaleClosed={(sale) => {
+                const mesaNumber = sale.mesa_id || 'desconocida'
+                const total = sale.total || 0
+                addNotification(
+                  `Venta cerrada - Mesa ${mesaNumber} - $${parseFloat(total).toFixed(2)}`,
+                  'info'
+                )
+              }}
+              onItemAdded={(mesaNumber) => {
+                addNotification(`Nueva comanda en Mesa ${mesaNumber}`, 'success')
+              }}
+            />
+          </div>
+        )}
+
+        {/* Sale panel modal for mobile */}
+        {showSalePanel && !isEditMode && (
+          <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
+            <div className="w-full bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
+              <SalePanel
+                sale={selectedSale}
+                isOpen={showSalePanel}
+                onClose={() => {
+                  setShowSalePanel(false)
+                  setSelectedSale(null)
+                  fetchAll()
+                }}
+                onSaleUpdated={(updatedSale) => {
+                  setSelectedSale(updatedSale)
+                  fetchAll()
+                }}
+                onSaleClosed={(sale) => {
+                  const mesaNumber = sale.mesa_id || 'desconocida'
+                  const total = sale.total || 0
+                  addNotification(
+                    `Venta cerrada - Mesa ${mesaNumber} - $${parseFloat(total).toFixed(2)}`,
+                    'info'
+                  )
+                }}
+                onItemAdded={(mesaNumber) => {
+                  addNotification(`Nueva comanda en Mesa ${mesaNumber}`, 'success')
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {showOrderDrawer && !isEditMode && (
           <OrderDrawer
@@ -192,6 +275,22 @@ const Pos = () => {
         onItemAdded={(updatedOrder) => {
           setSelectedOrder(updatedOrder)
           setShowAddItemModal(false)
+          fetchAll()
+        }}
+      />
+
+      <OpenSaleModal
+        isOpen={showOpenSaleModal}
+        mesaId={selectedMesa?.id}
+        mesaNumber={selectedMesa?.numero || `Mesa ${selectedMesa?.id}`}
+        onClose={() => {
+          setShowOpenSaleModal(false)
+          setSelectedMesa(null)
+        }}
+        onSaleCreated={(newSale) => {
+          setSelectedSale(newSale)
+          setShowOpenSaleModal(false)
+          setShowSalePanel(true)
           fetchAll()
         }}
       />
