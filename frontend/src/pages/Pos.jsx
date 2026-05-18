@@ -219,7 +219,7 @@ const Pos = () => {
         {/* Sale panel modal for mobile/tablet */}
         {showSalePanel && !isEditMode && (
           <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
-            <div className="w-full bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
               <SalePanel
                 sale={selectedSale}
                 isOpen={showSalePanel}

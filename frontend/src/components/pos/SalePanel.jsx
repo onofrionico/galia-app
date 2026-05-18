@@ -143,33 +143,33 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
 
   return (
     <div
-      className="w-full lg:w-96 flex flex-col lg:border-l lg:flex-shrink-0 overflow-hidden"
+      className="w-full flex flex-col lg:w-96 lg:border-l lg:flex-shrink-0 overflow-hidden"
       style={{ backgroundColor: GALIA.blanco, borderColor: GALIA.grisLigero }}
     >
       {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between border-b" style={{ backgroundColor: GALIA.crema, borderColor: GALIA.grisLigero }}>
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: GALIA.marron }}>
+      <div className="px-3 md:px-6 py-3 md:py-4 flex items-center justify-between border-b" style={{ backgroundColor: GALIA.crema, borderColor: GALIA.grisLigero }}>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg md:text-xl font-bold break-words" style={{ color: GALIA.marron }}>
             Venta #{saleState.id}
           </h2>
           <p className="text-xs" style={{ color: GALIA.grisClaro }}>
             Mesa: {saleState.mesa_id || 'N/A'} • {saleState.numero_personas || 1} persona(s)
           </p>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded" title="Cerrar">
-          <X size={24} style={{ color: GALIA.marron }} />
+        <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded flex-shrink-0 ml-2" title="Cerrar">
+          <X size={20} md-size={24} style={{ color: GALIA.marron }} />
         </button>
       </div>
 
       {/* Error message */}
       {error && (
-        <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+        <div className="px-3 md:px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs md:text-sm">
           {error}
         </div>
       )}
 
       {/* Items List */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-3 md:px-4 py-2 md:py-3">
         {items && items.length > 0 ? (
           <div className="space-y-2">
             {items.map((item) => (
@@ -211,8 +211,8 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
 
       {/* Discount Section */}
       {saleState.descuento_monto && (
-        <div className="px-4 py-2 border-t" style={{ borderColor: GALIA.grisLigero, backgroundColor: '#f9f5f0' }}>
-          <div className="flex justify-between items-center text-sm">
+        <div className="px-3 md:px-4 py-2 border-t" style={{ borderColor: GALIA.grisLigero, backgroundColor: '#f9f5f0' }}>
+          <div className="flex justify-between items-center text-xs md:text-sm">
             <span style={{ color: GALIA.grisClaro }}>
               Descuento {saleState.descuento_tipo === 'porcentaje' ? `(${saleState.descuento_valor}%)` : '(fijo)'}:
             </span>
@@ -225,7 +225,7 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
 
       {/* Payment Status */}
       {saleState.total_paid > 0 && (
-        <div className="px-4 py-2 border-t" style={{ borderColor: GALIA.grisLigero, backgroundColor: '#f0fdf4' }}>
+        <div className="px-3 md:px-4 py-2 border-t" style={{ borderColor: GALIA.grisLigero, backgroundColor: '#f0fdf4' }}>
           <div className="flex justify-between items-center text-xs">
             <span style={{ color: GALIA.grisClaro }}>Pagado:</span>
             <span className="font-medium" style={{ color: GALIA.verde }}>
@@ -245,14 +245,14 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
 
       {/* Total Section */}
       <div
-        className="border-t px-4 py-4"
+        className="border-t px-3 md:px-4 py-3 md:py-4"
         style={{ borderColor: GALIA.grisLigero, backgroundColor: GALIA.crema }}
       >
-        <div className="mb-3">
+        <div className="mb-2 md:mb-3">
           <p className="text-xs" style={{ color: GALIA.grisClaro }}>
             Total ({itemCount} items)
           </p>
-          <div className="text-3xl font-bold" style={{ color: GALIA.amarillo }}>
+          <div className="text-2xl md:text-3xl font-bold" style={{ color: GALIA.amarillo }}>
             ${total.toFixed(2)}
           </div>
         </div>
@@ -261,19 +261,19 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
         <div className="space-y-2">
           <button
             onClick={() => setShowAddItemModal(true)}
-            className="w-full py-2 rounded font-semibold transition-opacity duration-200 flex items-center justify-center gap-2"
+            className="w-full py-2 rounded font-semibold transition-opacity duration-200 flex items-center justify-center gap-2 text-sm md:text-base"
             style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
             onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
             onMouseLeave={(e) => (e.target.style.opacity = '1')}
           >
-            <Plus size={18} />
+            <Plus size={16} className="md:w-5 md:h-5" />
             Agregar Item
           </button>
 
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowDiscountModal(true)}
-              className="py-2 rounded font-semibold transition-opacity duration-200 text-sm"
+              className="py-2 rounded font-semibold transition-opacity duration-200 text-xs md:text-sm"
               style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}
               onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
               onMouseLeave={(e) => (e.target.style.opacity = '1')}
@@ -284,7 +284,7 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
             <button
               onClick={() => setShowPaymentModal(true)}
               disabled={itemCount === 0}
-              className="py-2 rounded font-semibold transition-opacity duration-200 text-sm disabled:opacity-50"
+              className="py-2 rounded font-semibold transition-opacity duration-200 text-xs md:text-sm disabled:opacity-50"
               style={{ backgroundColor: GALIA.marron, color: 'white' }}
               onMouseEnter={(e) => !itemCount ? null : (e.target.style.opacity = '0.9')}
               onMouseLeave={(e) => !itemCount ? null : (e.target.style.opacity = '1')}
