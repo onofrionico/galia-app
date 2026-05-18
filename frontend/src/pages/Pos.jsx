@@ -165,10 +165,10 @@ const Pos = () => {
         onEditModeToggle={() => setIsEditMode(!isEditMode)}
       />
 
-      {/* Main layout - responsive: stack on mobile, side-by-side on desktop */}
-      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-        {/* Floor plan - full width on mobile, flex-1 on desktop */}
-        <div className="flex-1 flex flex-col min-h-0">
+      {/* Main layout - responsive: stack on mobile/tablet, side-by-side on large desktop */}
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+        {/* Floor plan - full width on mobile/tablet, flex-1 on large desktop */}
+        <div className="flex-1 flex flex-col min-h-0 w-full">
           {isEditMode && (
             <div className="bg-blue-50 border-b p-3 text-sm text-blue-900">
               Arrastra las mesas para reorganizar. Las posiciones se guardan automáticamente.
@@ -186,9 +186,9 @@ const Pos = () => {
           </div>
         </div>
 
-        {/* Sale panel - hidden on mobile, visible on md+ */}
+        {/* Sale panel - hidden on mobile/tablet, visible on large desktop (lg+) */}
         {showSalePanel && !isEditMode && (
-          <div className="hidden md:flex flex-shrink-0">
+          <div className="hidden lg:flex flex-shrink-0">
             <SalePanel
               sale={selectedSale}
               isOpen={showSalePanel}
@@ -216,9 +216,9 @@ const Pos = () => {
           </div>
         )}
 
-        {/* Sale panel modal for mobile */}
+        {/* Sale panel modal for mobile/tablet */}
         {showSalePanel && !isEditMode && (
-          <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
+          <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
             <div className="w-full bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
               <SalePanel
                 sale={selectedSale}

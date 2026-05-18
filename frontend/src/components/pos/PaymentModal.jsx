@@ -165,7 +165,7 @@ const PaymentModal = ({
                 <label className="block text-sm font-medium mb-2" style={{ color: GALIA.marron }}>
                   Método de Pago
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {paymentMethods.map((method) => (
                     <button
                       key={method}

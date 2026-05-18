@@ -143,7 +143,7 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
 
   return (
     <div
-      className="w-full md:w-80 lg:w-96 flex flex-col md:border-l md:flex-shrink-0 overflow-hidden"
+      className="w-full lg:w-96 flex flex-col lg:border-l lg:flex-shrink-0 overflow-hidden"
       style={{ backgroundColor: GALIA.blanco, borderColor: GALIA.grisLigero }}
     >
       {/* Header */}

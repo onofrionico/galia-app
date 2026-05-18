@@ -134,7 +134,7 @@ const AddItemModalSale = ({ isOpen, saleId, onClose, onItemAdded }) => {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 p-6">
+        <div className="flex-1 overflow-hidden flex flex-col gap-4 p-6">
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex gap-2 mb-4 pb-4 border-b overflow-x-auto" style={{ borderColor: GALIA.grisLigero }}>
               <button
@@ -163,7 +163,7 @@ const AddItemModalSale = ({ isOpen, saleId, onClose, onItemAdded }) => {
             </div>
 
             <div className="overflow-y-auto flex-1 min-h-0">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
@@ -198,7 +198,7 @@ const AddItemModalSale = ({ isOpen, saleId, onClose, onItemAdded }) => {
             </div>
           </div>
 
-          <div className="w-full lg:w-64 lg:border-l lg:pl-4 flex flex-col pt-4 lg:pt-0 border-t lg:border-t-0" style={{ borderColor: GALIA.grisLigero }}>
+          <div className="w-full flex flex-col pt-4 border-t" style={{ borderColor: GALIA.grisLigero }}>
             <h3 className="font-bold text-lg mb-3" style={{ color: GALIA.marron }}>
               Item a Agregar
             </h3>
