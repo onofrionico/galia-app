@@ -248,15 +248,34 @@ const Pos = () => {
           </div>
         )}
 
+        {/* Order drawer - hidden on mobile, visible on lg+ */}
         {showOrderDrawer && !isEditMode && (
-          <OrderDrawer
-            order={selectedOrder}
-            isOpen={showOrderDrawer}
-            onClose={() => setShowOrderDrawer(false)}
-            onAddItem={() => setShowAddItemModal(true)}
-            onRemoveItem={handleRemoveItem}
-            onCobrar={() => setShowCobrarSheet(true)}
-          />
+          <div className="hidden lg:flex flex-shrink-0">
+            <OrderDrawer
+              order={selectedOrder}
+              isOpen={showOrderDrawer}
+              onClose={() => setShowOrderDrawer(false)}
+              onAddItem={() => setShowAddItemModal(true)}
+              onRemoveItem={handleRemoveItem}
+              onCobrar={() => setShowCobrarSheet(true)}
+            />
+          </div>
+        )}
+
+        {/* Order drawer modal for mobile/tablet */}
+        {showOrderDrawer && !isEditMode && (
+          <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
+            <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
+              <OrderDrawer
+                order={selectedOrder}
+                isOpen={showOrderDrawer}
+                onClose={() => setShowOrderDrawer(false)}
+                onAddItem={() => setShowAddItemModal(true)}
+                onRemoveItem={handleRemoveItem}
+                onCobrar={() => setShowCobrarSheet(true)}
+              />
+            </div>
+          </div>
         )}
       </div>
 
