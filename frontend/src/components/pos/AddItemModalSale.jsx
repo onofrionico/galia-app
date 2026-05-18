@@ -4,6 +4,7 @@ import GALIA from '../../constants/colors'
 import productCategoriesService from '../../services/productCategoriesService'
 import productsService from '../../services/productsService'
 import salesService from '../../services/salesService'
+import salePrinting from '../../services/salePrinting'
 
 const AddItemModalSale = ({ isOpen, saleId, onClose, onItemAdded }) => {
   if (!isOpen) return null
@@ -88,6 +89,22 @@ const AddItemModalSale = ({ isOpen, saleId, onClose, onItemAdded }) => {
         product_variant_id: selectedVariant.variant.id,
         quantity,
       })
+
+      // Print comanda with the added item(s)
+      const newItems = [selectedVariant.product, selectedVariant.variant].filter(Boolean)
+        ? [{
+            quantity,
+            product_name: selectedVariant.product.name,
+            variant_name: selectedVariant.variant.name,
+            unit_price: selectedVariant.variant.price,
+          }]
+        : []
+
+      // Print comanda for the new item
+      if (newItems.length > 0) {
+        await salePrinting.printComanda(updatedSale, newItems, true)
+      }
+
       onItemAdded?.(updatedSale)
     } catch (err) {
       setError(err.response?.data?.error || 'Error al agregar item')
