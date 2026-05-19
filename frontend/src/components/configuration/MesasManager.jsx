@@ -40,7 +40,7 @@ export default function MesasManager() {
     setLoading(true)
     try {
       const response = await configurationService.getSalons()
-      const salonesList = Array.isArray(response) ? response : response.salons || []
+      const salonesList = Array.isArray(response) ? response : response.salones || response.salons || []
       setSalones(salonesList)
       if (salonesList.length > 0) {
         setSelectedSalonId(salonesList[0].id)
