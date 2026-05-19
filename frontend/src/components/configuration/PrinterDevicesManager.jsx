@@ -39,7 +39,7 @@ export default function PrinterDevicesManager() {
     setLoading(true)
     try {
       const response = await configurationService.getPrinters()
-      setPrinters(Array.isArray(response) ? response : response.data || [])
+      setPrinters(Array.isArray(response) ? response : response.devices || [])
     } catch (error) {
       console.error('Error fetching printers:', error)
       setError('Error al cargar los dispositivos de impresión')

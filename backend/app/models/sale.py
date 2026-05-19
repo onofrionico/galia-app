@@ -83,7 +83,7 @@ class Sale(db.Model):
             'descuento_tipo': self.descuento_tipo,
             'descuento_valor': float(self.descuento_valor) if self.descuento_valor else None,
             'descuento_monto': float(self.descuento_monto) if self.descuento_monto else None,
-            'total_paid': float(self.total_paid),
+            'total_paid': float(self.total_paid) if self.total_paid else 0,
             'camarero_id': self.camarero_id,
         }
 

@@ -5,7 +5,32 @@
       "Bash(node --input-type=module --eval ':*)",
       "Bash(node -e ':*)",
       "Bash(node_modules/.bin/eslint src/components/layout/Sidebar.jsx)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(python -m flask db upgrade)",
+      "Bash(python -m flask db upgrade 9b2e7c1d4a5f)",
+      "Bash(python -m flask db current)",
+      "Bash(flask db *)",
+      "Bash(python -m flask db migrate -m \"Add Payment model for sale payments\")",
+      "Bash(python -m flask db heads)",
+      "Bash(python \"c:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\\\\check_tables.py\")",
+      "Bash(python -c \"from app.models import Payment; p = Payment\\(sale_id=1, amount=100.00, method='efectivo'\\); print\\('Payment model instantiated:', p.to_dict\\(\\) if hasattr\\(p, 'to_dict'\\) else 'Model ok'\\)\")",
+      "Bash(python \"c:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\\\\test_payment_model.py\")",
+      "Bash(python \"c:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\\\\test_payment_insert.py\")",
+      "Bash(python -c \"from app.extensions import db; from app.models import NotificationPreference; print\\('Model imported successfully'\\); print\\('Fields:', [col.name for col in NotificationPreference.__table__.columns]\\)\")",
+      "PowerShell(cd \"C:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\"; $env:FLASK_ENV = \"development\"; & \"venv\\\\Scripts\\\\flask.exe\" db migrate -m \"Add fields to Sale model for enhanced sale flow\" 2>&1)",
+      "Bash(python -m pytest tests/ -v -k configuration)",
+      "Bash(python -m py_compile app/routes/sales.py)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\\\\app\")",
+      "Bash(Select-Object Name)",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "Skill(superpowers:systematic-debugging)",
+      "Skill(superpowers:systematic-debugging:*)",
+      "Bash(python)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/test_api.sh)",
+      "Bash(bash /tmp/test_api.sh)"
     ]
   }
 }

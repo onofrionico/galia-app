@@ -40,7 +40,7 @@ export default function MesasManager() {
     setLoading(true)
     try {
       const response = await configurationService.getSalons()
-      const salonesList = Array.isArray(response) ? response : response.data || []
+      const salonesList = Array.isArray(response) ? response : response.salons || []
       setSalones(salonesList)
       if (salonesList.length > 0) {
         setSelectedSalonId(salonesList[0].id)
@@ -57,7 +57,7 @@ export default function MesasManager() {
     setMesasLoading(true)
     try {
       const response = await configurationService.getMesas(salonId)
-      setMesas(Array.isArray(response) ? response : response.data || [])
+      setMesas(Array.isArray(response) ? response : response.mesas || [])
     } catch (error) {
       console.error('Error fetching mesas:', error)
       setError('Error al cargar las mesas')

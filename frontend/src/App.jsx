@@ -1,9 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import PosLayout from './components/layout/PosLayout'
 import CamareroLayout from './components/layout/CamareroLayout'
+import NotificationToast from './components/notifications/NotificationToast'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Schedules from './pages/Schedules'
@@ -48,7 +50,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <NotificationProvider>
+          <NotificationToast />
+          <Routes>
           <Route path="/login" element={<Login />} />
 
           {/* Admin POS — fullscreen layout */}
@@ -103,6 +107,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   )

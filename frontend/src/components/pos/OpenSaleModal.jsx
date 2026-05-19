@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import GALIA from '../../constants/colors'
-import salesService from '../../services/salesService'
+import ordersService from '../../services/ordersService'
 
 const OpenSaleModal = ({ isOpen, mesaId, mesaNumber, onClose, onSaleCreated }) => {
   if (!isOpen) return null
@@ -21,18 +21,14 @@ const OpenSaleModal = ({ isOpen, mesaId, mesaNumber, onClose, onSaleCreated }) =
     setError('')
 
     try {
-      const sale = await salesService.createSale({
+      const order = await ordersService.createOrder({
         mesa_id: mesaId,
-        numero_personas: numeroPersonas,
-        comentarios: comentarios || null,
-        items: [],
-        medio_pago: 'Efectivo',
       })
 
-      onSaleCreated?.(sale)
+      onSaleCreated?.(order)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al crear la venta')
+      setError(err.response?.data?.error || 'Error al crear la orden')
     } finally {
       setSaving(false)
     }

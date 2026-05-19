@@ -1,0 +1,14 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - heading "Galia" [level=2] [ref=e6]
+    - paragraph [ref=e7]: Sistema de Gestión de Cafetería
+  - generic [ref=e8]:
+    - paragraph [ref=e19]: Credenciales inválidas
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Email
+        - textbox "Email" [ref=e12]: admin@test.com
+      - generic [ref=e13]:
+        - generic [ref=e14]: Contraseña
+        - textbox "Contraseña" [ref=e15]: password
+    - button "Ingresar" [ref=e17] [cursor=pointer]

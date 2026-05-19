@@ -31,7 +31,7 @@ export default function SalonesManager() {
     setLoading(true)
     try {
       const response = await configurationService.getSalons()
-      setSalones(Array.isArray(response) ? response : response.data || [])
+      setSalones(Array.isArray(response) ? response : response.salons || [])
     } catch (error) {
       console.error('Error fetching salones:', error)
       setError('Error al cargar los salones')

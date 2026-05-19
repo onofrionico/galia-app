@@ -4,7 +4,7 @@ export const notificationService = {
   async getMyNotifications(unreadOnly = false) {
     const params = {}
     if (unreadOnly) params.unread_only = true
-    
+
     const response = await api.get('/notifications', { params })
     return response.data
   },
@@ -16,6 +16,16 @@ export const notificationService = {
 
   async markAllAsRead() {
     const response = await api.put('/notifications/mark-all-read')
+    return response.data
+  },
+
+  async getPreferences() {
+    const response = await api.get('/notifications/preferences')
+    return response.data
+  },
+
+  async updatePreferences(data) {
+    const response = await api.put('/notifications/preferences', data)
     return response.data
   },
 }

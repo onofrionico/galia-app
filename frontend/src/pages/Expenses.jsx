@@ -5,6 +5,7 @@ import {
   CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet, Tag
 } from 'lucide-react';
 import api from '../services/api';
+import suppliersService from '@/services/suppliersService';
 import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
 import MoneyFormat from '../components/MoneyFormat';
 
@@ -26,6 +27,7 @@ const Expenses = () => {
     estados_pago: [],
     medios_pago: []
   });
+  const [supplierOptions, setSupplierOptions] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 50,
@@ -109,6 +111,16 @@ const Expenses = () => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const data = await suppliersService.getSuppliers({ include_inactive: false });
+      const names = (data.suppliers || []).map(s => s.name).filter(Boolean);
+      setSupplierOptions(names);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
     fetchStats();
@@ -116,6 +128,7 @@ const Expenses = () => {
 
   useEffect(() => {
     fetchFilterOptions();
+    fetchSuppliers();
   }, []);
 
   const handleFilterChange = (field, value) => {
@@ -734,13 +747,21 @@ const Expenses = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.proveedor}
                       onChange={(e) => handleFormChange('proveedor', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Nombre del proveedor"
-                    />
+                    >
+                      <option value="">Seleccione un proveedor</option>
+                      {formData.proveedor &&
+                        !supplierOptions.includes(formData.proveedor) &&
+                        !filterOptions.proveedores.includes(formData.proveedor) && (
+                          <option value={formData.proveedor}>{formData.proveedor}</option>
+                        )}
+                      {[...new Set([...(supplierOptions || []), ...(filterOptions.proveedores || [])])].map((prov) => (
+                        <option key={prov} value={prov}>{prov}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>

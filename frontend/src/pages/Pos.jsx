@@ -77,15 +77,13 @@ const Pos = () => {
       // Show modal to create new sale
       setShowOpenSaleModal(true)
     } else if (mesa.status === 'ocupada' && mesa.openOrder) {
-      // Open existing order/sale
+      // Open existing order (open orders don't have sales yet - sales are created after cobrar)
       try {
-        const sale = await salesService.getSale(mesa.openOrder.id)
-        setSelectedSale(sale)
-        setShowSalePanel(true)
-      } catch (err) {
-        // Fallback to order drawer if sale endpoint fails
-        setSelectedOrder(mesa.openOrder)
+        const order = await ordersService.getOrder(mesa.openOrder.id)
+        setSelectedOrder(order)
         setShowOrderDrawer(true)
+      } catch (err) {
+        setError('Error al cargar la orden')
       }
     }
   }
@@ -120,7 +118,7 @@ const Pos = () => {
 
   const handleCobrar = async (metodo_pago) => {
     try {
-      await ordersService.cobrar(selectedOrder.id, { metodo_pago })
+      await ordersService.cobrar(selectedOrder.id, metodo_pago)
       setShowCobrarSheet(false)
       setShowOrderDrawer(false)
       // Get mesa info for notification
