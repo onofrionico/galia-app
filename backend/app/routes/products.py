@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
@@ -7,7 +7,10 @@ from app.models.product_category import ProductCategory
 from app.models.supply import Supply
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import admin_required
+from app.utils.s3_utils import s3_service
 from sqlalchemy.exc import IntegrityError
+from werkzeug.utils import secure_filename
+import uuid
 
 bp = Blueprint('products', __name__, url_prefix='/api/v1/products')
 
@@ -277,3 +280,40 @@ def adjust_stock(current_user, product_id, variant_id):
     variant.stock_quantity = float(data['stock_quantity'])
     db.session.commit()
     return jsonify(variant.to_dict()), 200
+
+
+@bp.route('/upload-image', methods=['POST'])
+@token_required
+@admin_required
+def upload_product_image(current_user):
+    """Upload product image to S3 and return URL"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
+    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+        return jsonify({'error': 'Invalid file type. Allowed: jpg, jpeg, png, webp'}), 400
+
+    # Validate file size (5MB max)
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:
+        return jsonify({'error': 'File too large. Max 5MB'}), 413
+
+    try:
+        # Generate unique filename
+        filename = f"products/{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+
+        # Upload to S3
+        s3_result = s3_service.upload_file(file, 'product_images', filename)
+
+        return jsonify({'image_url': s3_result['s3_url']}), 200
+    except Exception as e:
+        current_app.logger.error(f"Image upload failed: {str(e)}")
+        return jsonify({'error': 'Upload failed'}), 500

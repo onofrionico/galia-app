@@ -8,6 +8,8 @@ from app.models.product_variant import ProductVariant
 from app.models.supply import Supply
 from app.models.product_recipe_item import ProductRecipeItem
 import json
+from io import BytesIO
+from unittest.mock import patch, MagicMock
 
 
 @pytest.fixture
@@ -547,3 +549,100 @@ def test_delete_product(client, admin_user, category):
     prod_resp = client.get(f'/api/v1/products/{prod_id}', headers={'Authorization': f'Bearer {token}'})
     data = json.loads(prod_resp.data)
     assert data['is_active'] == False
+
+
+@patch('app.routes.products.s3_service')
+def test_upload_product_image(mock_s3_service, client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    # Mock S3 upload response
+    mock_s3_service.upload_file.return_value = {
+        's3_key': 'products/test_uuid_test.jpg',
+        's3_url': 'https://bucket.s3.amazonaws.com/products/test_uuid_test.jpg',
+        'original_filename': 'test.jpg',
+        'content_type': 'image/jpeg'
+    }
+
+    # Create a test image file
+    image_data = BytesIO(b'fake image content')
+    image_data.name = 'test.jpg'
+
+    response = client.post(
+        '/api/v1/products/upload-image',
+        data={'file': (image_data, 'test.jpg')},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'image_url' in data
+    assert 'https://bucket.s3.amazonaws.com/' in data['image_url']
+
+
+@patch('app.routes.products.s3_service')
+def test_upload_product_image_no_file(mock_s3_service, client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    response = client.post(
+        '/api/v1/products/upload-image',
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'No file provided' in data['error']
+
+
+@patch('app.routes.products.s3_service')
+def test_upload_product_image_invalid_file_type(mock_s3_service, client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    # Create a test file with invalid extension
+    invalid_file = BytesIO(b'fake file content')
+    invalid_file.name = 'test.txt'
+
+    response = client.post(
+        '/api/v1/products/upload-image',
+        data={'file': (invalid_file, 'test.txt')},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'Invalid file type' in data['error']
+
+
+@patch('app.routes.products.s3_service')
+def test_upload_product_image_file_too_large(mock_s3_service, client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    # Create a mock file that is larger than 5MB
+    large_file = BytesIO(b'x' * (6 * 1024 * 1024))
+    large_file.name = 'large_image.jpg'
+
+    response = client.post(
+        '/api/v1/products/upload-image',
+        data={'file': (large_file, 'large_image.jpg')},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 413
+    data = json.loads(response.data)
+    assert 'File too large' in data['error']
+
+
+@patch('app.routes.products.s3_service')
+def test_upload_product_image_s3_error(mock_s3_service, client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+
+    # Mock S3 upload to raise an exception
+    mock_s3_service.upload_file.side_effect = Exception('S3 connection error')
+
+    # Create a test image file
+    image_data = BytesIO(b'fake image content')
+    image_data.name = 'test.jpg'
+
+    response = client.post(
+        '/api/v1/products/upload-image',
+        data={'file': (image_data, 'test.jpg')},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert 'Upload failed' in data['error']
