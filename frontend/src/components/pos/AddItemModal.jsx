@@ -5,7 +5,6 @@ import productsService from '../../services/productsService'
 import ordersService from '../../services/ordersService'
 
 const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
-  if (!isOpen) return null
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
@@ -14,6 +13,8 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  if (!isOpen) return null
 
   useEffect(() => {
     fetchData()

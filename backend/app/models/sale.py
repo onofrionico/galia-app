@@ -52,8 +52,8 @@ class Sale(db.Model):
         db.Index('idx_sales_origen', 'origen'),
     )
     
-    def to_dict(self):
-        return {
+    def to_dict(self, include_items=True):
+        data = {
             'id': self.id,
             'external_id': self.external_id,
             'fecha': self.fecha.isoformat() if self.fecha else None,
@@ -86,6 +86,16 @@ class Sale(db.Model):
             'total_paid': float(self.total_paid),
             'camarero_id': self.camarero_id,
         }
+
+        # Include items if requested and sale has items
+        if include_items:
+            try:
+                data['items'] = [item.to_dict() for item in self.items.all()]
+            except Exception as e:
+                # If items can't be serialized, just exclude them
+                data['items'] = []
+
+        return data
 
     @staticmethod
     def from_csv_row(row):
