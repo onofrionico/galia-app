@@ -2,9 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { LogOut, Search, Settings } from 'lucide-react'
 import GALIA from '../../constants/colors'
 
-const POS_MODES = ['Mesas', 'Mostrador', 'Delivery', 'Mostrador express']
-
-const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch, isEditMode, onEditModeToggle }) => {
+const PosHeader = ({ salons = [], activeSalon, onSalonChange, onSearch, isEditMode, onEditModeToggle }) => {
   const navigate = useNavigate()
 
   const handleExit = () => {
@@ -13,20 +11,20 @@ const PosHeader = ({ activeMode = 'Mesas', onModeChange, onSearch, isEditMode, o
 
   return (
     <header style={{ backgroundColor: '#4a4a4a' }} className="flex flex-col">
-      {/* Top bar with modes */}
-      <div className="h-12 flex items-center px-6 gap-6 text-white text-sm font-medium">
-        {POS_MODES.map((mode) => (
+      {/* Top bar with salons */}
+      <div className="h-12 flex items-center px-6 gap-6 text-white text-sm font-medium overflow-x-auto">
+        {salons.map((salon) => (
           <button
-            key={mode}
-            onClick={() => onModeChange?.(mode)}
-            className="transition-colors"
+            key={salon.id}
+            onClick={() => onSalonChange?.(salon.id)}
+            className="transition-colors whitespace-nowrap"
             style={{
-              color: activeMode === mode ? '#fff' : '#ccc',
-              borderBottom: activeMode === mode ? `3px solid ${GALIA.amarillo}` : 'none',
+              color: activeSalon === salon.id ? '#fff' : '#ccc',
+              borderBottom: activeSalon === salon.id ? `3px solid ${GALIA.amarillo}` : 'none',
               paddingBottom: '6px'
             }}
           >
-            {mode}
+            {salon.name}
           </button>
         ))}
 

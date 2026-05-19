@@ -28,7 +28,6 @@ const Pos = () => {
   const [showOpenSaleModal, setShowOpenSaleModal] = useState(false)
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showCobrarSheet, setShowCobrarSheet] = useState(false)
-  const [posMode, setPosMode] = useState('Mesas')
   const [isEditMode, setIsEditMode] = useState(false)
   const [selectedMesa, setSelectedMesa] = useState(null)
 
@@ -157,8 +156,9 @@ const Pos = () => {
   return (
     <div className="h-full flex flex-col">
       <PosHeader
-        activeMode={posMode}
-        onModeChange={setPosMode}
+        salons={salons}
+        activeSalon={activeSalon}
+        onSalonChange={setActiveSalon}
         isEditMode={isEditMode}
         onEditModeToggle={() => setIsEditMode(!isEditMode)}
       />
