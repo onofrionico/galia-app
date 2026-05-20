@@ -85,7 +85,7 @@ const ProductCatalog = ({ onProductSelected, loading = false, error = null }) =>
               <button
                 key={product.id}
                 onClick={() => onProductSelected?.(product)}
-                className="w-full flex items-center gap-4 p-3 rounded-lg border-2 hover:shadow-md transition-all text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-lg border-2 hover:shadow-md transition-all text-left"
                 style={{
                   borderColor: GALIA.grisLigero,
                   backgroundColor: GALIA.crema,
@@ -101,7 +101,7 @@ const ProductCatalog = ({ onProductSelected, loading = false, error = null }) =>
               >
                 {/* Image Thumbnail */}
                 <div
-                  className="w-16 h-16 flex-shrink-0 rounded-lg flex items-center justify-center text-2xl"
+                  className="w-20 h-20 flex-shrink-0 rounded-lg flex items-center justify-center text-2xl"
                   style={{ backgroundColor: GALIA.grisLigero }}
                 >
                   {product.image_url ? (
@@ -120,9 +120,9 @@ const ProductCatalog = ({ onProductSelected, loading = false, error = null }) =>
                   <div className="font-bold text-sm leading-snug line-clamp-2" style={{ color: GALIA.marron }}>
                     {product.name}
                   </div>
-                  {product.description && (
+                  {product.category_name && (
                     <div className="text-xs mt-1 line-clamp-1" style={{ color: GALIA.grisClaro }}>
-                      {product.description}
+                      {product.category_name}
                     </div>
                   )}
                   {product.variants && product.variants.length > 0 && (
