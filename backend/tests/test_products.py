@@ -551,17 +551,12 @@ def test_delete_product(client, admin_user, category):
     assert data['is_active'] == False
 
 
-@patch('app.routes.products.s3_service')
-def test_upload_product_image(mock_s3_service, client, admin_user):
+@patch('app.utils.storage.ProductImageStorage.upload_product_image')
+def test_upload_product_image(mock_upload, client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
 
     # Mock S3 upload response
-    mock_s3_service.upload_file.return_value = {
-        's3_key': 'products/test_uuid_test.jpg',
-        's3_url': 'https://bucket.s3.amazonaws.com/products/test_uuid_test.jpg',
-        'original_filename': 'test.jpg',
-        'content_type': 'image/jpeg'
-    }
+    mock_upload.return_value = 'https://bucket.s3.amazonaws.com/products/test_uuid_test.jpg'
 
     # Create a test image file
     image_data = BytesIO(b'fake image content')
@@ -578,8 +573,7 @@ def test_upload_product_image(mock_s3_service, client, admin_user):
     assert 'https://bucket.s3.amazonaws.com/' in data['image_url']
 
 
-@patch('app.routes.products.s3_service')
-def test_upload_product_image_no_file(mock_s3_service, client, admin_user):
+def test_upload_product_image_no_file(client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
 
     response = client.post(
@@ -591,8 +585,7 @@ def test_upload_product_image_no_file(mock_s3_service, client, admin_user):
     assert 'No file provided' in data['error']
 
 
-@patch('app.routes.products.s3_service')
-def test_upload_product_image_invalid_file_type(mock_s3_service, client, admin_user):
+def test_upload_product_image_invalid_file_type(client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
 
     # Create a test file with invalid extension
@@ -609,8 +602,7 @@ def test_upload_product_image_invalid_file_type(mock_s3_service, client, admin_u
     assert 'Invalid file type' in data['error']
 
 
-@patch('app.routes.products.s3_service')
-def test_upload_product_image_file_too_large(mock_s3_service, client, admin_user):
+def test_upload_product_image_file_too_large(client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
 
     # Create a mock file that is larger than 5MB
@@ -627,12 +619,12 @@ def test_upload_product_image_file_too_large(mock_s3_service, client, admin_user
     assert 'File too large' in data['error']
 
 
-@patch('app.routes.products.s3_service')
-def test_upload_product_image_s3_error(mock_s3_service, client, admin_user):
+@patch('app.utils.storage.ProductImageStorage.upload_product_image')
+def test_upload_product_image_s3_error(mock_upload, client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
 
     # Mock S3 upload to raise an exception
-    mock_s3_service.upload_file.side_effect = Exception('S3 connection error')
+    mock_upload.side_effect = Exception('S3 connection error')
 
     # Create a test image file
     image_data = BytesIO(b'fake image content')

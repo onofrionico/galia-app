@@ -7,10 +7,10 @@ from app.models.product_category import ProductCategory
 from app.models.supply import Supply
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import admin_required
-from app.utils.s3_utils import s3_service
+from app.utils.storage import upload_product_image
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
-import uuid
+import os
 
 bp = Blueprint('products', __name__, url_prefix='/api/v1/products')
 
@@ -282,10 +282,14 @@ def adjust_stock(current_user, product_id, variant_id):
     return jsonify(variant.to_dict()), 200
 
 
+MAX_IMAGE_SIZE_MB = 5
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
+
+
 @bp.route('/upload-image', methods=['POST'])
 @token_required
 @admin_required
-def upload_product_image(current_user):
+def upload_image_endpoint(current_user):
     """Upload product image to S3 and return URL"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -295,25 +299,21 @@ def upload_product_image(current_user):
         return jsonify({'error': 'No file selected'}), 400
 
     # Validate file type
-    allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
-    if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
-        return jsonify({'error': 'Invalid file type. Allowed: jpg, jpeg, png, webp'}), 400
+    _, file_ext = os.path.splitext(file.filename)
+    if file_ext.lower().lstrip('.') not in ALLOWED_IMAGE_EXTENSIONS:
+        return jsonify({'error': f'Invalid file type. Allowed: {", ".join(ALLOWED_IMAGE_EXTENSIONS)}'}), 400
 
-    # Validate file size (5MB max)
-    file.seek(0, 2)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:
-        return jsonify({'error': 'File too large. Max 5MB'}), 413
+    # Validate file size using request.content_length
+    if request.content_length and request.content_length > MAX_IMAGE_SIZE_MB * 1024 * 1024:
+        return jsonify({'error': f'File too large. Max {MAX_IMAGE_SIZE_MB}MB'}), 413
 
     try:
-        # Generate unique filename
-        filename = f"products/{uuid.uuid4().hex}_{secure_filename(file.filename)}"
-
         # Upload to S3
-        s3_result = s3_service.upload_file(file, 'product_images', filename)
-
-        return jsonify({'image_url': s3_result['s3_url']}), 200
+        image_url = upload_product_image(file, file.filename)
+        return jsonify({'image_url': image_url}), 200
+    except ValueError as e:
+        current_app.logger.error(f"Image upload validation error for {file.filename}: {str(e)}")
+        return jsonify({'error': 'Upload configuration error'}), 500
     except Exception as e:
-        current_app.logger.error(f"Image upload failed: {str(e)}")
+        current_app.logger.error(f"Image upload failed for {file.filename}: {str(e)}")
         return jsonify({'error': 'Upload failed'}), 500
