@@ -77,15 +77,15 @@ const ProductCatalog = ({ onProductSelected, loading = false, error = null }) =>
         ))}
       </div>
 
-      {/* Products Grid */}
+      {/* Products List */}
       <div className="overflow-y-auto flex-1">
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="space-y-2">
             {filteredProducts.map((product) => (
               <button
                 key={product.id}
                 onClick={() => onProductSelected?.(product)}
-                className="border-2 rounded-lg p-4 hover:shadow-md transition-all text-center min-h-32 flex flex-col items-center justify-center"
+                className="w-full flex items-center gap-4 p-3 rounded-lg border-2 hover:shadow-md transition-all text-left"
                 style={{
                   borderColor: GALIA.grisLigero,
                   backgroundColor: GALIA.crema,
@@ -99,16 +99,44 @@ const ProductCatalog = ({ onProductSelected, loading = false, error = null }) =>
                   e.currentTarget.style.backgroundColor = GALIA.crema
                 }}
               >
-                <div className="text-3xl mb-2">📦</div>
-                <div className="font-bold text-sm leading-snug mb-2 line-clamp-2" style={{ color: GALIA.marron }}>
-                  {product.name}
+                {/* Image Thumbnail */}
+                <div
+                  className="w-16 h-16 flex-shrink-0 rounded-lg flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: GALIA.grisLigero }}
+                >
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    '📦'
+                  )}
                 </div>
-                {product.variants && product.variants.length > 0 && (
-                  <div className="text-xs font-semibold mt-1" style={{ color: GALIA.amarillo }}>
-                    ${product.variants[0].price}
-                    {product.variants.length > 1 && ` +${product.variants.length - 1}`}
+
+                {/* Product Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm leading-snug line-clamp-2" style={{ color: GALIA.marron }}>
+                    {product.name}
                   </div>
-                )}
+                  {product.description && (
+                    <div className="text-xs mt-1 line-clamp-1" style={{ color: GALIA.grisClaro }}>
+                      {product.description}
+                    </div>
+                  )}
+                  {product.variants && product.variants.length > 0 && (
+                    <div className="text-xs font-semibold mt-2" style={{ color: GALIA.amarillo }}>
+                      ${product.variants[0].price}
+                      {product.variants.length > 1 && ` +${product.variants.length - 1}`}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Add Indicator */}
+                <div className="flex-shrink-0 text-lg" style={{ color: GALIA.amarillo }}>
+                  →
+                </div>
               </button>
             ))}
           </div>
