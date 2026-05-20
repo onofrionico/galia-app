@@ -68,6 +68,17 @@ const productsService = {
     )
     return response.data
   },
+
+  async uploadProductImage(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/products/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data.image_url
+  },
 }
 
 export default productsService
