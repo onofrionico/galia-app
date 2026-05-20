@@ -133,6 +133,9 @@ const Products = () => {
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left px-6 py-3 font-medium text-sm text-gray-700">
+                Imagen
+              </th>
+              <th className="text-left px-6 py-3 font-medium text-sm text-gray-700">
                 Producto
               </th>
               <th className="text-left px-6 py-3 font-medium text-sm text-gray-700">
@@ -149,13 +152,26 @@ const Products = () => {
           <tbody className="divide-y">
             {products.length === 0 ? (
               <tr>
-                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                   No hay productos
                 </td>
               </tr>
             ) : (
               products.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg">📦</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => navigate(`/products/${product.id}`)}
