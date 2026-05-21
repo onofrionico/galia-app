@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '@/services/authService'
+import api from '@/services/api'
 
 const AuthContext = createContext(null)
 
@@ -14,16 +15,9 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserModules = async () => {
     try {
-      const token = authService.getToken()
-      console.log('[Auth] Fetching modules with token:', token?.substring(0, 20) + '...')
-      const response = await fetch('http://localhost:5000/api/v1/permissions/modules/my-modules', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setUserModules(data.modules || [])
+      const response = await api.get('/permissions/modules/my-modules')
+      if (response.data) {
+        setUserModules(response.data.modules || [])
       }
     } catch (error) {
       console.error('Error fetching user modules:', error)

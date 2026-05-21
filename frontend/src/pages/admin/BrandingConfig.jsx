@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { configService } from '@/services/configService'
+import configService from '@/services/configService'
 import { Upload, Check, AlertCircle } from 'lucide-react'
 
 const BrandingConfig = () => {

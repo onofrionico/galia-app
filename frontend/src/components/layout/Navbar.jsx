@@ -2,7 +2,7 @@ import { useAuth } from '@/context/AuthContext'
 import { LogOut, User, Menu } from 'lucide-react'
 import NotificationBell from '../notifications/NotificationBell'
 import { useState, useEffect } from 'react'
-import { configService } from '@/services/configService'
+import configService from '@/services/configService'
 import { useNavigate } from 'react-router-dom'
 
 const Navbar = ({ onMenuClick }) => {
