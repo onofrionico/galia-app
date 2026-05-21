@@ -57,6 +57,10 @@ pnpm-debug.log*
 frontend/dist/
 frontend/build/
 
+# Uploaded files
+frontend/public/uploads/*
+!frontend/public/uploads/.gitkeep
+
 # Logs
 *.log
 logs/
