@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   Upload, Download, Plus, Search, Filter, X, ChevronLeft, ChevronRight,
   FileText, AlertCircle, CheckCircle, DollarSign, TrendingUp, Users,
-  CreditCard, Store, Truck, Eye, Edit2, Trash2, RefreshCw, Cloud
+  CreditCard, Store, Truck, Eye, Edit2, Trash2, RefreshCw, Cloud, Clock
 } from 'lucide-react';
 import api from '../services/api';
+import ordersService from '../services/ordersService';
 import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 
 const Sales = () => {
+  const [activeTab, setActiveTab] = useState('closed'); // 'closed' or 'open'
   const [sales, setSales] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({
@@ -109,10 +112,23 @@ const Sales = () => {
     }
   };
 
+  const fetchOrders = useCallback(async () => {
+    try {
+      const response = await ordersService.getOrders({ status: 'abierta' });
+      setOrders(response.orders || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchSales();
-    fetchStats();
-  }, [fetchSales, fetchStats]);
+    if (activeTab === 'closed') {
+      fetchSales();
+      fetchStats();
+    } else {
+      fetchOrders();
+    }
+  }, [activeTab, fetchSales, fetchStats, fetchOrders]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -330,6 +346,32 @@ const Sales = () => {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Ventas</h1>
           <p className="text-gray-600 mt-1">Gestión y análisis de ventas</p>
+
+          {/* Tabs */}
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={() => setActiveTab('closed')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'closed'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              Cerradas
+            </button>
+            <button
+              onClick={() => setActiveTab('open')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'open'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              En Curso ({orders.length})
+            </button>
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -521,38 +563,40 @@ const Sales = () => {
         )}
       </div>
 
-      {/* Sales Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mesa/Sala</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medio Pago</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
+      {/* Conditional Rendering: Sales or Orders Table */}
+      {activeTab === 'closed' ? (
+        /* Sales Table */
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
-                    Cargando...
-                  </td>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mesa/Sala</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medio Pago</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
-              ) : sales.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
-                    No hay ventas registradas
-                  </td>
-                </tr>
-              ) : (
-                sales.map((sale) => (
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                      Cargando...
+                    </td>
+                  </tr>
+                ) : sales.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                      No hay ventas registradas
+                    </td>
+                  </tr>
+                ) : (
+                  sales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {sale.external_id || sale.id}
@@ -615,34 +659,93 @@ const Sales = () => {
           </table>
         </div>
         
-        {/* Pagination */}
-        {pagination.pages > 1 && (
-          <div className="px-4 py-3 border-t flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Mostrando {((pagination.page - 1) * pagination.per_page) + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} de {pagination.total}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page === 1}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-gray-600">
-                Página {pagination.page} de {pagination.pages}
-              </span>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                disabled={pagination.page === pagination.pages}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div className="px-4 py-3 border-t flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Mostrando {((pagination.page - 1) * pagination.per_page) + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} de {pagination.total}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={pagination.page === 1}
+                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-gray-600">
+                  Página {pagination.page} de {pagination.pages}
+                </span>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                  disabled={pagination.page === pagination.pages}
+                  className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+          )}
+        </div>
+      ) : (
+        /* Orders Table */
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mesa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creada</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Parcial</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                      Cargando...
+                    </td>
+                  </tr>
+                ) : orders.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                      No hay órdenes en curso
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                        #{order.id}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        Mesa {order.mesa_id || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {order.items?.length || 0} items
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {formatDateTime(order.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
+                        $<MoneyFormat amount={order.total} />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                          En curso
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Import Modal */}
       {showImportModal && (

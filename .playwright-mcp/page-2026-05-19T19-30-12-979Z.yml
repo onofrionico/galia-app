@@ -1,0 +1,204 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - button [ref=e8] [cursor=pointer]:
+          - img [ref=e9]
+        - heading "Galia" [level=1] [ref=e10]
+        - generic [ref=e11]: Gestión de Cafetería
+      - generic [ref=e12]:
+        - button [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+        - generic [ref=e18]:
+          - img [ref=e19]
+          - generic [ref=e22]: admin@cafe.com
+          - generic [ref=e23]: Admin
+        - button "Salir" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - generic [ref=e28]: Salir
+  - generic [ref=e29]:
+    - complementary [ref=e30]:
+      - navigation [ref=e31]:
+        - button [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - link "Dashboard" [ref=e36] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e37]
+          - generic [ref=e42]: Dashboard
+        - link "Mi Perfil" [ref=e43] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e44]
+          - generic [ref=e47]: Mi Perfil
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - button "Personal" [ref=e50] [cursor=pointer]:
+              - generic [ref=e51]:
+                - img [ref=e52]
+                - text: Personal
+              - img [ref=e57]
+            - generic [ref=e59]:
+              - link "Horarios" [ref=e60] [cursor=pointer]:
+                - /url: /schedules
+                - img [ref=e61]
+                - generic [ref=e63]: Horarios
+              - link "Gestión de Horas" [ref=e64] [cursor=pointer]:
+                - /url: /admin-time-tracking
+                - img [ref=e65]
+                - generic [ref=e68]: Gestión de Horas
+              - link "Importar Horas" [ref=e69] [cursor=pointer]:
+                - /url: /import-time-tracking
+                - img [ref=e70]
+                - generic [ref=e73]: Importar Horas
+              - link "Solicitudes de Ausencia" [ref=e74] [cursor=pointer]:
+                - /url: /absence-requests
+                - img [ref=e75]
+                - generic [ref=e78]: Solicitudes de Ausencia
+              - link "Empleados" [ref=e79] [cursor=pointer]:
+                - /url: /employees
+                - img [ref=e80]
+                - generic [ref=e85]: Empleados
+              - link "Puestos" [ref=e86] [cursor=pointer]:
+                - /url: /job-positions
+                - img [ref=e87]
+                - generic [ref=e90]: Puestos
+              - link "Feriados" [ref=e91] [cursor=pointer]:
+                - /url: /holidays
+                - img [ref=e92]
+                - generic [ref=e94]: Feriados
+          - generic [ref=e95]:
+            - button "Finanzas" [ref=e96] [cursor=pointer]:
+              - generic [ref=e97]:
+                - img [ref=e98]
+                - text: Finanzas
+              - img [ref=e100]
+            - generic [ref=e102]:
+              - link "Ventas" [ref=e103] [cursor=pointer]:
+                - /url: /sales
+                - img [ref=e104]
+                - generic [ref=e108]: Ventas
+              - link "Gastos" [ref=e109] [cursor=pointer]:
+                - /url: /expenses
+                - img [ref=e110]
+                - generic [ref=e113]: Gastos
+              - link "Categorías de Gastos" [ref=e114] [cursor=pointer]:
+                - /url: /expense-categories
+                - img [ref=e115]
+                - generic [ref=e117]: Categorías de Gastos
+              - link "Sueldos" [ref=e118] [cursor=pointer]:
+                - /url: /payroll
+                - img [ref=e119]
+                - generic [ref=e123]: Sueldos
+              - link "Reclamos de Nóminas" [ref=e124] [cursor=pointer]:
+                - /url: /payroll-claims
+                - img [ref=e125]
+                - generic [ref=e127]: Reclamos de Nóminas
+          - generic [ref=e128]:
+            - button "Análisis" [ref=e129] [cursor=pointer]:
+              - generic [ref=e130]:
+                - img [ref=e131]
+                - text: Análisis
+              - img [ref=e133]
+            - generic [ref=e135]:
+              - link "Reportes" [ref=e136] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e137]
+                - generic [ref=e139]: Reportes
+              - link "Dashboard ML" [ref=e140] [cursor=pointer]:
+                - /url: /ml-dashboard
+                - img [ref=e141]
+                - generic [ref=e144]: Dashboard ML
+          - generic [ref=e145]:
+            - button "Compras" [ref=e146] [cursor=pointer]:
+              - generic [ref=e147]:
+                - img [ref=e148]
+                - text: Compras
+              - img [ref=e152]
+            - generic [ref=e154]:
+              - link "Proveedores" [ref=e155] [cursor=pointer]:
+                - /url: /suppliers
+                - img [ref=e156]
+                - generic [ref=e160]: Proveedores
+              - link "Insumos" [ref=e161] [cursor=pointer]:
+                - /url: /supplies
+                - img [ref=e162]
+                - generic [ref=e166]: Insumos
+          - generic [ref=e167]:
+            - button "Menú" [ref=e168] [cursor=pointer]:
+              - generic [ref=e169]:
+                - img [ref=e170]
+                - text: Menú
+              - img [ref=e174]
+            - generic [ref=e177]:
+              - link "Caja (POS)" [ref=e178] [cursor=pointer]:
+                - /url: /pos
+                - img [ref=e179]
+                - generic [ref=e183]: Caja (POS)
+              - link "Configuración POS" [ref=e184] [cursor=pointer]:
+                - /url: /pos-configuration
+                - img [ref=e185]
+                - generic [ref=e188]: Configuración POS
+              - link "Productos" [ref=e189] [cursor=pointer]:
+                - /url: /products
+                - img [ref=e190]
+                - generic [ref=e195]: Productos
+              - link "Categorías" [ref=e196] [cursor=pointer]:
+                - /url: /product-categories
+                - img [ref=e197]
+                - generic [ref=e199]: Categorías
+              - link "Stock" [ref=e200] [cursor=pointer]:
+                - /url: /stock
+                - img [ref=e201]
+                - generic [ref=e205]: Stock
+    - main [ref=e206]:
+      - generic [ref=e208]:
+        - generic [ref=e209]:
+          - heading "Configuración POS" [level=1] [ref=e210]
+          - paragraph [ref=e211]: Gestiona los salones, mesas y dispositivos de impresión
+        - generic [ref=e213]:
+          - button "Salones" [active] [ref=e214] [cursor=pointer]: Salones
+          - button "Mesas" [ref=e216] [cursor=pointer]
+          - button "Dispositivos de Impresión" [ref=e217] [cursor=pointer]
+        - generic [ref=e219]:
+          - generic [ref=e220]:
+            - heading "Salones" [level=2] [ref=e231]
+            - button "Nuevo Salón" [ref=e232] [cursor=pointer]:
+              - img [ref=e233]
+              - text: Nuevo Salón
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - heading "pincip" [level=3] [ref=e236]
+              - generic [ref=e237]:
+                - button "Editar" [ref=e238] [cursor=pointer]:
+                  - img [ref=e239]
+                  - text: Editar
+                - button "Eliminar" [ref=e241] [cursor=pointer]:
+                  - img [ref=e242]
+                  - text: Eliminar
+            - generic [ref=e245]:
+              - heading "sala1" [level=3] [ref=e246]
+              - generic [ref=e247]:
+                - button "Editar" [ref=e248] [cursor=pointer]:
+                  - img [ref=e249]
+                  - text: Editar
+                - button "Eliminar" [ref=e251] [cursor=pointer]:
+                  - img [ref=e252]
+                  - text: Eliminar
+            - generic [ref=e255]:
+              - heading "SALON pRINCIPAL" [level=3] [ref=e256]
+              - paragraph [ref=e257]: Test salon
+              - generic [ref=e258]:
+                - button "Editar" [ref=e259] [cursor=pointer]:
+                  - img [ref=e260]
+                  - text: Editar
+                - button "Eliminar" [ref=e262] [cursor=pointer]:
+                  - img [ref=e263]
+                  - text: Eliminar
+            - generic [ref=e266]:
+              - heading "sddsasa" [level=3] [ref=e267]
+              - generic [ref=e268]:
+                - button "Editar" [ref=e269] [cursor=pointer]:
+                  - img [ref=e270]
+                  - text: Editar
+                - button "Eliminar" [ref=e272] [cursor=pointer]:
+                  - img [ref=e273]
+                  - text: Eliminar

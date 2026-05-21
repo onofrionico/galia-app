@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.supply import Supply, SupplyPrice
 from app.utils.jwt_utils import token_required
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 from datetime import date
 from decimal import Decimal
 
@@ -42,7 +42,7 @@ def list_supplies(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Supplies')
 def create_supply(current_user):
     """Create a new supply"""
     data = request.get_json() or {}
@@ -83,7 +83,7 @@ def get_supply(current_user, supply_id):
 
 @bp.route('/<int:supply_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Supplies')
 def update_supply(current_user, supply_id):
     """Update supply"""
     supply = Supply.query.get_or_404(supply_id)
@@ -110,7 +110,7 @@ def update_supply(current_user, supply_id):
 
 @bp.route('/<int:supply_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Supplies')
 def delete_supply(current_user, supply_id):
     """Soft delete supply (mark as inactive)"""
     supply = Supply.query.get_or_404(supply_id)
@@ -121,7 +121,7 @@ def delete_supply(current_user, supply_id):
 
 @bp.route('/<int:supply_id>/prices', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Supplies')
 def add_supply_price(current_user, supply_id):
     """Record a price for a supply from a supplier"""
     supply = Supply.query.get_or_404(supply_id)

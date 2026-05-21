@@ -2,6 +2,7 @@ from functools import wraps
 from flask import jsonify, request
 import logging
 from datetime import datetime
+from app.utils.permissions import check_module_access
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def employee_or_admin_required(f):
                 f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
             )
             return jsonify({'error': 'Autenticación requerida'}), 401
-        
+
         if current_user.role not in ['admin', 'employee']:
             logger.warning(
                 f"[SECURITY] Forbidden access attempt | "
@@ -92,6 +93,42 @@ def employee_or_admin_required(f):
                 'error': 'Acceso denegado',
                 'message': 'No tienes permisos para acceder a este recurso'
             }), 403
-        
+
         return f(current_user, *args, **kwargs)
     return decorated_function
+
+def module_required(module_name):
+    """Decorator to require access to a specific module for endpoint access.
+
+    Usage:
+        @module_required('POS')
+        def some_endpoint(current_user):
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(current_user, *args, **kwargs):
+            if not current_user:
+                logger.warning(
+                    f"[SECURITY] Unauthorized access attempt | "
+                    f"Path: {request.path} | Method: {request.method} | "
+                    f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
+                )
+                return jsonify({'error': 'Autenticación requerida'}), 401
+
+            if not check_module_access(current_user, module_name):
+                logger.warning(
+                    f"[SECURITY] Forbidden access attempt | "
+                    f"User: {current_user.email} | Role: {current_user.role} | "
+                    f"Required module: {module_name} | "
+                    f"Path: {request.path} | Method: {request.method} | "
+                    f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
+                )
+                return jsonify({
+                    'error': 'Acceso denegado',
+                    'message': f'No tienes acceso al módulo {module_name}'
+                }), 403
+
+            return f(current_user, *args, **kwargs)
+        return decorated_function
+    return decorator

@@ -42,4 +42,13 @@ def logout(current_user):
 @bp.route('/me', methods=['GET'])
 @token_required
 def get_current_user(current_user):
-    return jsonify({'user': current_user.to_dict()}), 200
+    try:
+        print(f"[AUTH ME] Getting current user: {current_user.email}")
+        user_data = current_user.to_dict()
+        print(f"[AUTH ME] User data: {user_data}")
+        return jsonify({'user': user_data}), 200
+    except Exception as e:
+        import traceback
+        print(f"[AUTH ME ERROR] {str(e)}")
+        print(f"[AUTH ME ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500

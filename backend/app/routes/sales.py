@@ -7,7 +7,7 @@ from app.models.product_variant import ProductVariant
 from app.models.sale_item import SaleItem
 from app.services.stock_service import deduct_stock_for_sale
 from app.utils.jwt_utils import token_required
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from sqlalchemy import func, extract
@@ -19,7 +19,7 @@ bp = Blueprint('sales', __name__, url_prefix='/api/v1/sales')
 
 @bp.route('', methods=['GET'])
 @token_required
-@admin_required
+@module_required('POS')
 def get_sales(current_user):
     """Get sales with optional filtering"""
     page = request.args.get('page', 1, type=int)
@@ -71,7 +71,7 @@ def get_sales(current_user):
 
 @bp.route('/stats', methods=['GET'])
 @token_required
-@admin_required
+@module_required('POS')
 def get_sales_stats(current_user):
     """Get sales statistics"""
     fecha_desde = request.args.get('fecha_desde')
@@ -136,6 +136,7 @@ def get_sales_stats(current_user):
 
 @bp.route('/create-from-items', methods=['POST'])
 @token_required
+@module_required('POS')
 def create_sale_from_items(current_user):
     """
     Crear una venta nueva con items y deducción automática de stock.
@@ -196,6 +197,7 @@ def create_sale_from_items(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
+@module_required('POS')
 def create_sale(current_user):
     """Create a new sale"""
     data = request.get_json()
@@ -251,6 +253,7 @@ def create_sale(current_user):
 
 @bp.route('/<int:sale_id>', methods=['GET'])
 @token_required
+@module_required('POS')
 def get_sale(current_user, sale_id):
     """Obtener detalle de venta con items"""
     sale = Sale.query.get_or_404(sale_id)
@@ -262,6 +265,7 @@ def get_sale(current_user, sale_id):
 
 @bp.route('/<int:sale_id>', methods=['PUT'])
 @token_required
+@module_required('POS')
 def update_sale(current_user, sale_id):
     """Update a sale with legacy and enhanced fields"""
     sale = Sale.query.get_or_404(sale_id)
@@ -331,7 +335,7 @@ def update_sale(current_user, sale_id):
 
 @bp.route('/<int:sale_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('POS')
 def delete_sale(current_user, sale_id):
     """Delete a sale"""
     sale = Sale.query.get_or_404(sale_id)

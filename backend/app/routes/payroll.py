@@ -9,6 +9,7 @@ from app.models.work_block import WorkBlock
 from app.models.shift import Shift
 from app.models.user import User
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import module_required
 from app.utils.payroll_utils import (
     calculate_hours_from_time_tracking,
     calculate_scheduled_hours,
@@ -31,17 +32,9 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 payroll_bp = Blueprint('payroll', __name__, url_prefix='/api/v1/payroll')
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(current_user, *args, **kwargs):
-        if not current_user.is_admin:
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-        return f(current_user, *args, **kwargs)
-    return decorated
-
 @payroll_bp.route('/calculate/<int:employee_id>/<int:year>/<int:month>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def calculate_payroll(current_user, employee_id, year, month):
     employee = Employee.query.get_or_404(employee_id)
     
@@ -71,7 +64,7 @@ def calculate_payroll(current_user, employee_id, year, month):
 
 @payroll_bp.route('/generate', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def generate_payroll(current_user):
     
     data = request.get_json()
@@ -130,7 +123,7 @@ def generate_payroll(current_user):
 
 @payroll_bp.route('/<int:payroll_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def delete_payroll(current_user, payroll_id):
     """Eliminar una nómina (solo si está en estado 'draft')"""
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -155,7 +148,7 @@ def delete_payroll(current_user, payroll_id):
 
 @payroll_bp.route('/', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_payrolls(current_user):
     
     month = request.args.get('month', type=int)
@@ -180,7 +173,7 @@ def get_payrolls(current_user):
 
 @payroll_bp.route('/<int:payroll_id>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_payroll_detail(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -205,7 +198,7 @@ def get_payroll_detail(current_user, payroll_id):
 
 @payroll_bp.route('/<int:payroll_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def update_payroll(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -249,7 +242,7 @@ def update_payroll(current_user, payroll_id):
 
 @payroll_bp.route('/<int:payroll_id>/validate', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def validate_payroll(current_user, payroll_id):
     payroll = Payroll.query.get_or_404(payroll_id)
     
@@ -266,7 +259,7 @@ def validate_payroll(current_user, payroll_id):
 
 @payroll_bp.route('/<int:payroll_id>/work-blocks', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_payroll_work_blocks(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -295,7 +288,7 @@ def get_payroll_work_blocks(current_user, payroll_id):
 
 @payroll_bp.route('/work-blocks/<int:block_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def update_work_block(current_user, block_id):
     
     block = WorkBlock.query.get_or_404(block_id)
@@ -319,7 +312,7 @@ def update_work_block(current_user, block_id):
 
 @payroll_bp.route('/work-blocks/<int:block_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def delete_work_block(current_user, block_id):
     
     block = WorkBlock.query.get_or_404(block_id)
@@ -331,7 +324,7 @@ def delete_work_block(current_user, block_id):
 
 @payroll_bp.route('/employees-status/<int:year>/<int:month>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_employees_payroll_status(current_user, year, month):
     """
     Lista empleados activos con horas registradas en el período,
@@ -399,7 +392,7 @@ def get_employees_payroll_status(current_user, year, month):
 
 @payroll_bp.route('/summary/<int:year>/<int:month>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_monthly_summary(current_user, year, month):
     
     payrolls = Payroll.query.filter_by(year=year, month=month).all()
@@ -421,7 +414,7 @@ def get_monthly_summary(current_user, year, month):
 
 @payroll_bp.route('/summary/historical', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_historical_summary(current_user):
     
     months = request.args.get('months', 12, type=int)
@@ -455,7 +448,7 @@ def get_historical_summary(current_user):
 
 @payroll_bp.route('/<int:payroll_id>/generate-pdf', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def generate_payroll_pdf(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -585,7 +578,7 @@ def generate_payroll_pdf(current_user, payroll_id):
 
 @payroll_bp.route('/<int:payroll_id>/pdf', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def download_payroll_pdf(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
@@ -800,7 +793,7 @@ def get_my_payroll_claims(current_user, payroll_id):
 
 @payroll_bp.route('/claims', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_all_claims(current_user):
     """Obtener todos los reclamos de nóminas"""
     
@@ -820,7 +813,7 @@ def get_all_claims(current_user):
 
 @payroll_bp.route('/claims/<int:claim_id>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def get_claim_detail(current_user, claim_id):
     """Obtener detalle de un reclamo"""
     
@@ -830,7 +823,7 @@ def get_claim_detail(current_user, claim_id):
 
 @payroll_bp.route('/claims/<int:claim_id>/respond', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Payroll')
 def respond_to_claim(current_user, claim_id):
     """Responder a un reclamo y ajustar la nómina si es necesario"""
     

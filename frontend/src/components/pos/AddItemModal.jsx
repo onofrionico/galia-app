@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Minus } from 'lucide-react'
 import productCategoriesService from '../../services/productCategoriesService'
 import productsService from '../../services/productsService'
@@ -13,8 +13,7 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  if (!isOpen) return null
+  const rightPanelRef = useRef(null)
 
   useEffect(() => {
     fetchData()
@@ -29,6 +28,13 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
+
+  useEffect(() => {
+    // Auto-scroll right panel when a product is selected
+    if (selectedVariant && !selectedVariant.selectingVariant && rightPanelRef.current) {
+      rightPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [selectedVariant])
 
   const fetchData = async () => {
     try {
@@ -97,6 +103,8 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
     setSelectedVariant({ product: selectedVariant.product, variant, selectingVariant: false })
   }
 
+  if (!isOpen) return null
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -126,12 +134,15 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden flex gap-4 p-6">
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex gap-2 mb-4 pb-4 border-b overflow-x-auto">
+        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 p-4 lg:p-6">
+          {/* Products grid - takes more space on desktop */}
+          <div className={`flex flex-col min-w-0 order-2 lg:order-1 min-h-0 ${
+            selectedVariant ? 'flex-0' : 'flex-1'
+          }`}>
+            <div className="flex gap-2 mb-4 pb-4 border-b overflow-x-auto flex-nowrap flex-shrink-0">
               <button
                 onClick={() => setActiveCategory(null)}
-                className={`px-4 py-2 rounded whitespace-nowrap ${
+                className={`px-3 py-2 rounded whitespace-nowrap text-sm lg:text-base ${
                   activeCategory === null
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-700'
@@ -143,7 +154,7 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-4 py-2 rounded whitespace-nowrap ${
+                  className={`px-3 py-2 rounded whitespace-nowrap text-sm lg:text-base ${
                     activeCategory === cat.id
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700'
@@ -154,18 +165,18 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
               ))}
             </div>
 
-            <div className="overflow-y-auto flex-1">
-              <div className="grid grid-cols-2 gap-3">
+            <div className={`overflow-y-auto ${selectedVariant ? 'max-h-32' : 'flex-1'}`}>
+              <div className="grid grid-cols-2 lg:grid-cols-2 gap-2 lg:gap-3 pr-2">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => handleAddProduct(product)}
-                    className="border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition text-center min-h-32 flex flex-col items-center justify-center"
+                    className="border-2 border-gray-300 rounded-lg p-2 lg:p-4 hover:border-blue-500 hover:bg-blue-50 transition text-center min-h-20 lg:min-h-32 flex flex-col items-center justify-center"
                   >
-                    <div className="text-4xl mb-3">📦</div>
-                    <div className="font-bold text-base leading-snug mb-2 line-clamp-2">{product.name}</div>
+                    <div className="text-2xl lg:text-4xl mb-1 lg:mb-3">📦</div>
+                    <div className="font-bold text-xs lg:text-base leading-snug mb-1 lg:mb-2 line-clamp-2">{product.name}</div>
                     {product.variants && product.variants.length > 0 && (
-                      <div className="text-sm text-gray-700 font-semibold mt-1">
+                      <div className="text-xs lg:text-sm text-gray-700 font-semibold mt-0 lg:mt-1">
                         ${product.variants[0].price}
                         {product.variants.length > 1 && ` +${product.variants.length - 1}`}
                       </div>
@@ -176,43 +187,54 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
             </div>
           </div>
 
-          <div className="w-64 border-l pl-4 flex flex-col">
-            <h3 className="font-bold text-lg mb-3">Item a Agregar</h3>
+          {/* Right panel - smaller on mobile, fixed width on desktop */}
+          <div
+            ref={rightPanelRef}
+            className={`w-full lg:w-64 lg:border-l lg:pl-4 flex flex-col order-1 lg:order-2 border-t lg:border-t-0 pt-4 lg:pt-0 lg:flex-shrink-0 ${
+              selectedVariant ? 'flex-1 lg:flex-shrink-0 lg:max-h-none' : 'flex-shrink max-h-48'
+            }`}
+          >
+            {/* Header - always visible */}
+            <h3 className="font-bold text-lg mb-3 flex-shrink-0">Item a Agregar</h3>
 
             {selectedVariant && !selectedVariant.selectingVariant ? (
-              <div className="flex-1 flex flex-col">
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
-                  <div className="font-medium text-sm mb-1">
-                    {selectedVariant.product.name}
-                  </div>
-                  <div className="text-xs text-gray-600 mb-2">
-                    {selectedVariant.variant.name} - ${selectedVariant.variant.price}
-                  </div>
+              <>
+                {/* Content - scrolleable */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+                    <div className="font-medium text-sm mb-1">
+                      {selectedVariant.product.name}
+                    </div>
+                    <div className="text-xs text-gray-600 mb-2">
+                      {selectedVariant.variant.name} - ${selectedVariant.variant.price}
+                    </div>
 
-                  <div className="flex items-center gap-2 mt-3">
-                    <button
-                      onClick={() => handleQuantityChange(-1)}
-                      className="p-1 hover:bg-blue-100 rounded"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span className="w-8 text-center font-medium">{quantity}</span>
-                    <button
-                      onClick={() => handleQuantityChange(1)}
-                      className="p-1 hover:bg-blue-100 rounded"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={() => handleQuantityChange(-1)}
+                        className="p-1 hover:bg-blue-100 rounded"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span className="w-8 text-center font-medium">{quantity}</span>
+                      <button
+                        onClick={() => handleQuantityChange(1)}
+                        className="p-1 hover:bg-blue-100 rounded"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
 
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <div className="font-bold text-sm">
-                      Subtotal: ${(selectedVariant.variant.price * quantity).toFixed(2)}
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <div className="font-bold text-sm">
+                        Subtotal: ${(selectedVariant.variant.price * quantity).toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2 mt-auto">
+                {/* Buttons - always visible at bottom */}
+                <div className="space-y-2 flex-shrink-0 mt-3">
                   <button
                     onClick={handleAddItem}
                     disabled={saving}
@@ -231,7 +253,7 @@ const AddItemModal = ({ isOpen, orderId, onClose, onItemAdded }) => {
                     Cancelar
                   </button>
                 </div>
-              </div>
+              </>
             ) : (
               <div className="text-center text-gray-500 flex-1 flex items-center justify-center">
                 Selecciona un producto

@@ -43,7 +43,7 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     migrate.init_app(app, db)
     
-    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods, absence_requests, social_security, employee_documents, fudo_sync, suppliers, product_categories, products, salons, orders, supplies, configuration
+    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods, absence_requests, social_security, employee_documents, fudo_sync, suppliers, product_categories, products, salons, orders, supplies, configuration, permissions, biometric
     app.register_blueprint(auth.bp)
     app.register_blueprint(schedules.bp)
     app.register_blueprint(shifts.bp)
@@ -59,6 +59,7 @@ def create_app(config_name='development'):
     app.register_blueprint(employee_schedule.bp)
     app.register_blueprint(job_positions.bp)
     app.register_blueprint(time_tracking.bp)
+    app.register_blueprint(biometric.bp)
     app.register_blueprint(payroll.payroll_bp)
     app.register_blueprint(csv_import.csv_import_bp)
     app.register_blueprint(holidays.holidays_bp)
@@ -75,6 +76,7 @@ def create_app(config_name='development'):
     app.register_blueprint(orders.bp)
     app.register_blueprint(supplies.bp)
     app.register_blueprint(configuration.bp)
+    app.register_blueprint(permissions.permissions_bp)
 
     @app.route('/health')
     def health():

@@ -4,7 +4,7 @@ from app.models.mesa import Mesa
 from app.models.salon import Salon
 from app.models.printer_device import PrinterDevice
 from app.utils.jwt_utils import token_required
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 
 bp = Blueprint('configuration', __name__, url_prefix='/api/v1/configuration')
 
@@ -17,7 +17,7 @@ def list_mesas(current_user, salon_id):
 
 @bp.route('/mesas', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def create_mesa(current_user):
     data = request.get_json() or {}
     if not data.get('number') or not data.get('salon_id'):
@@ -45,7 +45,7 @@ def create_mesa(current_user):
 
 @bp.route('/mesas/<int:mesa_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def update_mesa(current_user, mesa_id):
     mesa = Mesa.query.get_or_404(mesa_id)
     data = request.get_json() or {}
@@ -60,7 +60,7 @@ def update_mesa(current_user, mesa_id):
 
 @bp.route('/mesas/<int:mesa_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def delete_mesa(current_user, mesa_id):
     mesa = Mesa.query.get_or_404(mesa_id)
     mesa.is_active = False
@@ -76,7 +76,7 @@ def list_salones(current_user):
 
 @bp.route('/salones', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def create_salon(current_user):
     data = request.get_json() or {}
     if not data.get('name'):
@@ -92,7 +92,7 @@ def create_salon(current_user):
 
 @bp.route('/salones/<int:salon_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def update_salon(current_user, salon_id):
     salon = Salon.query.get_or_404(salon_id)
     data = request.get_json() or {}
@@ -107,7 +107,7 @@ def update_salon(current_user, salon_id):
 
 @bp.route('/salones/<int:salon_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def delete_salon(current_user, salon_id):
     salon = Salon.query.get_or_404(salon_id)
     salon.is_active = False
@@ -123,7 +123,7 @@ def list_printers(current_user):
 
 @bp.route('/printer-devices', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def create_printer(current_user):
     data = request.get_json() or {}
     if not data.get('name') or not data.get('type') or not data.get('ip_address') or not data.get('port'):
@@ -144,7 +144,7 @@ def create_printer(current_user):
 
 @bp.route('/printer-devices/<int:device_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def update_printer(current_user, device_id):
     printer = PrinterDevice.query.get_or_404(device_id)
     data = request.get_json() or {}
@@ -165,7 +165,7 @@ def update_printer(current_user, device_id):
 
 @bp.route('/printer-devices/<int:device_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def delete_printer(current_user, device_id):
     printer = PrinterDevice.query.get_or_404(device_id)
     db.session.delete(printer)
@@ -174,7 +174,7 @@ def delete_printer(current_user, device_id):
 
 @bp.route('/printer-devices/<int:device_id>/test', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Configuration')
 def test_printer(current_user, device_id):
     printer = PrinterDevice.query.get_or_404(device_id)
     # TODO: Implement actual printer connection test

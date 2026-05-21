@@ -11,6 +11,7 @@ import AddItemModal from '../components/pos/AddItemModal'
 import SalePanel from '../components/pos/SalePanel'
 import OpenSaleModal from '../components/pos/OpenSaleModal'
 import SalonFloorPlan from '../components/pos/SalonFloorPlan'
+import TableListView from '../components/pos/TableListView'
 
 const Pos = () => {
   const { addNotification } = useNotification()
@@ -20,6 +21,7 @@ const Pos = () => {
   const [openOrders, setOpenOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewMode, setViewMode] = useState('map') // 'map' or 'list'
 
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedSale, setSelectedSale] = useState(null)
@@ -33,9 +35,14 @@ const Pos = () => {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 10000)
+    // Solo refrescar si no hay un drawer/modal abierto y no está en edit mode
+    const interval = setInterval(() => {
+      if (!showOrderDrawer && !showAddItemModal && !showCobrarSheet && !isEditMode) {
+        fetchAllQuietly()
+      }
+    }, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [showOrderDrawer, showAddItemModal, showCobrarSheet, isEditMode])
 
   const fetchAll = async () => {
     try {
@@ -67,6 +74,31 @@ const Pos = () => {
     } catch (err) {
       setError('Error al cargar datos')
       setLoading(false)
+    }
+  }
+
+  const fetchAllQuietly = async () => {
+    try {
+      const [ordersRes] = await Promise.all([
+        ordersService.getOrders({ status: 'abierta' }),
+      ])
+
+      setOpenOrders(ordersRes.orders || [])
+
+      // Only refetch mesas for active salon to preserve selection
+      if (activeSalon) {
+        const mesasRes = await salonsService.getMesas(activeSalon)
+        const mesasWithOrders = (mesasRes.mesas || []).map((mesa) => ({
+          ...mesa,
+          openOrder: (ordersRes.orders || []).find((o) => o.mesa_id === mesa.id),
+        }))
+        setAllMesas(prev => ({
+          ...prev,
+          [activeSalon]: mesasWithOrders,
+        }))
+      }
+    } catch (err) {
+      console.error('Error al refrescar datos:', err)
     }
   }
 
@@ -135,6 +167,20 @@ const Pos = () => {
     }
   }
 
+  const handleCancelOrder = async () => {
+    try {
+      await ordersService.cancelOrder(selectedOrder.id)
+      setShowOrderDrawer(false)
+      const mesa = activeSalonMesas.find((m) => m.id === selectedOrder.mesa_id)
+      const mesaNumber = mesa?.numero || selectedOrder.mesa_id
+      addNotification(`Orden cancelada - Mesa ${mesaNumber}`, 'info')
+      setSelectedOrder(null)
+      await fetchAll()
+    } catch (err) {
+      setError('Error al cancelar la orden')
+    }
+  }
+
   const handleMesaDrag = async (mesaId, x, y) => {
     try {
       console.log(`Moviendo mesa ${mesaId} a (${x.toFixed(1)}%, ${y.toFixed(1)}%)`)
@@ -161,25 +207,34 @@ const Pos = () => {
         onSalonChange={setActiveSalon}
         isEditMode={isEditMode}
         onEditModeToggle={() => setIsEditMode(!isEditMode)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Main layout - responsive: stack on mobile/tablet, side-by-side on large desktop */}
       <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-        {/* Floor plan - full width on mobile/tablet, flex-1 on large desktop */}
+        {/* Floor plan / Table list - full width on mobile/tablet, flex-1 on large desktop */}
         <div className="flex-1 flex flex-col min-h-0 w-full">
-          {isEditMode && (
+          {isEditMode && viewMode === 'map' && (
             <div className="bg-blue-50 border-b p-3 text-sm text-blue-900">
               Arrastra las mesas para reorganizar. Las posiciones se guardan automáticamente.
             </div>
           )}
-          <div className="flex-1 overflow-auto p-2 md:p-4 w-full" style={{ backgroundColor: isEditMode ? '#f3f4f6' : '#fafafa' }}>
+          <div className="flex-1 overflow-auto p-2 md:p-4 w-full" style={{ backgroundColor: isEditMode && viewMode === 'map' ? '#f3f4f6' : '#fafafa' }}>
             <div style={{ height: '100%', width: '100%' }}>
-              <SalonFloorPlan
-                mesas={activeSalonMesas}
-                onMesaClick={handleMesaClick}
-                isEditMode={isEditMode}
-                onMesaDrag={handleMesaDrag}
-              />
+              {viewMode === 'map' ? (
+                <SalonFloorPlan
+                  mesas={activeSalonMesas}
+                  onMesaClick={handleMesaClick}
+                  isEditMode={isEditMode}
+                  onMesaDrag={handleMesaDrag}
+                />
+              ) : (
+                <TableListView
+                  mesas={activeSalonMesas}
+                  onMesaClick={handleMesaClick}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -216,8 +271,17 @@ const Pos = () => {
 
         {/* Sale panel modal for mobile/tablet */}
         {showSalePanel && !isEditMode && (
-          <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
-            <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
+          <div
+            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end"
+            onClick={() => {
+              setShowSalePanel(false)
+              setSelectedSale(null)
+            }}
+          >
+            <div
+              className="w-screen bg-white rounded-t-lg h-[95vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
               <SalePanel
                 sale={selectedSale}
                 isOpen={showSalePanel}
@@ -256,14 +320,21 @@ const Pos = () => {
               onAddItem={() => setShowAddItemModal(true)}
               onRemoveItem={handleRemoveItem}
               onCobrar={() => setShowCobrarSheet(true)}
+              onCancel={handleCancelOrder}
             />
           </div>
         )}
 
         {/* Order drawer modal for mobile/tablet */}
         {showOrderDrawer && !isEditMode && (
-          <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
-            <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col">
+          <div
+            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end"
+            onClick={() => setShowOrderDrawer(false)}
+          >
+            <div
+              className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
               <OrderDrawer
                 order={selectedOrder}
                 isOpen={showOrderDrawer}
@@ -271,6 +342,7 @@ const Pos = () => {
                 onAddItem={() => setShowAddItemModal(true)}
                 onRemoveItem={handleRemoveItem}
                 onCobrar={() => setShowCobrarSheet(true)}
+                onCancel={handleCancelOrder}
               />
             </div>
           </div>
@@ -280,6 +352,7 @@ const Pos = () => {
       <CobrarBottomSheet
         isOpen={showCobrarSheet}
         orderId={selectedOrder?.id}
+        order={selectedOrder}
         total={selectedOrder?.total || 0}
         onConfirm={handleCobrar}
         onClose={() => setShowCobrarSheet(false)}
@@ -304,10 +377,10 @@ const Pos = () => {
           setShowOpenSaleModal(false)
           setSelectedMesa(null)
         }}
-        onSaleCreated={(newSale) => {
-          setSelectedSale(newSale)
+        onSaleCreated={(newOrder) => {
+          setSelectedOrder(newOrder)
           setShowOpenSaleModal(false)
-          setShowSalePanel(true)
+          setShowOrderDrawer(true)
           fetchAll()
         }}
       />

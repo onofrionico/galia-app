@@ -5,6 +5,9 @@ from app.models.employee_job_history import EmployeeJobHistory
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.time_tracking import TimeTracking
+from app.models.work_block import WorkBlock
+from app.models.biometric_session import BiometricSession
+from app.models.location_boundary import LocationBoundary
 from app.models.sale import Sale
 from app.models.supplier import Supplier
 from app.models.expense import Expense, ExpenseCategory
@@ -31,6 +34,9 @@ from app.models.order import Order, OrderItem
 from app.models.printer_device import PrinterDevice
 from app.models.payment import Payment
 from app.models.notification_preference import NotificationPreference
+from app.models.module import Module
+from app.models.role_permission import RolePermission
+from app.models.user_permission import UserPermission
 
 __all__ = [
     'User',
@@ -40,6 +46,9 @@ __all__ = [
     'Schedule',
     'Shift',
     'TimeTracking',
+    'WorkBlock',
+    'BiometricSession',
+    'LocationBoundary',
     'Sale',
     'Expense',
     'ExpenseCategory',
@@ -70,5 +79,8 @@ __all__ = [
     'OrderItem',
     'PrinterDevice',
     'Payment',
-    'NotificationPreference'
+    'NotificationPreference',
+    'Module',
+    'RolePermission',
+    'UserPermission'
 ]

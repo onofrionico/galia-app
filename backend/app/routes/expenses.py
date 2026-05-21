@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.expense import Expense, ExpenseCategory
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 from app.utils.jwt_utils import token_required
 from datetime import datetime
 from sqlalchemy import func
@@ -12,7 +12,7 @@ bp = Blueprint('expenses', __name__, url_prefix='/api/v1/expenses')
 
 @bp.route('', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def get_expenses(current_user):
     """Get expenses with optional filtering and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -68,7 +68,7 @@ def get_expenses(current_user):
 
 @bp.route('/stats', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def get_expense_stats(current_user):
     """Get expense statistics"""
     fecha_desde = request.args.get('fecha_desde')
@@ -169,7 +169,7 @@ def get_expense_stats(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def create_expense(current_user):
     """Create a new expense"""
     data = request.get_json()
@@ -235,7 +235,7 @@ def create_expense(current_user):
 
 @bp.route('/<int:expense_id>', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def get_expense(current_user, expense_id):
     """Get a single expense by ID"""
     expense = Expense.query.get_or_404(expense_id)
@@ -244,7 +244,7 @@ def get_expense(current_user, expense_id):
 
 @bp.route('/<int:expense_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def update_expense(current_user, expense_id):
     """Update an expense"""
     expense = Expense.query.get_or_404(expense_id)
@@ -298,7 +298,7 @@ def update_expense(current_user, expense_id):
 
 @bp.route('/<int:expense_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def delete_expense(current_user, expense_id):
     """Delete an expense"""
     expense = Expense.query.get_or_404(expense_id)
@@ -309,7 +309,7 @@ def delete_expense(current_user, expense_id):
 
 @bp.route('/import', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def import_expenses(current_user):
     """Import expenses from CSV file"""
     if 'file' not in request.files:
@@ -380,7 +380,7 @@ def import_expenses(current_user):
 
 @bp.route('/export', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def export_expenses(current_user):
     """Export expenses to CSV"""
     fecha_desde = request.args.get('fecha_desde')
@@ -446,7 +446,7 @@ def export_expenses(current_user):
 
 @bp.route('/filters', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def get_filter_options(current_user):
     """Get available filter options"""
     # Get categories from ExpenseCategory table
@@ -472,7 +472,7 @@ def get_categories(current_user):
 
 @bp.route('/unclassified', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def get_unclassified_expenses(current_user):
     """Get expenses for classification (unclassified or all)"""
     page = request.args.get('page', 1, type=int)
@@ -500,7 +500,7 @@ def get_unclassified_expenses(current_user):
 
 @bp.route('/classify', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Expenses')
 def classify_expenses(current_user):
     """Classify multiple expenses at once"""
     data = request.get_json()

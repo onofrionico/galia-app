@@ -6,7 +6,7 @@ from app.models.user import User
 from app.models.job_position import JobPosition
 from app.models.employee_job_history import EmployeeJobHistory
 from app.models.shift import Shift
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 from app.utils.jwt_utils import token_required
 
 bp = Blueprint('employees', __name__, url_prefix='/api/v1/employees')
@@ -89,7 +89,7 @@ def get_employee(current_user, employee_id):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Employees')
 def create_employee(current_user):
     try:
         print(f"[CREATE EMPLOYEE] Iniciando creación de empleado por usuario: {current_user.email}")
@@ -376,7 +376,7 @@ def update_employee(current_user, employee_id):
 
 @bp.route('/<int:employee_id>/deactivate', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def deactivate_employee(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     
@@ -402,7 +402,7 @@ def deactivate_employee(current_user, employee_id):
 
 @bp.route('/<int:employee_id>/change-status', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def change_employee_status(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     data = request.get_json()

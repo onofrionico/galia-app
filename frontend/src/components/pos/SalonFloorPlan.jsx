@@ -1,6 +1,11 @@
+import { useState, useRef } from 'react'
 import MesaCard from './MesaCard'
 
 const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style }) => {
+  const [draggingMesa, setDraggingMesa] = useState(null)
+  const containerRef = useRef(null)
+  const syncTimeoutRef = useRef(null)
+
   const handleDragStart = (e, mesa) => {
     if (!isEditMode) return
     e.dataTransfer.effectAllowed = 'move'
@@ -22,13 +27,73 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
     if (!isEditMode) return
     e.preventDefault()
     const mesaId = parseInt(e.dataTransfer.getData('mesaId'))
-    if (onMesaDrag) {
-      onMesaDrag(mesaId, x, y)
+    syncMesaPosition(mesaId, x, y)
+  }
+
+  // Touch events for mobile
+  const handleTouchStart = (e, mesa) => {
+    if (!isEditMode) return
+    e.preventDefault()
+    setDraggingMesa(mesa.id)
+  }
+
+  const handleContainerTouchMove = (e) => {
+    if (!draggingMesa || !containerRef.current) return
+    e.preventDefault()
+
+    const touch = e.touches[0]
+    const rect = containerRef.current.getBoundingClientRect()
+    let x = ((touch.clientX - rect.left) / rect.width) * 100
+    let y = ((touch.clientY - rect.top) / rect.height) * 100
+
+    const mesa = mesas.find(m => m.id === draggingMesa)
+    if (mesa) {
+      x = Math.max(0, Math.min(100 - (mesa.width || 5), x - (mesa.width || 5) / 2))
+      y = Math.max(0, Math.min(100 - (mesa.height || 5), y - (mesa.height || 5) / 2))
     }
+
+    // Update visual position immediately (optimistic update)
+    const mesaElement = document.querySelector(`[data-mesa-id="${draggingMesa}"]`)
+    if (mesaElement) {
+      mesaElement.style.left = `${x}%`
+      mesaElement.style.top = `${y}%`
+    }
+  }
+
+  const handleContainerTouchEnd = (e) => {
+    if (!draggingMesa || !containerRef.current) return
+
+    const touch = e.changedTouches[0]
+    const rect = containerRef.current.getBoundingClientRect()
+    let x = ((touch.clientX - rect.left) / rect.width) * 100
+    let y = ((touch.clientY - rect.top) / rect.height) * 100
+
+    const mesa = mesas.find(m => m.id === draggingMesa)
+    if (mesa) {
+      x = Math.max(0, Math.min(100 - (mesa.width || 5), x - (mesa.width || 5) / 2))
+      y = Math.max(0, Math.min(100 - (mesa.height || 5), y - (mesa.height || 5) / 2))
+    }
+
+    syncMesaPosition(draggingMesa, x, y)
+    setDraggingMesa(null)
+  }
+
+  const syncMesaPosition = (mesaId, x, y) => {
+    // Debounce the sync to avoid too many API calls
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current)
+    }
+
+    syncTimeoutRef.current = setTimeout(() => {
+      if (onMesaDrag) {
+        onMesaDrag(mesaId, x, y)
+      }
+    }, 200)
   }
 
   return (
     <div
+      ref={containerRef}
       className={`
         relative bg-white border-4 border-gray-400 rounded-lg md:rounded-xl
         ${isEditMode ? 'cursor-move' : 'cursor-default'}
@@ -41,6 +106,7 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
         backgroundColor: '#fafafa',
         backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(200,200,200,.05) 25%, rgba(200,200,200,.05) 26%, transparent 27%, transparent 74%, rgba(200,200,200,.05) 75%, rgba(200,200,200,.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(200,200,200,.05) 25%, rgba(200,200,200,.05) 26%, transparent 27%, transparent 74%, rgba(200,200,200,.05) 75%, rgba(200,200,200,.05) 76%, transparent 77%, transparent)',
         backgroundSize: '50px 50px',
+        touchAction: isEditMode ? 'none' : 'auto',
         ...style,
       }}
       onDragOver={handleDragOver}
@@ -57,6 +123,8 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
         }
         handleDrop(e, x, y)
       }}
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={handleContainerTouchEnd}
     >
       {/* Grid lines for reference */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -72,9 +140,11 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
       {mesas.map((mesa) => (
         <div
           key={mesa.id}
+          data-mesa-id={mesa.id}
           onClick={() => !isEditMode && onMesaClick?.(mesa)}
           draggable={isEditMode}
           onDragStart={(e) => handleDragStart(e, mesa)}
+          onTouchStart={(e) => handleTouchStart(e, mesa)}
           style={{
             position: 'absolute',
             left: `${mesa.pos_x || 0}%`,
@@ -83,6 +153,7 @@ const SalonFloorPlan = ({ mesas = [], onMesaClick, isEditMode, onMesaDrag, style
             height: `${mesa.height || 5}%`,
             minWidth: '60px',
             minHeight: '60px',
+            userSelect: 'none',
           }}
           className={`${isEditMode ? 'opacity-85 hover:opacity-100' : ''} transition-opacity`}
         >

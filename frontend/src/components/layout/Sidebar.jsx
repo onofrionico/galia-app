@@ -22,6 +22,7 @@ import {
   Building2,
   UtensilsCrossed,
   Package,
+  Camera,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -33,6 +34,7 @@ const alwaysVisibleEmployee = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/my-schedule', icon: Clock, label: 'Mi Horario' },
   { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios' },
+  { to: '/biometric-check-in', icon: Camera, label: 'Fichar Biométrico' },
   { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas' },
   { to: '/my-documents', icon: FileText, label: 'Mis Recibos' },
   { to: '/my-absence-requests', icon: FileText, label: 'Mis Ausencias' },
@@ -112,8 +114,32 @@ const navGroups = [
 const getActiveGroup = (pathname) =>
   navGroups.find(g => g.items.some(i => pathname.startsWith(i.to)))?.id ?? null
 
+const MODULE_MAP = {
+  '/schedules': 'Schedules',
+  '/admin-time-tracking': 'Schedules',
+  '/import-time-tracking': 'Schedules',
+  '/absence-requests': 'Schedules',
+  '/employees': 'Employees',
+  '/job-positions': 'Employees',
+  '/holidays': 'Employees',
+  '/sales': 'POS',
+  '/expenses': 'Expenses',
+  '/expense-categories': 'Expenses',
+  '/payroll': 'Payroll',
+  '/payroll-claims': 'Payroll',
+  '/reports': 'Reports',
+  '/ml-dashboard': 'Reports',
+  '/suppliers': 'Supplies',
+  '/supplies': 'Supplies',
+  '/pos': 'POS',
+  '/pos-configuration': 'Configuration',
+  '/products': 'Configuration',
+  '/product-categories': 'Configuration',
+  '/stock': 'Configuration',
+}
+
 const Sidebar = ({ isOpen, onClose }) => {
-  const { isAdmin } = useAuth()
+  const { isAdmin, userModules } = useAuth()
   const location = useLocation()
 
   const [openGroup, setOpenGroup] = useState(() => {
@@ -138,6 +164,18 @@ const Sidebar = ({ isOpen, onClose }) => {
     } else {
       localStorage.removeItem('sidebar_open_group')
     }
+  }
+
+  const hasAccessToItem = (itemPath) => {
+    const requiredModule = MODULE_MAP[itemPath]
+    if (!requiredModule) return true
+    return userModules.some(m => m.name === requiredModule)
+  }
+
+  const hasAccessToGroup = (groupId) => {
+    const group = navGroups.find(g => g.id === groupId)
+    if (!group) return true
+    return group.items.some(item => hasAccessToItem(item.to))
   }
 
   const renderNavLink = (item, extraClass = '') => {
@@ -178,11 +216,29 @@ const Sidebar = ({ isOpen, onClose }) => {
             <>
               {alwaysVisibleAdmin.map(item => renderNavLink(item))}
 
+              <NavLink
+                to="/permissions"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Settings className="h-4 w-4 flex-shrink-0" />
+                <span className="font-medium">Permisos</span>
+              </NavLink>
+
               <div className="pt-2 space-y-1">
-                {navGroups.map(group => {
+                {navGroups.filter(group => hasAccessToGroup(group.id)).map(group => {
                   const GroupIcon = group.icon
                   const isGroupOpen = openGroup === group.id
                   const isGroupActive = getActiveGroup(location.pathname) === group.id
+                  const accessibleItems = group.items.filter(item => hasAccessToItem(item.to))
+
+                  if (accessibleItems.length === 0) return null
 
                   return (
                     <div
@@ -214,7 +270,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         }`}
                       >
                         <div className="pb-2 pt-1 px-2 space-y-0.5">
-                          {group.items.map(item => {
+                          {accessibleItems.map(item => {
                             const Icon = item.icon
                             return (
                               <NavLink

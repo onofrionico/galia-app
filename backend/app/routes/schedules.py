@@ -3,7 +3,7 @@ from app.extensions import db
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.employee import Employee
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, module_required
 from app.utils.jwt_utils import token_required
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -18,7 +18,7 @@ def get_schedules(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_schedule(current_user):
     from app.services.schedule_service import ScheduleService
     from app.utils.validators import validate_date_range
@@ -53,7 +53,7 @@ def get_schedule(current_user, schedule_id):
 
 @bp.route('/<int:schedule_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_schedule(current_user, schedule_id):
     from app.services.schedule_service import ScheduleService
     from datetime import datetime
@@ -90,7 +90,7 @@ def update_schedule(current_user, schedule_id):
 
 @bp.route('/<int:schedule_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     

@@ -179,3 +179,46 @@ class S3Service:
             raise Exception(f"Error checking file existence: {str(e)}")
 
 s3_service = S3Service()
+
+def upload_to_s3(base64_data, s3_key, content_type='image/jpeg'):
+    """
+    Upload base64-encoded data to S3.
+
+    Args:
+        base64_data: Base64-encoded file data (with or without data URL prefix)
+        s3_key: S3 object key (path in bucket)
+        content_type: MIME type (default: image/jpeg)
+
+    Returns:
+        str: S3 URL of uploaded file
+    """
+    import base64 as b64
+
+    try:
+        # Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+        if base64_data.startswith('data:'):
+            base64_data = base64_data.split(',', 1)[1]
+
+        # Decode base64
+        file_content = b64.b64decode(base64_data)
+
+        # Upload to S3
+        s3_service.s3_client.put_object(
+            Bucket=s3_service.bucket_name,
+            Key=s3_key,
+            Body=file_content,
+            ContentType=content_type,
+            ServerSideEncryption='AES256',
+            Metadata={
+                'uploaded_at': datetime.utcnow().isoformat(),
+                'source': 'biometric_check_in'
+            }
+        )
+
+        s3_url = f"https://{s3_service.bucket_name}.s3.amazonaws.com/{s3_key}"
+        return s3_url
+
+    except ClientError as e:
+        raise Exception(f"Error uploading to S3: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Error processing base64 data: {str(e)}")

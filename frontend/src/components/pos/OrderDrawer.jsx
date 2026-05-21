@@ -1,8 +1,22 @@
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, Printer } from 'lucide-react'
 import GALIA from '../../constants/colors'
+import salePrinting from '../../services/salePrinting'
 
-const OrderDrawer = ({ order, isOpen, onClose, onAddItem, onRemoveItem, onCobrar }) => {
+const OrderDrawer = ({ order, isOpen, onClose, onAddItem, onRemoveItem, onCobrar, onCancel }) => {
+  const [printing, setPrinting] = useState(false)
   if (!isOpen || !order) return null
+
+  const handlePrintControl = async () => {
+    setPrinting(true)
+    try {
+      await salePrinting.printControl(order, order.items || [], order.total || 0, 0)
+    } catch (err) {
+      console.error('Error al imprimir control:', err)
+    } finally {
+      setPrinting(false)
+    }
+  }
 
   return (
     <div
@@ -88,14 +102,46 @@ const OrderDrawer = ({ order, isOpen, onClose, onAddItem, onRemoveItem, onCobrar
             Agregar Item
           </button>
           <button
+            onClick={handlePrintControl}
+            disabled={!order.items || order.items.length === 0 || printing}
+            className="w-full py-2 rounded font-semibold transition-opacity duration-200 text-sm md:text-base flex items-center justify-center gap-2 disabled:opacity-50"
+            style={{ backgroundColor: '#3B82F6', color: 'white' }}
+            onMouseEnter={(e) => {
+              if (!e.target.disabled) e.target.style.opacity = '0.9'
+            }}
+            onMouseLeave={(e) => {
+              if (!e.target.disabled) e.target.style.opacity = '1'
+            }}
+            title="Imprimir control de mesa"
+          >
+            <Printer size={16} />
+            {printing ? 'Imprimiendo...' : 'Control Mesa'}
+          </button>
+          <button
             onClick={onCobrar}
-            className="w-full py-2 md:py-3 rounded font-bold text-base md:text-lg transition-opacity duration-200"
+            disabled={!order.items || order.items.length === 0}
+            className="w-full py-2 md:py-3 rounded font-bold text-base md:text-lg transition-opacity duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: GALIA.marron, color: 'white' }}
-            onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
-            onMouseLeave={(e) => (e.target.style.opacity = '1')}
+            onMouseEnter={(e) => {
+              if (!e.target.disabled) e.target.style.opacity = '0.9'
+            }}
+            onMouseLeave={(e) => {
+              if (!e.target.disabled) e.target.style.opacity = '1'
+            }}
           >
             COBRAR
           </button>
+          {(!order.items || order.items.length === 0) && (
+            <button
+              onClick={onCancel}
+              className="w-full py-2 rounded font-semibold text-sm md:text-base border-2 transition-opacity duration-200"
+              style={{ borderColor: GALIA.grisLigero, color: GALIA.grisClaro }}
+              onMouseEnter={(e) => (e.target.style.opacity = '0.7')}
+              onMouseLeave={(e) => (e.target.style.opacity = '1')}
+            >
+              Cancelar Orden
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { X, Plus, Minus } from 'lucide-react'
+import { X, Plus, Minus, Printer } from 'lucide-react'
 import GALIA from '../../constants/colors'
+import salePrinting from '../../services/salePrinting'
 
 const PaymentModal = ({
   isOpen,
   saleId,
   total,
   paid,
+  sale,
   onPaymentRegistered,
   onCloseSale,
   onClose,
@@ -18,6 +20,7 @@ const PaymentModal = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [paymentHistory, setPaymentHistory] = useState([])
+  const [printing, setPrinting] = useState(false)
 
   const remaining = Math.max(0, total - paid)
   const isPaid = remaining <= 0
@@ -100,6 +103,18 @@ const PaymentModal = ({
       }
     } else {
       onClose()
+    }
+  }
+
+  const handlePrintControl = async () => {
+    if (!sale) return
+    setPrinting(true)
+    try {
+      await salePrinting.printControl(sale, sale.items || [], total, paid)
+    } catch (err) {
+      setError('Error al imprimir control')
+    } finally {
+      setPrinting(false)
     }
   }
 
@@ -295,18 +310,32 @@ const PaymentModal = ({
               {loading ? 'Procesando...' : 'Registrar Pago'}
             </button>
           ) : (
-            <button
-              onClick={() => {
-                if (onCloseSale) onCloseSale()
-              }}
-              disabled={loading}
-              className="flex-1 py-2 rounded font-bold text-white transition-opacity"
-              style={{ backgroundColor: GALIA.verde }}
-              onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
-              onMouseLeave={(e) => (e.target.style.opacity = '1')}
-            >
-              {loading ? 'Cerrando...' : 'Cerrar Venta'}
-            </button>
+            <>
+              <button
+                onClick={handlePrintControl}
+                disabled={loading || printing}
+                className="flex-1 py-2 rounded font-bold text-white transition-opacity flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#3B82F6' }}
+                onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
+                onMouseLeave={(e) => (e.target.style.opacity = '1')}
+                title="Imprimir recibo/control"
+              >
+                <Printer size={16} />
+                {printing ? 'Imprimiendo...' : 'Imprimir Control'}
+              </button>
+              <button
+                onClick={() => {
+                  if (onCloseSale) onCloseSale()
+                }}
+                disabled={loading || printing}
+                className="flex-1 py-2 rounded font-bold text-white transition-opacity"
+                style={{ backgroundColor: GALIA.verde }}
+                onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
+                onMouseLeave={(e) => (e.target.style.opacity = '1')}
+              >
+                {loading ? 'Cerrando...' : 'Cerrar Venta'}
+              </button>
+            </>
           )}
         </div>
       </div>

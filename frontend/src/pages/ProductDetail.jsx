@@ -38,6 +38,10 @@ const ProductDetail = () => {
     unit: '',
   })
 
+  const [imageFile, setImageFile] = useState(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
+
   useEffect(() => {
     fetchCategories()
     if (!isNew) {
@@ -181,6 +185,46 @@ const ProductDetail = () => {
     }
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setImageError('Formato inválido. Solo se permiten: JPEG, PNG, GIF, WebP')
+      return
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      setImageError('Archivo muy grande. Máximo 5MB')
+      return
+    }
+
+    setImageFile(file)
+    setImageError('')
+    setImageUploading(true)
+
+    try {
+      const uploadedUrl = await productsService.uploadProductImage(file)
+      setFormData({ ...formData, image_url: uploadedUrl })
+      setImageError('')
+    } catch (err) {
+      setImageError(err.response?.data?.error || 'Error al subir imagen')
+      setImageFile(null)
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  const handleDeleteImage = () => {
+    setFormData({ ...formData, image_url: '' })
+    setImageFile(null)
+    setImageError('')
+  }
+
   if (loading) {
     return <div className="p-4">Cargando...</div>
   }
@@ -271,16 +315,46 @@ const ProductDetail = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">URL de Imagen</label>
-                <input
-                  type="text"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://..."
-                />
+                <label className="block text-sm font-medium mb-3">Imagen del Producto</label>
+
+                {imageError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded mb-3">
+                    {imageError}
+                  </div>
+                )}
+
+                {formData.image_url && (
+                  <div className="mb-4">
+                    <img
+                      src={formData.image_url}
+                      alt="preview"
+                      className="h-32 w-32 object-cover rounded border border-gray-300"
+                    />
+                    <button
+                      onClick={handleDeleteImage}
+                      type="button"
+                      className="mt-2 text-red-600 text-sm hover:text-red-700 font-medium"
+                    >
+                      Eliminar imagen
+                    </button>
+                  </div>
+                )}
+
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    disabled={imageUploading}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 font-medium">
+                    {imageUploading ? 'Subiendo...' : 'Selecciona una imagen'}
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mt-2">
+                  Formatos: JPEG, PNG, GIF, WebP • Máximo 5MB
+                </p>
               </div>
 
               <div className="flex items-center gap-2">

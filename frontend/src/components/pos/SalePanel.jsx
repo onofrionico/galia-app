@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { X, Plus, Minus, ShoppingCart } from 'lucide-react'
+import { X, Plus, Minus, ShoppingCart, Printer } from 'lucide-react'
 import GALIA from '../../constants/colors'
 import salesService from '../../services/salesService'
 import productsService from '../../services/productsService'
 import productCategoriesService from '../../services/productCategoriesService'
+import salePrinting from '../../services/salePrinting'
 import OpenSaleModal from './OpenSaleModal'
 import ProductCatalog from './ProductCatalog'
 import AddItemModalSale from './AddItemModalSale'
@@ -24,6 +25,7 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showDiscountModal, setShowDiscountModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [printing, setPrinting] = useState(false)
 
   useEffect(() => {
     fetchProductData()
@@ -129,6 +131,17 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
       onClose()
     } catch (err) {
       setError(err.response?.data?.error || 'Error al cerrar venta')
+    }
+  }
+
+  const handlePrintControlMesa = async () => {
+    setPrinting(true)
+    try {
+      await salePrinting.printControl(saleState, items, total, parseFloat(saleState.total_paid || 0))
+    } catch (err) {
+      setError('Error al imprimir control')
+    } finally {
+      setPrinting(false)
     }
   }
 
@@ -270,6 +283,19 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
             Agregar Item
           </button>
 
+          <button
+            onClick={handlePrintControlMesa}
+            disabled={itemCount === 0 || printing}
+            className="w-full py-2 rounded font-semibold transition-opacity duration-200 flex items-center justify-center gap-2 text-xs md:text-sm disabled:opacity-50"
+            style={{ backgroundColor: '#3B82F6', color: 'white' }}
+            onMouseEnter={(e) => !itemCount || printing ? null : (e.target.style.opacity = '0.9')}
+            onMouseLeave={(e) => !itemCount || printing ? null : (e.target.style.opacity = '1')}
+            title="Imprimir control de mesa para el cliente"
+          >
+            <Printer size={16} />
+            {printing ? 'Imprimiendo...' : 'Control Mesa'}
+          </button>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowDiscountModal(true)}
@@ -320,6 +346,7 @@ const SalePanel = ({ sale, isOpen, onClose, onSaleUpdated, onSaleClosed, onItemA
       <PaymentModal
         isOpen={showPaymentModal}
         saleId={saleState.id}
+        sale={saleState}
         total={total}
         paid={parseFloat(saleState.total_paid || 0)}
         onPaymentRegistered={handlePaymentRegistered}
