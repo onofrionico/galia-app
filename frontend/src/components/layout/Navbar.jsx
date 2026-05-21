@@ -1,9 +1,30 @@
 import { useAuth } from '@/context/AuthContext'
 import { LogOut, User, Menu } from 'lucide-react'
 import NotificationBell from '../notifications/NotificationBell'
+import { useState, useEffect } from 'react'
+import { configService } from '@/services/configService'
+import { useNavigate } from 'react-router-dom'
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [logoPath, setLogoPath] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchBrandingConfig = async () => {
+      try {
+        const config = await configService.getBrandingConfig()
+        setLogoPath(config.logo_path)
+      } catch (error) {
+        console.error('Error loading logo:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBrandingConfig()
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -11,6 +32,10 @@ const Navbar = ({ onMenuClick }) => {
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
     }
+  }
+
+  const handleLogoClick = () => {
+    navigate('/dashboard')
   }
 
   return (
@@ -24,7 +49,23 @@ const Navbar = ({ onMenuClick }) => {
             >
               <Menu className="h-6 w-6 text-gray-600" />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-primary">Galia</h1>
+
+            {/* Logo or Fallback Text */}
+            <button
+              onClick={handleLogoClick}
+              className="flex items-center hover:opacity-80 transition-opacity"
+            >
+              {logoPath && !loading ? (
+                <img
+                  src={logoPath}
+                  alt="Galia Logo"
+                  className="h-12 md:h-16 object-contain"
+                />
+              ) : (
+                <h1 className="text-xl md:text-2xl font-bold text-primary">Galia</h1>
+              )}
+            </button>
+
             <span className="hidden sm:inline text-xs md:text-sm text-muted-foreground">Gestión de Cafetería</span>
           </div>
           
