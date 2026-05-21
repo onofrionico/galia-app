@@ -47,6 +47,7 @@ import Stock from './pages/Stock'
 import Supplies from './pages/Supplies'
 import POSConfiguration from './pages/POSConfiguration'
 import Permissions from './pages/Permissions'
+import BrandingConfig from './pages/admin/BrandingConfig'
 import BiometricCheckIn from './pages/BiometricCheckIn'
 
 function App() {
@@ -109,6 +110,7 @@ function App() {
             <Route path="/supplies" element={<RoleProtectedRoute moduleName="Supplies"><Supplies /></RoleProtectedRoute>} />
             <Route path="/pos-configuration" element={<RoleProtectedRoute moduleName="Configuration"><POSConfiguration /></RoleProtectedRoute>} />
             <Route path="/permissions" element={<RoleProtectedRoute moduleName="Configuration"><Permissions /></RoleProtectedRoute>} />
+            <Route path="/admin/branding" element={<RoleProtectedRoute moduleName="Configuration"><BrandingConfig /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
