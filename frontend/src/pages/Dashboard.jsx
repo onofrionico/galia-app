@@ -4,6 +4,7 @@ import { timeTrackingService } from '@/services/timeTrackingService'
 import { employeeScheduleService } from '@/services/employeeScheduleService'
 import { reportsService } from '@/services/reportsService'
 import employeeService from '@/services/employeeService'
+import configService from '@/services/configService'
 import { Clock, Calendar, AlertCircle, TrendingUp, Users, DollarSign, TrendingDown } from 'lucide-react'
 
 const Dashboard = () => {
@@ -14,7 +15,7 @@ const Dashboard = () => {
   const [scheduledHours, setScheduledHours] = useState(40)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
+
   // Estados para dashboard de administrador
   const [dashboardData, setDashboardData] = useState({
     ventas: { total: 0, cantidad: 0 },
@@ -23,6 +24,12 @@ const Dashboard = () => {
   })
   const [activeEmployees, setActiveEmployees] = useState(0)
 
+  // Estado para configuración de branding (logo y fondo del banner)
+  const [brandingConfig, setBrandingConfig] = useState({
+    logo_path: null,
+    banner_background_path: null
+  })
+
   useEffect(() => {
     if (!isAdmin()) {
       loadEmployeeDashboard()
@@ -30,6 +37,19 @@ const Dashboard = () => {
       loadAdminDashboard()
     }
   }, [user])
+
+  useEffect(() => {
+    const fetchBrandingConfig = async () => {
+      try {
+        const config = await configService.getBrandingConfig()
+        setBrandingConfig(config)
+      } catch (error) {
+        console.error('Error loading branding config:', error)
+      }
+    }
+
+    fetchBrandingConfig()
+  }, [])
 
   const loadAdminDashboard = async () => {
     try {
@@ -139,218 +159,243 @@ const Dashboard = () => {
     return currentMinutes >= startMinutes
   }
 
-  // Dashboard para Empleados
-  if (!isAdmin()) {
-    return (
-      <div className="space-y-4 md:space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Dashboard</h1>
+  // Main Dashboard with Hero Banner
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Banner */}
+      <div
+        className="h-screen w-full flex flex-col items-center justify-center relative"
+        style={{
+          backgroundImage: brandingConfig.banner_background_path
+            ? `url('${brandingConfig.banner_background_path}')`
+            : 'none',
+          backgroundColor: brandingConfig.banner_background_path ? 'transparent' : 'white',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        {/* Overlay to ensure logo is visible */}
+        {brandingConfig.banner_background_path && (
+          <div className="absolute inset-0 bg-black/20"></div>
+        )}
 
+        <div className="relative z-10 flex flex-col items-center">
+          {brandingConfig.logo_path ? (
+            <img
+              src={brandingConfig.logo_path}
+              alt="Galia Logo"
+              className="h-40 md:h-64 object-contain"
+            />
+          ) : (
+            <h1 className="text-6xl md:text-8xl font-bold text-primary">Galia</h1>
+          )}
+        </div>
+      </div>
+
+      {/* Dashboard Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {error && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 md:p-4 flex items-start gap-3">
-            <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={18} />
-            <div className="text-xs md:text-sm text-yellow-700">{error}</div>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-900">{error}</p>
+            </div>
           </div>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="text-center py-12">
+            <p className="text-gray-500">Cargando...</p>
           </div>
         ) : (
           <>
-            {/* Próximo Turno */}
-            {upcomingShift ? (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg md:text-xl font-semibold text-gray-900">Próximo Turno</h2>
-                    {isShiftInProgress(upcomingShift) && (
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                        En curso
-                      </span>
+            {!isAdmin() ? (
+              // Employee Dashboard
+              <div className="space-y-4 md:space-y-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Dashboard</h1>
+
+                <>
+                  {/* Próximo Turno */}
+                  {upcomingShift ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg md:text-xl font-semibold text-gray-900">Próximo Turno</h2>
+                          {isShiftInProgress(upcomingShift) && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                              En curso
+                            </span>
+                          )}
+                        </div>
+                        <Calendar className="text-orange-600" size={24} />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs md:text-sm text-gray-600 mb-1">Fecha</p>
+                          <p className="text-base md:text-lg font-semibold text-gray-900 capitalize">
+                            {formatDate(upcomingShift.shift_date)}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-orange-50 rounded-lg p-3">
+                            <p className="text-xs md:text-sm text-gray-600 mb-1">Inicio</p>
+                            <p className="text-lg md:text-xl font-bold text-orange-600">
+                              {upcomingShift.start_time ? formatTime(upcomingShift.start_time) : '—'}
+                            </p>
+                          </div>
+
+                          <div className="bg-orange-50 rounded-lg p-3">
+                            <p className="text-xs md:text-sm text-gray-600 mb-1">Fin</p>
+                            <p className="text-lg md:text-xl font-bold text-orange-600">
+                              {upcomingShift.end_time ? formatTime(upcomingShift.end_time) : '—'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="text-gray-400" size={20} />
+                        <p className="text-sm md:text-base text-gray-600">
+                          No hay turnos próximos asignados
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Horas Trabajadas Hoy */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg md:text-xl font-semibold text-gray-900">Hoy</h2>
+                      <Clock className="text-blue-600" size={24} />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                      <div className="bg-blue-50 rounded-lg p-3 md:p-4">
+                        <p className="text-xs md:text-sm text-gray-600 mb-1">Entrada</p>
+                        <p className="text-xl md:text-2xl font-bold text-blue-600">
+                          {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0
+                            ? formatTime(todayRecord.work_blocks[0].start_time)
+                            : '—'}
+                        </p>
+                      </div>
+
+                      <div className="bg-green-50 rounded-lg p-3 md:p-4">
+                        <p className="text-xs md:text-sm text-gray-600 mb-1">Salida</p>
+                        <p className="text-xl md:text-2xl font-bold text-green-600">
+                          {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0
+                            ? (todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time !==
+                               todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time
+                                ? formatTime(todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time)
+                                : '—')
+                            : '—'}
+                        </p>
+                      </div>
+
+                      <div className="bg-purple-50 rounded-lg p-3 md:p-4">
+                        <p className="text-xs md:text-sm text-gray-600 mb-1">Horas</p>
+                        <p className="text-xl md:text-2xl font-bold text-purple-600">
+                          {todayRecord?.total_hours !== undefined && todayRecord.total_hours > 0
+                            ? `${todayRecord.total_hours}h ${todayRecord.total_minutes || 0}m`
+                            : '0h'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 &&
+                     todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time ===
+                     todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time && (
+                      <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                        <p className="text-xs md:text-sm text-green-800 font-medium">
+                          ✓ Entrada registrada. No olvides registrar tu salida.
+                        </p>
+                      </div>
                     )}
                   </div>
-                  <Calendar className="text-orange-600" size={24} />
-                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs md:text-sm text-gray-600 mb-1">Fecha</p>
-                    <p className="text-base md:text-lg font-semibold text-gray-900 capitalize">
-                      {formatDate(upcomingShift.shift_date)}
+                  {/* Horas de la Semana */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg md:text-xl font-semibold text-gray-900">Esta Semana</h2>
+                      <TrendingUp className="text-indigo-600" size={24} />
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl md:text-4xl font-bold text-indigo-600">
+                        {weeklyHours.toFixed(1)}
+                      </p>
+                      <p className="text-sm md:text-base text-gray-600">horas trabajadas</p>
+                    </div>
+
+                    <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-indigo-600 h-2 rounded-full transition-all"
+                        style={{ width: `${Math.min((weeklyHours / scheduledHours) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs md:text-sm text-gray-500 mt-2">
+                      Meta: {scheduledHours.toFixed(1)} horas/semana
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-orange-50 rounded-lg p-3">
-                      <p className="text-xs md:text-sm text-gray-600 mb-1">Inicio</p>
-                      <p className="text-lg md:text-xl font-bold text-orange-600">
-                        {upcomingShift.start_time ? formatTime(upcomingShift.start_time) : '—'}
-                      </p>
-                    </div>
-
-                    <div className="bg-orange-50 rounded-lg p-3">
-                      <p className="text-xs md:text-sm text-gray-600 mb-1">Fin</p>
-                      <p className="text-lg md:text-xl font-bold text-orange-600">
-                        {upcomingShift.end_time ? formatTime(upcomingShift.end_time) : '—'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                </>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="text-gray-400" size={20} />
-                  <p className="text-sm md:text-base text-gray-600">
-                    No hay turnos próximos asignados
-                  </p>
+              // Admin Dashboard
+              <div className="space-y-4 md:space-y-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                  <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs md:text-sm font-medium text-gray-500">Ventas Hoy</h3>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                          ${dashboardData.ventas?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                        </p>
+                      </div>
+                      <DollarSign className="text-green-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs md:text-sm font-medium text-gray-500">Empleados Activos</h3>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">{activeEmployees}</p>
+                      </div>
+                      <Users className="text-blue-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs md:text-sm font-medium text-gray-500">Gastos del Mes</h3>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                          ${dashboardData.gastos?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                        </p>
+                      </div>
+                      <TrendingDown className="text-red-600" size={24} />
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs md:text-sm font-medium text-gray-500">Balance</h3>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                          ${dashboardData.rentabilidad?.resultado_neto?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                        </p>
+                      </div>
+                      <TrendingUp className="text-indigo-600" size={24} />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* Horas Trabajadas Hoy */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Hoy</h2>
-                <Clock className="text-blue-600" size={24} />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                <div className="bg-blue-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Entrada</p>
-                  <p className="text-xl md:text-2xl font-bold text-blue-600">
-                    {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 
-                      ? formatTime(todayRecord.work_blocks[0].start_time) 
-                      : '—'}
-                  </p>
-                </div>
-
-                <div className="bg-green-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Salida</p>
-                  <p className="text-xl md:text-2xl font-bold text-green-600">
-                    {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 
-                      ? (todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time !== 
-                         todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time
-                          ? formatTime(todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time)
-                          : '—')
-                      : '—'}
-                  </p>
-                </div>
-
-                <div className="bg-purple-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Horas</p>
-                  <p className="text-xl md:text-2xl font-bold text-purple-600">
-                    {todayRecord?.total_hours !== undefined && todayRecord.total_hours > 0
-                      ? `${todayRecord.total_hours}h ${todayRecord.total_minutes || 0}m`
-                      : '0h'}
-                  </p>
-                </div>
-              </div>
-
-              {todayRecord?.work_blocks && todayRecord.work_blocks.length > 0 && 
-               todayRecord.work_blocks[todayRecord.work_blocks.length - 1].end_time === 
-               todayRecord.work_blocks[todayRecord.work_blocks.length - 1].start_time && (
-                <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-                  <p className="text-xs md:text-sm text-green-800 font-medium">
-                    ✓ Entrada registrada. No olvides registrar tu salida.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Horas de la Semana */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Esta Semana</h2>
-                <TrendingUp className="text-indigo-600" size={24} />
-              </div>
-
-              <div className="flex items-baseline gap-2">
-                <p className="text-3xl md:text-4xl font-bold text-indigo-600">
-                  {weeklyHours.toFixed(1)}
-                </p>
-                <p className="text-sm md:text-base text-gray-600">horas trabajadas</p>
-              </div>
-
-              <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-indigo-600 h-2 rounded-full transition-all"
-                  style={{ width: `${Math.min((weeklyHours / scheduledHours) * 100, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-xs md:text-sm text-gray-500 mt-2">
-                Meta: {scheduledHours.toFixed(1)} horas/semana
-              </p>
-            </div>
           </>
         )}
       </div>
-    )
-  }
-
-  // Dashboard para Administradores
-  return (
-    <div className="space-y-4 md:space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-      
-      {error && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 md:p-4 flex items-start gap-3">
-          <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={18} />
-          <div className="text-xs md:text-sm text-yellow-700">{error}</div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs md:text-sm font-medium text-gray-500">Ventas Hoy</h3>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                  ${dashboardData.ventas?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
-                </p>
-              </div>
-              <DollarSign className="text-green-600" size={24} />
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs md:text-sm font-medium text-gray-500">Empleados Activos</h3>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">{activeEmployees}</p>
-              </div>
-              <Users className="text-blue-600" size={24} />
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs md:text-sm font-medium text-gray-500">Gastos del Mes</h3>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                  ${dashboardData.gastos?.total?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
-                </p>
-              </div>
-              <TrendingDown className="text-red-600" size={24} />
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs md:text-sm font-medium text-gray-500">Balance</h3>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                  ${dashboardData.rentabilidad?.resultado_neto?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
-                </p>
-              </div>
-              <TrendingUp className="text-indigo-600" size={24} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
