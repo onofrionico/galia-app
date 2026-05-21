@@ -1,36 +1,29 @@
-import axios from 'axios'
+import api from './api'
 
-const API_BASE_URL = '/api/v1'
-
-export const configService = {
-  getBrandingConfig: async () => {
+const configService = {
+  async getBrandingConfig() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/config/branding`)
+      const response = await api.get('/config/branding')
       return response.data
     } catch (error) {
-      console.error('Error fetching branding config:', error)
-      return {
-        logo_path: null,
-        banner_background_path: null
-      }
+      throw new Error('Failed to fetch branding config: ' + error.message)
     }
   },
 
-  updateBrandingConfig: async (logoFile, backgroundFile) => {
+  async updateBrandingConfig(logoFile, backgroundFile) {
     try {
       const formData = new FormData()
       if (logoFile) formData.append('logo', logoFile)
       if (backgroundFile) formData.append('background', backgroundFile)
 
-      const response = await axios.post(`${API_BASE_URL}/admin/config/branding`, formData, {
+      const response = await api.post('/admin/config/branding', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
       return response.data
     } catch (error) {
-      console.error('Error updating branding config:', error)
-      throw error
+      throw new Error('Failed to update branding config: ' + error.message)
     }
   }
 }
