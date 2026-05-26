@@ -66,6 +66,11 @@ const CamareroOrderBottomSheet = ({
     }
   }
 
+  const handleAgregarItem = () => {
+    // Collapse order items to show products
+    setShowOrderItems(false)
+  }
+
   if (!isOpen || !order) return null
 
   const categoryProducts = products.filter(p => p.category_id === activeCategory)
@@ -213,7 +218,7 @@ const CamareroOrderBottomSheet = ({
               {/* Action buttons */}
               <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
                 <button
-                  onClick={() => {}}
+                  onClick={handleAgregarItem}
                   className="w-full py-2 rounded font-semibold transition-opacity text-sm"
                   style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
                   onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
