@@ -92,7 +92,7 @@ const CamareroOrderBottomSheet = ({
   const categoryProducts = products.filter(p => p.category_id === activeCategory)
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end" onClick={onClose}>
       <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col" onClick={(e) => e.stopPropagation()}>
 
         {/* Header - Sticky */}
