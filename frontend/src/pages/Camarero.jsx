@@ -1,19 +1,26 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Map, List } from 'lucide-react'
 import salonsService from '../services/salonsService'
 import ordersService from '../services/ordersService'
 import GALIA from '../constants/colors'
-import { ChevronLeft } from 'lucide-react'
+import SalonFloorPlan from '../components/pos/SalonFloorPlan'
+import CamareroTableListView from '../components/camarero/CamareroTableListView'
+import CamareroOrderBottomSheet from '../components/camarero/CamareroOrderBottomSheet'
 
 const Camarero = () => {
-  const navigate = useNavigate()
-
+  // View and salon state
+  const [viewMode, setViewMode] = useState('map') // 'map' or 'list'
   const [salons, setSalons] = useState([])
   const [activeSalon, setActiveSalon] = useState(null)
   const [allMesas, setAllMesas] = useState({})
   const [openOrders, setOpenOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Order sheet state
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [showOrderSheet, setShowOrderSheet] = useState(false)
+  const [selectedMesa, setSelectedMesa] = useState(null)
 
   // Polling every 10 seconds
   useEffect(() => {
@@ -50,6 +57,7 @@ const Camarero = () => {
   }
 
   const handleMesaClick = async (mesa) => {
+    setSelectedMesa(mesa)
     if (mesa.status === 'libre') {
       // Create new order
       try {
@@ -57,7 +65,8 @@ const Camarero = () => {
           mesa_id: mesa.id,
           salon_id: activeSalon
         })
-        navigate(`/camarero/mesa/${mesa.id}`, { state: { orderId: order.id } })
+        setSelectedOrder(order)
+        setShowOrderSheet(true)
       } catch (err) {
         setError('Error al crear orden')
       }
@@ -65,15 +74,62 @@ const Camarero = () => {
       // Open existing order
       const order = openOrders.find(o => o.mesa_id === mesa.id)
       if (order) {
-        navigate(`/camarero/mesa/${mesa.id}`, { state: { orderId: order.id } })
+        try {
+          const fullOrder = await ordersService.getOrder(order.id)
+          setSelectedOrder(fullOrder)
+          setShowOrderSheet(true)
+        } catch (err) {
+          setError('Error al cargar la orden')
+        }
       }
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full" style={{ backgroundColor: GALIA.crema }}>Cargando...</div>
+  const handleAddItem = async (productVariantId, quantity) => {
+    try {
+      const updated = await ordersService.addItem(selectedOrder.id, {
+        product_variant_id: productVariantId,
+        quantity
+      })
+      setSelectedOrder(updated)
+      await fetchAll()
+    } catch (err) {
+      setError('Error al agregar item')
+    }
+  }
 
-  const activeMesas = allMesas[activeSalon] || []
-  const mesasWithOrders = activeMesas.map(m => ({
+  const handleRemoveItem = async (itemId) => {
+    try {
+      const updated = await ordersService.removeItem(selectedOrder.id, itemId)
+      setSelectedOrder(updated)
+      await fetchAll()
+    } catch (err) {
+      setError('Error al eliminar item')
+    }
+  }
+
+  const handleCobrar = async (methodoPago) => {
+    try {
+      await ordersService.cobrar(selectedOrder.id, methodoPago)
+      setShowOrderSheet(false)
+      setSelectedOrder(null)
+      setSelectedMesa(null)
+      await fetchAll()
+    } catch (err) {
+      setError('Error al cobrar')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ backgroundColor: GALIA.crema, color: GALIA.grisClaro }}>
+        Cargando...
+      </div>
+    )
+  }
+
+  const activeSalonMesas = allMesas[activeSalon] || []
+  const mesasWithOrders = activeSalonMesas.map(m => ({
     ...m,
     openOrder: openOrders.find(o => o.mesa_id === m.id) || null
   }))
@@ -81,8 +137,33 @@ const Camarero = () => {
   return (
     <div className="h-full w-full flex flex-col" style={{ backgroundColor: GALIA.crema }}>
       {/* Header */}
-      <div className="h-14 flex items-center px-4 text-white font-semibold text-lg" style={{ backgroundColor: GALIA.marron }}>
-        Mi Turno - Camarero
+      <div className="h-14 flex items-center justify-between px-4 text-white font-semibold text-lg" style={{ backgroundColor: GALIA.marron }}>
+        <span>Mi Turno - Camarero</span>
+        {/* View mode toggle */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('map')}
+            className="p-2 rounded transition"
+            title="Vista Mapa"
+            style={{
+              backgroundColor: viewMode === 'map' ? GALIA.amarillo : 'transparent',
+              color: viewMode === 'map' ? GALIA.marron : 'white'
+            }}
+          >
+            <Map size={20} />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className="p-2 rounded transition"
+            title="Vista Lista"
+            style={{
+              backgroundColor: viewMode === 'list' ? GALIA.amarillo : 'transparent',
+              color: viewMode === 'list' ? GALIA.marron : 'white'
+            }}
+          >
+            <List size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Salon tabs */}
@@ -103,46 +184,47 @@ const Camarero = () => {
         ))}
       </div>
 
-      {/* Mesas grid */}
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="grid grid-cols-2 gap-3">
-          {mesasWithOrders.map(mesa => (
-            <button
-              key={mesa.id}
-              onClick={() => handleMesaClick(mesa)}
-              className="p-3 rounded-lg border transition-all cursor-pointer"
-              style={{
-                backgroundColor: GALIA.blanco,
-                borderColor: mesa.status === 'ocupada' ? GALIA.amarillo : GALIA.grisLigero,
-                borderWidth: mesa.status === 'ocupada' ? '2px' : '1px'
-              }}
-            >
-              <div className="text-2xl font-bold" style={{ color: GALIA.marron }}>
-                {mesa.numero}
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-xs font-semibold rounded-full px-2 py-1" style={{
-                  backgroundColor: mesa.status === 'libre' ? GALIA.verde : GALIA.amarillo,
-                  color: mesa.status === 'libre' ? 'white' : GALIA.marron
-                }}>
-                  {mesa.status === 'libre' ? 'Libre' : 'Ocupada'}
-                </div>
-              </div>
-              {mesa.openOrder && (
-                <div className="mt-2 text-xs" style={{ color: GALIA.grisClaro }}>
-                  {mesa.openOrder.items?.length || 0} ítems
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Main content area */}
+      <div className="flex-1 overflow-hidden">
+        {viewMode === 'map' ? (
+          <div className="h-full w-full p-2 md:p-4">
+            <SalonFloorPlan
+              mesas={mesasWithOrders}
+              onMesaClick={handleMesaClick}
+              isEditMode={false}
+            />
+          </div>
+        ) : (
+          <div className="h-full w-full">
+            <CamareroTableListView
+              mesas={mesasWithOrders}
+              onMesaClick={handleMesaClick}
+            />
+          </div>
+        )}
       </div>
 
+      {/* Error message */}
       {error && (
         <div className="p-3 text-sm" style={{ backgroundColor: '#fee', color: '#c33' }}>
           {error}
         </div>
       )}
+
+      {/* Order Bottom Sheet */}
+      <CamareroOrderBottomSheet
+        isOpen={showOrderSheet}
+        order={selectedOrder}
+        mesaNumber={selectedMesa?.numero || selectedMesa?.id}
+        onClose={() => {
+          setShowOrderSheet(false)
+          setSelectedOrder(null)
+          setSelectedMesa(null)
+        }}
+        onAddItem={handleAddItem}
+        onRemoveItem={handleRemoveItem}
+        onCobrar={handleCobrar}
+      />
     </div>
   )
 }
