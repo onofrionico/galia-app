@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
 import { X, ChevronDown, Trash2, Printer } from 'lucide-react'
 import GALIA from '../../constants/colors'
 import productCategoriesService from '../../services/productCategoriesService'
@@ -20,6 +21,7 @@ const CamareroOrderBottomSheet = ({
   const [showOrderItems, setShowOrderItems] = useState(false)
   const [loading, setLoading] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (isOpen && order) {
@@ -27,9 +29,22 @@ const CamareroOrderBottomSheet = ({
     }
   }, [isOpen, order])
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleEscape)
+      return () => window.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen, onClose])
+
   const fetchCategoriesAndProducts = async () => {
     try {
       setLoading(true)
+      setError('')
       const [catRes, prodRes] = await Promise.all([
         productCategoriesService.getCategories(),
         productsService.getProducts({ per_page: 100 })
@@ -41,6 +56,7 @@ const CamareroOrderBottomSheet = ({
       }
     } catch (err) {
       console.error('Error fetching categories/products:', err)
+      setError('Error al cargar productos')
     } finally {
       setLoading(false)
     }
@@ -83,6 +99,7 @@ const CamareroOrderBottomSheet = ({
         <div className="sticky top-0 z-10 px-4 py-3 shadow-sm border-b flex items-center justify-between" style={{ backgroundColor: GALIA.marron, borderColor: GALIA.grisLigero }}>
           <button
             onClick={onClose}
+            title="Cerrar"
             className="flex items-center gap-2 text-white hover:opacity-80"
           >
             <X className="h-5 w-5" />
@@ -116,6 +133,11 @@ const CamareroOrderBottomSheet = ({
 
         {/* Products grid - Scrollable */}
         <div className="flex-1 overflow-y-auto px-3 py-3 pb-80">
+          {error && (
+            <div className="p-3 text-sm text-center" style={{ backgroundColor: '#fee', color: '#c33' }}>
+              {error}
+            </div>
+          )}
           {loading ? (
             <div className="text-center py-8" style={{ color: GALIA.grisClaro }}>
               Cargando productos...
@@ -168,6 +190,7 @@ const CamareroOrderBottomSheet = ({
             </span>
             <button
               onClick={() => setShowOrderItems(!showOrderItems)}
+              aria-label="Expandir/Contraer orden"
               className="p-1 rounded transition"
               style={{ color: GALIA.marron }}
             >
@@ -200,6 +223,7 @@ const CamareroOrderBottomSheet = ({
                         </div>
                         <button
                           onClick={() => onRemoveItem(item.id)}
+                          title="Eliminar item"
                           className="p-1 rounded transition"
                           style={{ color: '#dc2626' }}
                         >
@@ -219,24 +243,16 @@ const CamareroOrderBottomSheet = ({
               <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
                 <button
                   onClick={handleAgregarItem}
-                  className="w-full py-2 rounded font-semibold transition-opacity text-sm"
+                  className="w-full py-2 rounded font-semibold transition-opacity text-sm hover:opacity-90"
                   style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
-                  onMouseEnter={(e) => (e.target.style.opacity = '0.9')}
-                  onMouseLeave={(e) => (e.target.style.opacity = '1')}
                 >
                   Agregar Item
                 </button>
                 <button
                   onClick={handlePrintControl}
                   disabled={!order.items || order.items.length === 0 || printing}
-                  className="w-full py-2 rounded font-semibold transition-opacity text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2 rounded font-semibold transition-opacity text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 disabled:hover:opacity-50"
                   style={{ backgroundColor: '#3B82F6', color: 'white' }}
-                  onMouseEnter={(e) => {
-                    if (!e.target.disabled) e.target.style.opacity = '0.9'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!e.target.disabled) e.target.style.opacity = '1'
-                  }}
                 >
                   <Printer size={16} />
                   {printing ? 'Imprimiendo...' : 'Control Mesa'}
@@ -244,14 +260,8 @@ const CamareroOrderBottomSheet = ({
                 <button
                   onClick={() => onCobrar('Efectivo')}
                   disabled={!order.items || order.items.length === 0}
-                  className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 disabled:hover:opacity-50"
                   style={{ backgroundColor: GALIA.marron, color: 'white' }}
-                  onMouseEnter={(e) => {
-                    if (!e.target.disabled) e.target.style.opacity = '0.9'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!e.target.disabled) e.target.style.opacity = '1'
-                  }}
                 >
                   COBRAR
                 </button>
@@ -274,6 +284,26 @@ const CamareroOrderBottomSheet = ({
       </div>
     </div>
   )
+}
+
+CamareroOrderBottomSheet.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  order: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    items: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      product_name: PropTypes.string.isRequired,
+      variant_name: PropTypes.string,
+      quantity: PropTypes.number.isRequired,
+      unit_price: PropTypes.number.isRequired
+    })),
+    total: PropTypes.number
+  }),
+  mesaNumber: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onAddItem: PropTypes.func.isRequired,
+  onRemoveItem: PropTypes.func.isRequired,
+  onCobrar: PropTypes.func.isRequired
 }
 
 export default CamareroOrderBottomSheet
