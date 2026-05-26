@@ -82,6 +82,8 @@ const Camarero = () => {
         } catch (err) {
           setError('Error al cargar la orden')
         }
+      } else {
+        setError('No se encontró orden para esta mesa')
       }
     }
   }

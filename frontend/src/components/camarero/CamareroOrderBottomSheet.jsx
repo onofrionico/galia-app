@@ -114,7 +114,7 @@ const CamareroOrderBottomSheet = ({
         </div>
 
         {/* Categories tabs - Sticky */}
-        <div className="sticky top-0 z-9 flex gap-2 px-3 py-2 overflow-x-auto" style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
+        <div className="sticky top-0 z-20 flex gap-2 px-3 py-2 overflow-x-auto" style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
           {categories.map(cat => (
             <button
               key={cat.id}
