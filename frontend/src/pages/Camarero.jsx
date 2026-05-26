@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Map, List } from 'lucide-react'
 import salonsService from '../services/salonsService'
 import ordersService from '../services/ordersService'
@@ -22,14 +22,7 @@ const Camarero = () => {
   const [showOrderSheet, setShowOrderSheet] = useState(false)
   const [selectedMesa, setSelectedMesa] = useState(null)
 
-  // Polling every 10 seconds
-  useEffect(() => {
-    fetchAll()
-    const interval = setInterval(fetchAll, 10000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const [salonRes, ordersRes] = await Promise.all([
         salonsService.getSalons({ include_inactive: false }),
@@ -54,10 +47,18 @@ const Camarero = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeSalon])
+
+  // Polling every 10 seconds
+  useEffect(() => {
+    fetchAll()
+    const interval = setInterval(fetchAll, 10000)
+    return () => clearInterval(interval)
+  }, [fetchAll])
 
   const handleMesaClick = async (mesa) => {
     setSelectedMesa(mesa)
+    setError('')
     if (mesa.status === 'libre') {
       // Create new order
       try {
@@ -86,6 +87,7 @@ const Camarero = () => {
   }
 
   const handleAddItem = async (productVariantId, quantity) => {
+    setError('')
     try {
       const updated = await ordersService.addItem(selectedOrder.id, {
         product_variant_id: productVariantId,
@@ -99,6 +101,7 @@ const Camarero = () => {
   }
 
   const handleRemoveItem = async (itemId) => {
+    setError('')
     try {
       const updated = await ordersService.removeItem(selectedOrder.id, itemId)
       setSelectedOrder(updated)
@@ -109,6 +112,7 @@ const Camarero = () => {
   }
 
   const handleCobrar = async (methodoPago) => {
+    setError('')
     try {
       await ordersService.cobrar(selectedOrder.id, methodoPago)
       setShowOrderSheet(false)
@@ -128,7 +132,7 @@ const Camarero = () => {
     )
   }
 
-  const activeSalonMesas = allMesas[activeSalon] || []
+  const activeSalonMesas = (activeSalon && allMesas[activeSalon]) || []
   const mesasWithOrders = activeSalonMesas.map(m => ({
     ...m,
     openOrder: openOrders.find(o => o.mesa_id === m.id) || null
@@ -145,6 +149,8 @@ const Camarero = () => {
             onClick={() => setViewMode('map')}
             className="p-2 rounded transition"
             title="Vista Mapa"
+            aria-label="Vista Mapa"
+            aria-pressed={viewMode === 'map'}
             style={{
               backgroundColor: viewMode === 'map' ? GALIA.amarillo : 'transparent',
               color: viewMode === 'map' ? GALIA.marron : 'white'
@@ -156,6 +162,8 @@ const Camarero = () => {
             onClick={() => setViewMode('list')}
             className="p-2 rounded transition"
             title="Vista Lista"
+            aria-label="Vista Lista"
+            aria-pressed={viewMode === 'list'}
             style={{
               backgroundColor: viewMode === 'list' ? GALIA.amarillo : 'transparent',
               color: viewMode === 'list' ? GALIA.marron : 'white'
