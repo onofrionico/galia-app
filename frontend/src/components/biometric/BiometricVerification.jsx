@@ -85,6 +85,14 @@ const BiometricVerification = ({ qrToken, employeeInfo, onSuccess, onError }) =>
     setStep('entry_selection')
   }
 
+  const handleRetryFromError = () => {
+    setError(null)
+    setPhotoBase64(null)
+    setBiometricConfidence(0)
+    setBiometricVerified(false)
+    setStep('capture')
+  }
+
   const handleSubmit = async () => {
     if (!photoBase64 || !gpsData || !biometricVerified) {
       setError('Faltan datos requeridos')

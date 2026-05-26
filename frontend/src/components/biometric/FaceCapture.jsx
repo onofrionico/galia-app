@@ -1,113 +1,147 @@
 import { useState, useEffect, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
+import * as faceapi from '@vladmandic/face-api'
 
 const FaceCapture = ({ onPhotoCapture, gpsData }) => {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [detectedFaces, setDetectedFaces] = useState(0)
+  const [faceDetectionStatus, setFaceDetectionStatus] = useState('Cargando modelo...')
+  const [modelsLoaded, setModelsLoaded] = useState(false)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
+  const detectionIntervalRef = useRef(null)
 
   useEffect(() => {
-    const startCamera = async () => {
+    const initializeFaceDetection = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        })
+        // Load face detection models from CDN
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/'
+        await faceapi.nets.tinyFaceDetector.load(MODEL_URL)
+        await faceapi.nets.faceLandmark68Net.load(MODEL_URL)
+        await faceapi.nets.faceExpressionNet.load(MODEL_URL)
+        setModelsLoaded(true)
+        setFaceDetectionStatus('Listo para detectar rostros')
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          streamRef.current = stream
-        }
-
-        setLoading(false)
+        // Start camera
+        await startCamera()
       } catch (err) {
-        setError(`No se pudo acceder a la cámara: ${err.message}`)
+        setError(`Error cargando modelos de detección: ${err.message}`)
         setLoading(false)
       }
     }
 
-    startCamera()
+    initializeFaceDetection()
 
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current)
+      }
     }
   }, [])
 
-  const handleCapture = () => {
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      })
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        streamRef.current = stream
+      }
+
+      // Start continuous face detection
+      startFaceDetection()
+      setLoading(false)
+    } catch (err) {
+      setError(`No se pudo acceder a la cámara: ${err.message}`)
+      setLoading(false)
+    }
+  }
+
+  const startFaceDetection = () => {
+    detectionIntervalRef.current = setInterval(async () => {
+      const video = videoRef.current
+      if (!video || !modelsLoaded) return
+
+      try {
+        // Detect faces in real-time
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceExpressions()
+
+        setDetectedFaces(detections.length)
+
+        if (detections.length === 0) {
+          setFaceDetectionStatus('No se detecta rostro')
+        } else if (detections.length === 1) {
+          setFaceDetectionStatus('✓ Un rostro detectado')
+        } else {
+          setFaceDetectionStatus(`⚠ ${detections.length} rostros detectados`)
+        }
+      } catch (err) {
+        // Silently handle detection errors
+      }
+    }, 300)
+  }
+
+  const handleCapture = async () => {
     const video = videoRef.current
     const canvas = canvasRef.current
 
     if (!video || !canvas) return
 
-    // Set canvas size to match video dimensions
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    // Check if exactly one face is detected
+    try {
+      const detections = await faceapi
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceExpressions()
 
-    // Draw video frame to canvas
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(video, 0, 0)
+      if (detections.length === 0) {
+        setError('No se detecta rostro. Asegúrate de estar mirando a la cámara.')
+        return
+      }
 
-    // Convert to base64 JPEG
-    const photoBase64 = canvas.toDataURL('image/jpeg', 0.8)
+      if (detections.length > 1) {
+        setError(`Se detectaron ${detections.length} rostros. Solo debe haber uno.`)
+        return
+      }
 
-    // For MVP: Calculate simple "confidence" based on image properties
-    // In production, this would call AWS Rekognition or face_recognition library
-    const confidence = calculateMockConfidence(canvas, ctx)
+      // One face detected - capture photo
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
 
-    onPhotoCapture(photoBase64, confidence)
-  }
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0)
 
-  const calculateMockConfidence = (canvas, ctx) => {
-    // Get image data to analyze
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data = imageData.data
+      const photoBase64 = canvas.toDataURL('image/jpeg', 0.8)
 
-    // Calculate average brightness (0-255)
-    let totalBrightness = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i]
-      const g = data[i + 1]
-      const b = data[i + 2]
-      totalBrightness += (r + g + b) / 3
+      // Get confidence from face detection
+      const detection = detections[0]
+      const confidence = detection.detection.score
+
+      onPhotoCapture(photoBase64, confidence)
+    } catch (err) {
+      setError('Error al capturar foto. Intenta de nuevo.')
     }
-    const avgBrightness = totalBrightness / (data.length / 4)
-
-    // Calculate variance in color channels (edge detection proxy)
-    let variance = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i] - avgBrightness
-      variance += r * r
-    }
-    variance = Math.sqrt(variance / (data.length / 4))
-
-    // Mock confidence score based on lighting and detail
-    // Good lighting: brightness between 50-200
-    // Good detail: variance > 30
-    let confidence = 0.5
-
-    if (avgBrightness > 40 && avgBrightness < 220) {
-      confidence += 0.2
-    }
-
-    if (variance > 25) {
-      confidence += 0.3
-    }
-
-    return Math.min(0.95, Math.max(0.6, confidence))
   }
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-        <p className="text-gray-600">Iniciando cámara...</p>
+        <p className="text-gray-600">Inicializando cámara y modelos...</p>
       </div>
     )
   }
@@ -137,10 +171,33 @@ const FaceCapture = ({ onPhotoCapture, gpsData }) => {
             />
 
             {/* Face Detection Overlay */}
-            <div className="absolute inset-0 border-4 border-blue-400 rounded-lg m-8"></div>
-            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white text-center text-sm py-2 rounded">
-              Mira a la cámara
+            <div className={`absolute inset-0 border-4 rounded-lg m-8 transition-colors ${
+              detectedFaces === 1 ? 'border-green-400' : 'border-blue-400'
+            }`}></div>
+
+            {/* Status Display */}
+            <div className="absolute top-4 left-4 right-4 bg-black bg-opacity-70 text-white text-center text-sm py-2 rounded">
+              {faceDetectionStatus}
             </div>
+
+            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white text-center text-sm py-2 rounded">
+              {detectedFaces === 0 ? 'Mira a la cámara' : detectedFaces === 1 ? '✓ Listo para capturar' : '⚠ Demasiados rostros'}
+            </div>
+          </div>
+
+          {/* Face Detection Status */}
+          <div className={`p-3 rounded-lg ${
+            detectedFaces === 1
+              ? 'bg-green-50 text-green-900'
+              : detectedFaces === 0
+              ? 'bg-yellow-50 text-yellow-900'
+              : 'bg-red-50 text-red-900'
+          }`}>
+            <p className="text-sm font-medium">
+              {detectedFaces === 1 && '✓ Rostro detectado correctamente'}
+              {detectedFaces === 0 && '⚠ Esperando detectar tu rostro'}
+              {detectedFaces > 1 && `✕ Demasiados rostros (${detectedFaces})`}
+            </p>
           </div>
 
           {/* GPS Status */}
@@ -156,10 +213,15 @@ const FaceCapture = ({ onPhotoCapture, gpsData }) => {
           {/* Capture Button */}
           <button
             onClick={handleCapture}
-            className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
+            disabled={detectedFaces !== 1}
+            className={`w-full px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+              detectedFaces === 1
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+            }`}
           >
             <span className="text-2xl">📷</span>
-            Capturar Foto
+            {detectedFaces === 1 ? 'Capturar Foto' : 'Detectando rostro...'}
           </button>
         </>
       )}

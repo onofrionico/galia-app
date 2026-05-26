@@ -164,7 +164,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Hero Banner */}
       <div
-        className="h-screen w-full flex flex-col items-center justify-center relative"
+        className="h-[20vh] w-full flex flex-col items-center justify-center relative"
         style={{
           backgroundImage: brandingConfig.banner_background_path
             ? `url('${brandingConfig.banner_background_path}')`
@@ -184,10 +184,10 @@ const Dashboard = () => {
             <img
               src={brandingConfig.logo_path}
               alt="Galia Logo"
-              className="h-40 md:h-64 object-contain"
+              className="h-[14vh] object-contain"
             />
           ) : (
-            <h1 className="text-6xl md:text-8xl font-bold text-primary">Galia</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-primary">Galia</h1>
           )}
         </div>
       </div>

@@ -75,7 +75,23 @@
       "Bash(python seed_large_catalog.py)",
       "Bash(python -c ' *)",
       "Bash(cd /c/Users/onofr/Desktop/galia-app/backend && grep -r \"token_required\\\\|@login_required\\\\|session\" app/routes/permissions.py | head -20)",
-      "Bash(cd /c/Users/onofr/Desktop/galia-app/backend && ls migrations/versions/ | head -10)"
+      "Bash(cd /c/Users/onofr/Desktop/galia-app/backend && ls migrations/versions/ | head -10)",
+      "Bash(pip install *)",
+      "Bash(pip show *)",
+      "Bash(python -m pip install --upgrade pip --quiet)",
+      "Bash(cd /c/Users/onofr/Desktop/galia-app/backend && ls -la migrations/versions/*.py | tail -5)",
+      "Bash(cd /c/Users/onofr/Desktop/galia-app/backend && ls -la | head -15)",
+      "Bash(python -c \"from app import create_app; from app.extensions import db; app = create_app\\(\\); with app.app_context\\(\\): inspector = db.inspect\\(db.engine\\); print\\('site_config' in inspector.get_table_names\\(\\)\\); cols = inspector.get_columns\\('site_config'\\) if 'site_config' in inspector.get_table_names\\(\\) else []; [print\\(f'{c[\\\\\"name\\\\\"]}: {c[\\\\\"type\\\\\"]}, nullable={c[\\\\\"nullable\\\\\"]}'\\) for c in cols]\")",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'backend'\\); from app.models.site_config import SiteConfig; print\\('✓ SiteConfig model imports successfully'\\); print\\(f'✓ Docstring: {SiteConfig.__doc__}'\\)\")",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'backend'\\); from app.models.site_config import SiteConfig; print\\('Model imports successfully'\\); print\\('Docstring:', SiteConfig.__doc__\\); print\\('Has __repr__:', hasattr\\(SiteConfig, '__repr__'\\)\\)\")",
+      "Bash(dir \"C:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\backend\\\\tests\")",
+      "Bash(python -m pytest backend/tests/test_config.py -v)",
+      "Bash(python -m pytest tests/test_config.py -v)",
+      "Bash(.\\\\venv\\\\Scripts\\\\python -m pytest tests/test_config.py::test_post_branding_config_requires_admin -v)",
+      "Bash(git reset *)",
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\onofr\\\\Desktop\\\\galia-app\\\\frontend\\\\src\\\\components\\\\camarero\" -Force)",
+      "PowerShell(\"Directory created\")",
+      "Bash(cd /c/Users/onofr/Desktop/galia-app/frontend && ls -la | grep -E \"eslint|\\\\.js|config\")"
     ]
   }
 }

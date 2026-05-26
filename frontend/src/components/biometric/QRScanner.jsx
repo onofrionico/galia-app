@@ -85,7 +85,11 @@ const QRScanner = ({ onQRScanned }) => {
       return
     }
 
-    // In production, validate the token first
+    if (manualToken.trim().length < 10) {
+      setError('Token debe tener al menos 10 caracteres')
+      return
+    }
+
     setScanning(false)
     onQRScanned(manualToken.trim(), { employee_id: 0 })
   }

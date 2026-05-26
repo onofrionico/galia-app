@@ -1,0 +1,14 @@
+- generic [ref=e3]:
+  - generic [ref=e4]: "[plugin:vite:import-analysis] Failed to resolve import \"@vladmandic/face-api\" from \"src/components/biometric/FaceCapture.jsx\". Does the file exist?"
+  - generic [ref=e5]: C:/Users/onofr/Desktop/galia-app/frontend/src/components/biometric/FaceCapture.jsx:3:25
+  - generic [ref=e6]: "18 | import { useState, useEffect, useRef } from \"react\"; 19 | import { AlertCircle } from \"lucide-react\"; 20 | import * as faceapi from \"@vladmandic/face-api\"; | ^ 21 | const FaceCapture = ({ onPhotoCapture, gpsData }) => { 22 | _s();"
+  - generic [ref=e7]: at TransformPluginContext._formatError (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41) at TransformPluginContext.error (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16) at normalizeUrl (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39 at async Promise.all (index 5) at async TransformPluginContext.transform (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7) at async PluginContainer.transform (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18) at async loadAndTransform (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27) at async viteTransformMiddleware (file:///C:/Users/onofr/Desktop/galia-app/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24
+  - generic [ref=e8]:
+    - text: Click outside, press Esc key, or fix the code to dismiss.
+    - text: You can also disable this overlay by setting
+    - code [ref=e9]: server.hmr.overlay
+    - text: to
+    - code [ref=e10]: "false"
+    - text: in
+    - code [ref=e11]: vite.config.js
+    - text: .

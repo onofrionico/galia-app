@@ -39,7 +39,6 @@ import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import Pos from './pages/Pos'
 import Camarero from './pages/Camarero'
-import CamareroMesa from './pages/CamareroMesa'
 import ProductCategories from './pages/ProductCategories'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
@@ -67,7 +66,6 @@ function App() {
           {/* Camarero — mobile layout */}
           <Route element={<ProtectedRoute><CamareroLayout /></ProtectedRoute>}>
             <Route path="/camarero" element={<Camarero />} />
-            <Route path="/camarero/mesa/:mesaId" element={<CamareroMesa />} />
           </Route>
 
           {/* Regular layout (existing routes) */}
