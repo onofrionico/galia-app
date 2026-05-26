@@ -1,6 +1,18 @@
+import PropTypes from 'prop-types'
 import GALIA from '../../constants/colors'
 
 const CamareroTableListView = ({ mesas = [], onMesaClick }) => {
+  // Show empty state if no mesas
+  if (mesas.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p style={{ color: GALIA.grisClaro }} className="text-base">
+          Sin mesas disponibles
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full h-full overflow-y-auto">
       <table className="w-full border-collapse">
@@ -21,9 +33,21 @@ const CamareroTableListView = ({ mesas = [], onMesaClick }) => {
           {mesas.map((mesa, index) => (
             <tr
               key={mesa.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onMesaClick(mesa)}
-              className="border-b cursor-pointer hover:bg-gray-50 transition-colors"
-              style={{ borderColor: GALIA.grisLigero, backgroundColor: index % 2 === 0 ? 'white' : GALIA.crema }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onMesaClick(mesa)
+                }
+              }}
+              className="border-b cursor-pointer hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{
+                borderColor: GALIA.grisLigero,
+                backgroundColor: index % 2 === 0 ? 'white' : GALIA.crema,
+                '--tw-ring-color': GALIA.marron
+              }}
             >
               <td className="px-4 py-4 text-base font-semibold" style={{ color: GALIA.marron }}>
                 {mesa.numero}
@@ -31,6 +55,7 @@ const CamareroTableListView = ({ mesas = [], onMesaClick }) => {
               <td className="px-4 py-4">
                 <span
                   className="inline-block px-3 py-1 rounded-full text-sm font-semibold"
+                  aria-label={`Estado: ${mesa.status === 'libre' ? 'Libre' : 'Ocupada'}`}
                   style={{
                     backgroundColor: mesa.status === 'libre' ? GALIA.verde : GALIA.amarillo,
                     color: mesa.status === 'libre' ? 'white' : GALIA.marron
@@ -59,6 +84,25 @@ const CamareroTableListView = ({ mesas = [], onMesaClick }) => {
       </table>
     </div>
   )
+}
+
+CamareroTableListView.propTypes = {
+  mesas: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      numero: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      status: PropTypes.oneOf(['libre', 'ocupada']).isRequired,
+      openOrder: PropTypes.shape({
+        total: PropTypes.number,
+        items: PropTypes.array
+      })
+    })
+  ),
+  onMesaClick: PropTypes.func.isRequired
+}
+
+CamareroTableListView.defaultProps = {
+  mesas: []
 }
 
 export default CamareroTableListView
