@@ -300,7 +300,7 @@ const CamareroOrderBottomSheet = ({
 
               {/* Method Selection */}
               <div className="grid grid-cols-3 gap-2">
-                {['efectivo', 'tarjeta', 'otro'].map((metodo) => (
+                {['Efectivo', 'Tarjeta', 'Otro'].map((metodo) => (
                   <button
                     key={metodo}
                     onClick={() => setSelectedPaymentMethod(metodo)}
