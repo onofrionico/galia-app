@@ -291,13 +291,19 @@ def cobrar_order(current_user, order_id):
 
 @bp.route('/<int:order_id>', methods=['DELETE'])
 @token_required
-@admin_required
 def cancel_order(current_user, order_id):
     """
-    Cancel an order (admin only)
+    Cancel an order.
+    - Sin items: cualquier usuario autenticado puede cancelar
+    - Con items: solo admin puede cancelar
     Sets status to 'cancelada' and frees the mesa if applicable
     """
     order = Order.query.get_or_404(order_id)
+
+    # Si la orden tiene items, solo admin puede cancelar
+    items_list = order.items.all()
+    if items_list and not current_user.is_admin:
+        return jsonify({'error': 'Solo un administrador puede cancelar una orden con items'}), 403
 
     # Set status to cancelada
     order.status = 'cancelada'
