@@ -249,7 +249,7 @@ const CamareroOrderBottomSheet = ({
             <button
               onClick={() => {
                 if (onCobrar) {
-                  onCobrar('Efectivo')
+                  onCobrar('efectivo')
                 }
               }}
               disabled={!order.items || order.items.length === 0}
