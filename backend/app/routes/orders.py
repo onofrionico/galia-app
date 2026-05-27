@@ -111,6 +111,20 @@ def add_order_item(current_user, order_id):
     if not variant:
         return jsonify({'error': f'ProductVariant {product_variant_id} no encontrado'}), 404
 
+    # Validar stock disponible antes de agregar
+    product = variant.product
+    if not product.has_recipe:
+        if float(variant.stock_quantity) < int(quantity):
+            return jsonify({'error': f'Stock insuficiente para {product.name} - {variant.name}'}), 400
+    else:
+        from app.models.product import ProductRecipeItem
+        recipe_items = ProductRecipeItem.query.filter_by(product_id=product.id).all()
+        for recipe_item in recipe_items:
+            supply = recipe_item.supply
+            needed = float(recipe_item.quantity) * int(quantity)
+            if float(supply.stock_quantity) < needed:
+                return jsonify({'error': f'Stock insuficiente de {supply.name}'}), 400
+
     # Check if OrderItem with same product_variant_id already exists
     existing_item = OrderItem.query.filter_by(
         order_id=order_id,
@@ -212,8 +226,11 @@ def cobrar_order(current_user, order_id):
             for oi in items_list
         ]
 
-        # Call stock_service to reduce inventory
-        deduct_stock_for_sale(stock_items)
+        # Descontar stock best-effort (no bloquear cobro si hay stock insuficiente)
+        try:
+            deduct_stock_for_sale(stock_items)
+        except ValueError:
+            pass  # Stock insuficiente no bloquea el cobro - validación ocurre al agregar items
 
         # Create Sale
         sale = Sale(
