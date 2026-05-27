@@ -93,13 +93,13 @@ const CamareroOrderBottomSheet = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end" onClick={onClose}>
-      <div className="w-screen bg-white rounded-t-lg max-h-[90vh] overflow-y-auto flex flex-col" onClick={(e) => e.stopPropagation()}>
+      {/* BottomSheet - Dynamic height based on content */}
+      <div className="w-screen bg-white rounded-t-lg flex flex-col" style={{ maxHeight: 'min(90vh, 100vh - 60px)' }} onClick={(e) => e.stopPropagation()}>
 
         {/* Header - Sticky */}
         <div className="sticky top-0 z-10 px-4 py-3 shadow-sm border-b flex items-center justify-between" style={{ backgroundColor: GALIA.marron, borderColor: GALIA.grisLigero }}>
           <button
             onClick={onClose}
-            title="Cerrar"
             className="flex items-center gap-2 text-white hover:opacity-80"
           >
             <X className="h-5 w-5" />
@@ -114,7 +114,7 @@ const CamareroOrderBottomSheet = ({
         </div>
 
         {/* Categories tabs - Sticky */}
-        <div className="sticky top-0 z-20 flex gap-2 px-3 py-2 overflow-x-auto" style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
+        <div className="sticky top-0 z-9 flex gap-2 px-3 py-2 overflow-x-auto" style={{ backgroundColor: GALIA.blanco, borderBottom: `1px solid ${GALIA.grisLigero}` }}>
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -131,8 +131,8 @@ const CamareroOrderBottomSheet = ({
           ))}
         </div>
 
-        {/* Products grid - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 pb-80">
+        {/* Products grid - Scrollable, flex-1 to fill available space */}
+        <div className="flex-1 overflow-y-auto px-3 py-3">
           {error && (
             <div className="p-3 text-sm text-center" style={{ backgroundColor: '#fee', color: '#c33' }}>
               {error}
@@ -180,106 +180,81 @@ const CamareroOrderBottomSheet = ({
           )}
         </div>
 
-        {/* Order items section - Fixed at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 rounded-t-lg shadow-lg bg-white max-h-1/3 overflow-y-auto" style={{ backgroundColor: GALIA.blanco }}>
+        {/* Order items section - Always visible at bottom */}
+        <div className="border-t" style={{ borderColor: GALIA.grisLigero, backgroundColor: GALIA.blanco }}>
 
-          {/* Order header - Collapsible */}
+          {/* Order header */}
           <div className="sticky top-0 px-4 py-2 flex items-center justify-between border-b" style={{ backgroundColor: GALIA.crema, borderColor: GALIA.grisLigero }}>
             <span className="font-semibold" style={{ color: GALIA.marron }}>
               Orden ({order.items?.length || 0} ítems)
             </span>
-            <button
-              onClick={() => setShowOrderItems(!showOrderItems)}
-              aria-label="Expandir/Contraer orden"
-              className="p-1 rounded transition"
-              style={{ color: GALIA.marron }}
-            >
-              <ChevronDown className={`h-5 w-5 transition-transform ${showOrderItems ? 'rotate-180' : ''}`} />
-            </button>
           </div>
 
-          {/* Order items - Shown when expanded */}
-          {showOrderItems && (
-            <>
-              <div className="px-4 py-2 space-y-2 max-h-32 overflow-y-auto">
-                {order.items && order.items.length > 0 ? (
-                  order.items.map(item => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-center py-1"
-                      style={{ borderBottom: `1px solid ${GALIA.grisLigero}` }}
-                    >
-                      <div className="flex-1">
-                        <div className="text-sm font-medium" style={{ color: GALIA.marron }}>
-                          {item.product_name}
-                        </div>
-                        <div className="text-xs" style={{ color: GALIA.grisClaro }}>
-                          {item.variant_name}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm" style={{ color: GALIA.marron }}>
-                          {item.quantity}x ${parseFloat(item.unit_price).toFixed(2)}
-                        </div>
-                        <button
-                          onClick={() => onRemoveItem(item.id)}
-                          title="Eliminar item"
-                          className="p-1 rounded transition"
-                          style={{ color: '#dc2626' }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+          {/* Order items - Always visible, scrollable if needed */}
+          <div className="px-4 py-2 space-y-2 max-h-40 overflow-y-auto">
+            {order.items && order.items.length > 0 ? (
+              order.items.map(item => (
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center py-1"
+                  style={{ borderBottom: `1px solid ${GALIA.grisLigero}` }}
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-medium" style={{ color: GALIA.marron }}>
+                      {item.product_name}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4" style={{ color: GALIA.grisClaro }}>
-                    Sin items
+                    <div className="text-xs" style={{ color: GALIA.grisClaro }}>
+                      {item.variant_name}
+                    </div>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm" style={{ color: GALIA.marron }}>
+                      {item.quantity}x ${parseFloat(item.unit_price).toFixed(2)}
+                    </div>
+                    <button
+                      onClick={() => onRemoveItem(item.id)}
+                      className="p-1 rounded transition hover:bg-red-50"
+                      style={{ color: '#dc2626' }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4" style={{ color: GALIA.grisClaro }}>
+                Sin items
               </div>
+            )}
+          </div>
 
-              {/* Action buttons */}
-              <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
-                <button
-                  onClick={handleAgregarItem}
-                  className="w-full py-2 rounded font-semibold transition-opacity text-sm hover:opacity-90"
-                  style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
-                >
-                  Agregar Item
-                </button>
-                <button
-                  onClick={handlePrintControl}
-                  disabled={!order.items || order.items.length === 0 || printing}
-                  className="w-full py-2 rounded font-semibold transition-opacity text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 disabled:hover:opacity-50"
-                  style={{ backgroundColor: '#3B82F6', color: 'white' }}
-                >
-                  <Printer size={16} />
-                  {printing ? 'Imprimiendo...' : 'Control Mesa'}
-                </button>
-                <button
-                  onClick={() => onCobrar('Efectivo')}
-                  disabled={!order.items || order.items.length === 0}
-                  className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 disabled:hover:opacity-50"
-                  style={{ backgroundColor: GALIA.marron, color: 'white' }}
-                >
-                  COBRAR
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Collapsed view - Just show total */}
-          {!showOrderItems && (
-            <div className="px-4 py-3 text-center">
-              <div className="text-2xl font-bold" style={{ color: GALIA.amarillo }}>
-                ${parseFloat(order.total || 0).toFixed(2)}
-              </div>
-              <div className="text-xs mt-1" style={{ color: GALIA.grisClaro }}>
-                {order.items?.length || 0} ítems
-              </div>
-            </div>
-          )}
+          {/* Action buttons - Always visible */}
+          <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
+            <button
+              onClick={() => {}}
+              className="w-full py-2 rounded font-semibold transition-opacity text-sm hover:opacity-90"
+              style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
+            >
+              Agregar Item
+            </button>
+            <button
+              onClick={handlePrintControl}
+              disabled={!order.items || order.items.length === 0 || printing}
+              className="w-full py-2 rounded font-semibold transition-opacity text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 disabled:hover:opacity-50"
+              style={{ backgroundColor: '#3B82F6', color: 'white' }}
+            >
+              <Printer size={16} />
+              {printing ? 'Imprimiendo...' : 'Control Mesa'}
+            </button>
+            <button
+              onClick={() => onCobrar('Efectivo')}
+              disabled={!order.items || order.items.length === 0}
+              className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 disabled:hover:opacity-50"
+              style={{ backgroundColor: GALIA.marron, color: 'white' }}
+            >
+              COBRAR
+            </button>
+          </div>
         </div>
       </div>
     </div>
