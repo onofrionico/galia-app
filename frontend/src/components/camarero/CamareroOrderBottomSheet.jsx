@@ -22,6 +22,8 @@ const CamareroOrderBottomSheet = ({
   const [loading, setLoading] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [error, setError] = useState('')
+  const [showPaymentMethod, setShowPaymentMethod] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null)
 
   useEffect(() => {
     if (isOpen && order) {
@@ -247,11 +249,7 @@ const CamareroOrderBottomSheet = ({
               {printing ? 'Imprimiendo...' : 'Control Mesa'}
             </button>
             <button
-              onClick={() => {
-                if (onCobrar) {
-                  onCobrar('efectivo')
-                }
-              }}
+              onClick={() => setShowPaymentMethod(true)}
               disabled={!order.items || order.items.length === 0}
               className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 disabled:hover:opacity-50"
               style={{ backgroundColor: GALIA.marron, color: 'white' }}
@@ -261,6 +259,91 @@ const CamareroOrderBottomSheet = ({
           </div>
         </div>
       </div>
+
+      {/* Payment Method Selection Modal */}
+      {showPaymentMethod && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50"
+            onClick={() => setShowPaymentMethod(false)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-xl flex flex-col"
+            style={{ backgroundColor: GALIA.blanco, maxHeight: '60vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-4 py-3"
+              style={{ backgroundColor: GALIA.marron }}
+            >
+              <h2 className="text-white text-lg font-semibold">Método de Pago</h2>
+              <button
+                onClick={() => setShowPaymentMethod(false)}
+                className="p-1 text-white hover:opacity-80"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+              {/* Total Display */}
+              <div className="mb-4">
+                <p className="text-sm" style={{ color: GALIA.grisClaro }}>
+                  Total a pagar:
+                </p>
+                <p className="text-3xl font-bold" style={{ color: GALIA.amarillo }}>
+                  ${parseFloat(order.total || 0).toFixed(2)}
+                </p>
+              </div>
+
+              {/* Method Selection */}
+              <div className="grid grid-cols-3 gap-2">
+                {['efectivo', 'tarjeta', 'otro'].map((metodo) => (
+                  <button
+                    key={metodo}
+                    onClick={() => setSelectedPaymentMethod(metodo)}
+                    className="py-3 rounded border-2 font-semibold transition-colors duration-200"
+                    style={{
+                      borderColor:
+                        selectedPaymentMethod === metodo ? GALIA.amarillo : GALIA.grisLigero,
+                      backgroundColor:
+                        selectedPaymentMethod === metodo ? GALIA.amarillo : 'transparent',
+                      color: GALIA.marron,
+                    }}
+                  >
+                    {metodo.charAt(0).toUpperCase() + metodo.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Confirm Button */}
+            <div className="px-4 py-4 border-t" style={{ borderColor: GALIA.grisLigero }}>
+              <button
+                onClick={() => {
+                  if (selectedPaymentMethod && onCobrar) {
+                    onCobrar(selectedPaymentMethod)
+                    setShowPaymentMethod(false)
+                    setSelectedPaymentMethod(null)
+                  }
+                }}
+                disabled={!selectedPaymentMethod}
+                className="w-full py-3 rounded font-bold text-lg transition-opacity duration-200"
+                style={{
+                  backgroundColor: selectedPaymentMethod ? GALIA.marron : GALIA.grisLigero,
+                  color: 'white',
+                  opacity: selectedPaymentMethod ? 1 : 0.6,
+                  cursor: selectedPaymentMethod ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
