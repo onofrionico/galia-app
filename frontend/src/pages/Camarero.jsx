@@ -109,6 +109,18 @@ const Camarero = () => {
     }
   }
 
+  const handleCancelOrder = async () => {
+    try {
+      await ordersService.cancelOrder(selectedOrder.id)
+      setShowOrderSheet(false)
+      setSelectedOrder(null)
+      setSelectedMesa(null)
+      await fetchAll()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al cancelar la orden')
+    }
+  }
+
   const handleCloseOrderSheet = () => {
     setShowOrderSheet(false)
     setSelectedOrder(null)
@@ -217,6 +229,7 @@ const Camarero = () => {
           onAddItem={() => setShowAddItemModal(true)}
           onRemoveItem={handleRemoveItem}
           onCobrar={() => setShowCobrarSheet(true)}
+          onCancel={handleCancelOrder}
         />
       )}
 

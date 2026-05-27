@@ -11,7 +11,8 @@ const CamareroOrderBottomSheet = ({
   onClose,
   onAddItem,
   onRemoveItem,
-  onCobrar
+  onCobrar,
+  onCancel
 }) => {
   const [printing, setPrinting] = useState(false)
 
@@ -138,6 +139,15 @@ const CamareroOrderBottomSheet = ({
               COBRAR
             </button>
           </div>
+          {!order.items?.length && onCancel && (
+            <button
+              onClick={onCancel}
+              className="w-full py-2.5 rounded-lg font-semibold text-sm border-2 transition hover:bg-gray-50"
+              style={{ borderColor: GALIA.grisLigero, color: GALIA.grisClaro }}
+            >
+              Cancelar Orden
+            </button>
+          )}
         </div>
       </div>
     </div>
