@@ -231,7 +231,7 @@ const CamareroOrderBottomSheet = ({
           {/* Action buttons - Always visible */}
           <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${GALIA.grisLigero}` }}>
             <button
-              onClick={() => {}}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="w-full py-2 rounded font-semibold transition-opacity text-sm hover:opacity-90"
               style={{ backgroundColor: GALIA.amarillo, color: GALIA.marron }}
             >
@@ -247,7 +247,11 @@ const CamareroOrderBottomSheet = ({
               {printing ? 'Imprimiendo...' : 'Control Mesa'}
             </button>
             <button
-              onClick={() => onCobrar('Efectivo')}
+              onClick={() => {
+                if (onCobrar) {
+                  onCobrar('Efectivo')
+                }
+              }}
               disabled={!order.items || order.items.length === 0}
               className="w-full py-3 font-bold rounded-lg transition text-base disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 disabled:hover:opacity-50"
               style={{ backgroundColor: GALIA.marron, color: 'white' }}
