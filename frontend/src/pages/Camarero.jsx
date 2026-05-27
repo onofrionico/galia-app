@@ -222,19 +222,21 @@ const Camarero = () => {
       )}
 
       {/* Order Bottom Sheet */}
-      <CamareroOrderBottomSheet
-        isOpen={showOrderSheet}
-        order={selectedOrder}
-        mesaNumber={selectedMesa?.numero || selectedMesa?.id}
-        onClose={() => {
-          setShowOrderSheet(false)
-          setSelectedOrder(null)
-          setSelectedMesa(null)
-        }}
-        onAddItem={handleAddItem}
-        onRemoveItem={handleRemoveItem}
-        onCobrar={handleCobrar}
-      />
+      {selectedOrder && (
+        <CamareroOrderBottomSheet
+          isOpen={showOrderSheet}
+          order={selectedOrder}
+          mesaNumber={selectedMesa?.numero || selectedMesa?.id || selectedOrder?.mesa_id}
+          onClose={() => {
+            setShowOrderSheet(false)
+            setSelectedOrder(null)
+            setSelectedMesa(null)
+          }}
+          onAddItem={handleAddItem}
+          onRemoveItem={handleRemoveItem}
+          onCobrar={handleCobrar}
+        />
+      )}
     </div>
   )
 }
