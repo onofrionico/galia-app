@@ -122,7 +122,8 @@ const Camarero = () => {
       setSelectedMesa(null)
       await fetchAll()
     } catch (err) {
-      setError('Error al cobrar')
+      const mensaje = err.response?.data?.error || 'Error al cobrar'
+      setError(mensaje)
     }
   }
 
