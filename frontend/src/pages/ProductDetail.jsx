@@ -22,6 +22,7 @@ const ProductDetail = () => {
     category_id: '',
     image_url: '',
     has_recipe: false,
+    track_stock: false,
   })
 
   const [variants, setVariants] = useState([])
@@ -70,6 +71,7 @@ const ProductDetail = () => {
         category_id: response.category_id,
         image_url: response.image_url || '',
         has_recipe: response.has_recipe,
+        track_stock: response.track_stock || false,
       })
       setVariants(response.variants || [])
       setRecipe(response.recipe || [])
@@ -370,6 +372,24 @@ const ProductDetail = () => {
                 <label htmlFor="has_recipe" className="font-medium">
                   Este producto tiene receta (compuesto de insumos)
                 </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="track_stock"
+                  checked={formData.track_stock}
+                  onChange={(e) =>
+                    setFormData({ ...formData, track_stock: e.target.checked })
+                  }
+                  className="w-4 h-4"
+                />
+                <label htmlFor="track_stock" className="font-medium">
+                  Control de stock
+                </label>
+                <span className="text-xs text-gray-500">
+                  (si está activo, verifica disponibilidad antes de agregar a una orden)
+                </span>
               </div>
 
               <div className="flex gap-2 pt-4">

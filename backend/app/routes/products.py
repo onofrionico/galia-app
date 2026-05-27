@@ -68,6 +68,7 @@ def create_product(current_user):
         category_id=data['category_id'],
         image_url=data.get('image_url', '').strip() or None,
         has_recipe=bool(data.get('has_recipe', False)),
+        track_stock=bool(data.get('track_stock', False)),
     )
 
     db.session.add(product)
@@ -115,6 +116,9 @@ def update_product(current_user, product_id):
 
     if 'has_recipe' in data:
         product.has_recipe = bool(data['has_recipe'])
+
+    if 'track_stock' in data:
+        product.track_stock = bool(data['track_stock'])
 
     if 'is_active' in data:
         product.is_active = bool(data['is_active'])

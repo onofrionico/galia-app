@@ -10,6 +10,7 @@ class Product(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('product_categories.id'), nullable=False)
     image_url = db.Column(db.String(500), nullable=True)
     has_recipe = db.Column(db.Boolean, default=False, nullable=False)
+    track_stock = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -28,6 +29,7 @@ class Product(db.Model):
             'category_icon': self.category.icon if self.category else None,
             'image_url': self.image_url,
             'has_recipe': self.has_recipe,
+            'track_stock': self.track_stock,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
