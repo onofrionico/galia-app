@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Map, List } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Map, List, LogOut } from 'lucide-react'
 import salonsService from '../services/salonsService'
 import ordersService from '../services/ordersService'
 import GALIA from '../constants/colors'
@@ -11,6 +12,7 @@ import AddItemModal from '../components/pos/AddItemModal'
 import CobrarBottomSheet from '../components/pos/CobrarBottomSheet'
 
 const Camarero = () => {
+  const navigate = useNavigate()
   const [viewMode, setViewMode] = useState('map')
   const [salons, setSalons] = useState([])
   const [activeSalon, setActiveSalon] = useState(null)
@@ -146,7 +148,7 @@ const Camarero = () => {
       {/* Header */}
       <div className="h-14 flex items-center justify-between px-4 text-white font-semibold text-lg" style={{ backgroundColor: GALIA.marron }}>
         <span>Mi Turno - Camarero</span>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setViewMode('map')}
             title="Vista Mapa"
@@ -162,6 +164,15 @@ const Camarero = () => {
             style={{ backgroundColor: viewMode === 'list' ? GALIA.amarillo : 'transparent', color: viewMode === 'list' ? GALIA.marron : 'white' }}
           >
             <List size={20} />
+          </button>
+          <div className="w-px h-6 opacity-30" style={{ backgroundColor: 'white' }} />
+          <button
+            onClick={() => navigate('/dashboard')}
+            title="Salir"
+            className="p-2 rounded transition hover:opacity-80"
+            style={{ color: 'white' }}
+          >
+            <LogOut size={20} />
           </button>
         </div>
       </div>
