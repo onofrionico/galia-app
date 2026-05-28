@@ -6,7 +6,17 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
-UPLOAD_FOLDER = 'frontend/public/uploads'
+
+# Resolve absolute path to frontend/public/uploads from this file's location
+# This file lives at: <project>/backend/app/utils/file_upload.py
+# Going up 4 levels: utils -> app -> backend -> project root
+# Then down into: frontend/public/uploads
+_THIS_FILE = os.path.abspath(__file__)                          # .../backend/app/utils/file_upload.py
+_UTILS_DIR = os.path.dirname(_THIS_FILE)                        # .../backend/app/utils
+_APP_DIR   = os.path.dirname(_UTILS_DIR)                        # .../backend/app
+_BACKEND   = os.path.dirname(_APP_DIR)                          # .../backend
+_ROOT      = os.path.dirname(_BACKEND)                          # .../galia-app
+UPLOAD_FOLDER = os.path.join(_ROOT, 'frontend', 'public', 'uploads')
 
 
 def allowed_file(filename):

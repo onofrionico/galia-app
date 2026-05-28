@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import { ChevronDown, X, LayoutDashboard, User, Settings } from 'lucide-react'
+import { ChevronDown, X, LayoutDashboard, User, Settings, ImageIcon } from 'lucide-react'
 import {
   Calendar,
   Clock,
@@ -27,6 +27,7 @@ import {
 
 const alwaysVisibleAdmin = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/branding', icon: ImageIcon, label: 'Branding' },
   { to: '/profile', icon: User, label: 'Mi Perfil' },
 ]
 

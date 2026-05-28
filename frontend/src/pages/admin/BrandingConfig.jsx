@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
 import configService from '@/services/configService'
 import { Upload, Check, AlertCircle } from 'lucide-react'
 
 const BrandingConfig = () => {
+  const { isAdmin } = useAuth()
+
+  if (!isAdmin()) {
+    return <Navigate to="/dashboard" replace />
+  }
   const [logoFile, setLogoFile] = useState(null)
   const [backgroundFile, setBackgroundFile] = useState(null)
   const [currentConfig, setCurrentConfig] = useState(null)

@@ -108,7 +108,7 @@ function App() {
             <Route path="/supplies" element={<RoleProtectedRoute moduleName="Supplies"><Supplies /></RoleProtectedRoute>} />
             <Route path="/pos-configuration" element={<RoleProtectedRoute moduleName="Configuration"><POSConfiguration /></RoleProtectedRoute>} />
             <Route path="/permissions" element={<RoleProtectedRoute moduleName="Configuration"><Permissions /></RoleProtectedRoute>} />
-            <Route path="/admin/branding" element={<RoleProtectedRoute moduleName="Configuration"><BrandingConfig /></RoleProtectedRoute>} />
+            <Route path="/admin/branding" element={<BrandingConfig />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
