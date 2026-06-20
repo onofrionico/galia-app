@@ -184,23 +184,32 @@ def get_payrolls(current_user):
 def get_payroll_detail(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
-    
+
+    # SAC/aguinaldo records use month=13/14 — no time tracking applies
+    is_sac = payroll.month > 12
+    if is_sac:
+        result = payroll.to_dict(include_details=True)
+        result['daily_records'] = []
+        result['scheduled_records'] = []
+        result['hours_by_type'] = {}
+        return jsonify(result)
+
     worked_hours, daily_records = calculate_hours_from_time_tracking(
         payroll.employee_id, payroll.month, payroll.year
     )
     scheduled_hours, scheduled_records = calculate_scheduled_hours(
         payroll.employee_id, payroll.month, payroll.year
     )
-    
+
     hours_by_type = calculate_hours_by_multiplier(
         payroll.employee_id, payroll.month, payroll.year, payroll.employee.job_position
     )
-    
+
     result = payroll.to_dict(include_details=True)
     result['daily_records'] = daily_records
     result['scheduled_records'] = scheduled_records
     result['hours_by_type'] = hours_by_type
-    
+
     return jsonify(result)
 
 @payroll_bp.route('/<int:payroll_id>', methods=['PUT'])
@@ -270,13 +279,17 @@ def validate_payroll(current_user, payroll_id):
 def get_payroll_work_blocks(current_user, payroll_id):
     
     payroll = Payroll.query.get_or_404(payroll_id)
-    
+
+    # SAC/aguinaldo records have no associated work blocks
+    if payroll.month > 12:
+        return jsonify([])
+
     start_date = datetime(payroll.year, payroll.month, 1).date()
     if payroll.month == 12:
         end_date = datetime(payroll.year + 1, 1, 1).date()
     else:
         end_date = datetime(payroll.year, payroll.month + 1, 1).date()
-    
+
     time_records = TimeTracking.query.filter(
         TimeTracking.employee_id == payroll.employee_id,
         TimeTracking.tracking_date >= start_date,
