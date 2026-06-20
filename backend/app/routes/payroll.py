@@ -445,6 +445,8 @@ def get_historical_summary(current_user):
         func.sum(Payroll.gross_salary).label('total_salary'),
         func.sum(Payroll.hours_worked).label('total_hours'),
         func.count(Payroll.id).label('employee_count')
+    ).filter(
+        Payroll.month <= 12  # exclude SAC records (month=13/14)
     ).group_by(
         Payroll.year,
         Payroll.month
@@ -452,7 +454,7 @@ def get_historical_summary(current_user):
         Payroll.year.desc(),
         Payroll.month.desc()
     ).limit(months).all()
-    
+
     historical_data = []
     for result in results:
         historical_data.append({
@@ -491,9 +493,15 @@ def generate_payroll_pdf(current_user, payroll_id):
     elements.append(Paragraph('COMPROBANTE DE NÓMINA', title_style))
     elements.append(Spacer(1, 0.3*inch))
     
+    sac_labels = {13: '1er SAC (Aguinaldo)', 14: '2do SAC (Aguinaldo)'}
+    period_label = (
+        sac_labels[payroll.month]
+        if payroll.month > 12
+        else calendar.month_name[payroll.month]
+    )
     company_info = [
         ['Cafetería Galia', ''],
-        ['Período:', f'{calendar.month_name[payroll.month]} {payroll.year}'],
+        ['Período:', f'{period_label} {payroll.year}'],
         ['Fecha de emisión:', datetime.now().strftime('%d/%m/%Y')],
     ]
     
@@ -579,7 +587,8 @@ def generate_payroll_pdf(current_user, payroll_id):
     pdf_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'payroll_pdfs')
     os.makedirs(pdf_dir, exist_ok=True)
     
-    filename = f'nomina_{employee.dni}_{payroll.year}_{payroll.month:02d}.pdf'
+    month_str = 'SAC1' if payroll.month == 13 else ('SAC2' if payroll.month == 14 else f'{payroll.month:02d}')
+    filename = f'nomina_{employee.dni}_{payroll.year}_{month_str}.pdf'
     pdf_path = os.path.join(pdf_dir, filename)
     
     with open(pdf_path, 'wb') as f:
