@@ -493,6 +493,7 @@ const Payroll = () => {
 };
 
 const AguinaldoModal = ({ onClose, onSuccess }) => {
+  const navigate = useNavigate();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [semester, setSemester] = useState(now.getMonth() < 6 ? 1 : 2);
@@ -630,11 +631,19 @@ const AguinaldoModal = ({ onClose, onSuccess }) => {
                         <p className="text-sm text-red-500 mt-1">{errors[emp.employee_id]}</p>
                       )}
                     </div>
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex items-center gap-2">
                       {emp.already_generated ? (
-                        <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                          <CheckCircle className="w-4 h-4" /> Generado
-                        </span>
+                        <>
+                          <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" /> Generado
+                          </span>
+                          <button
+                            onClick={() => { onClose(); navigate(`/payroll/${emp.existing_payroll_id}`); }}
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"
+                          >
+                            Ver
+                          </button>
+                        </>
                       ) : emp.has_payrolls ? (
                         <button
                           onClick={() => handleGenerate(emp.employee_id, emp.employee_name)}
