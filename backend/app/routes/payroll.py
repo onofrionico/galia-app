@@ -928,7 +928,7 @@ def aguinaldo_preview(current_user):
     if semester not in (1, 2):
         return jsonify({'error': 'El semestre debe ser 1 o 2'}), 400
 
-    employees = Employee.query.filter_by(is_active=True).all()
+    employees = Employee.query.filter_by(status='activo').all()
 
     results = []
     for emp in employees:
