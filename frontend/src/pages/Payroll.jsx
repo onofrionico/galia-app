@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import payrollService from '../services/payrollService';
 import employeeService from '../services/employeeService';
 import MoneyFormat from '../components/MoneyFormat';
-import { 
-  DollarSign, 
-  Calendar, 
-  Users, 
-  TrendingUp, 
-  FileText, 
-  CheckCircle, 
+import {
+  DollarSign,
+  Calendar,
+  Users,
+  TrendingUp,
+  FileText,
+  CheckCircle,
   Clock,
   AlertCircle,
   Plus,
   Filter,
-  Download
+  Download,
+  Gift
 } from 'lucide-react';
 
 const Payroll = () => {
@@ -30,6 +31,7 @@ const Payroll = () => {
   
   const [showNewPayrollModal, setShowNewPayrollModal] = useState(false);
   const [selectedEmployeeForPayroll, setSelectedEmployeeForPayroll] = useState(null);
+  const [showAguinaldoModal, setShowAguinaldoModal] = useState(false);
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -132,13 +134,22 @@ const Payroll = () => {
             Gestión de sueldos y liquidaciones mensuales
           </p>
         </div>
-        <button
-          onClick={() => setShowNewPayrollModal(true)}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nueva Nómina</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowAguinaldoModal(true)}
+            className="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2"
+          >
+            <Gift className="w-4 h-4" />
+            <span>Aguinaldo</span>
+          </button>
+          <button
+            onClick={() => setShowNewPayrollModal(true)}
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nueva Nómina</span>
+          </button>
+        </div>
       </div>
 
       {summary && (
@@ -467,6 +478,194 @@ const Payroll = () => {
           }}
         />
       )}
+
+      {showAguinaldoModal && (
+        <AguinaldoModal
+          onClose={() => setShowAguinaldoModal(false)}
+          onSuccess={() => {
+            setShowAguinaldoModal(false);
+            loadData();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const AguinaldoModal = ({ onClose, onSuccess }) => {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [semester, setSemester] = useState(now.getMonth() < 6 ? 1 : 2);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState({});
+  const [errors, setErrors] = useState({});
+
+  const loadPreview = async () => {
+    try {
+      setLoading(true);
+      const data = await payrollService.getAguinaldoPreview(year, semester);
+      setPreview(data);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Error al cargar el preview');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPreview();
+  }, [year, semester]);
+
+  const handleGenerate = async (employeeId, employeeName) => {
+    if (!window.confirm(`¿Generar aguinaldo para ${employeeName}?`)) return;
+    try {
+      setGenerating((g) => ({ ...g, [employeeId]: true }));
+      setErrors((e) => ({ ...e, [employeeId]: null }));
+      await payrollService.generateAguinaldo(employeeId, year, semester);
+      await loadPreview();
+    } catch (error) {
+      setErrors((e) => ({
+        ...e,
+        [employeeId]: error.response?.data?.error || 'Error al generar',
+      }));
+    } finally {
+      setGenerating((g) => ({ ...g, [employeeId]: false }));
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (!preview) return;
+    const pending = preview.results.filter((r) => r.has_payrolls && !r.already_generated);
+    if (!pending.length) return;
+    if (!window.confirm(`¿Generar aguinaldo para ${pending.length} empleada(s)?`)) return;
+    for (const emp of pending) {
+      try {
+        setGenerating((g) => ({ ...g, [emp.employee_id]: true }));
+        await payrollService.generateAguinaldo(emp.employee_id, year, semester);
+      } catch (error) {
+        setErrors((e) => ({
+          ...e,
+          [emp.employee_id]: error.response?.data?.error || 'Error al generar',
+        }));
+      } finally {
+        setGenerating((g) => ({ ...g, [emp.employee_id]: false }));
+      }
+    }
+    await loadPreview();
+  };
+
+  const periodLabel = semester === 1 ? 'Enero – Junio' : 'Julio – Diciembre';
+  const pendingCount = preview?.results?.filter((r) => r.has_payrolls && !r.already_generated).length || 0;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="p-4 md:p-6 border-b flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Gift className="w-5 h-5 text-amber-500" />
+              Aguinaldo (SAC)
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              50% del mejor sueldo bruto liquidado en el semestre
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">
+            ×
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 border-b flex flex-col sm:flex-row gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="border rounded-lg px-3 py-2 w-28"
+              min={2020}
+              max={2099}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Semestre</label>
+            <select
+              value={semester}
+              onChange={(e) => setSemester(Number(e.target.value))}
+              className="border rounded-lg px-3 py-2"
+            >
+              <option value={1}>1° semestre (Ene – Jun)</option>
+              <option value={2}>2° semestre (Jul – Dic)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          {loading ? (
+            <div className="text-center text-gray-500 py-8">Cargando...</div>
+          ) : preview ? (
+            <>
+              <p className="text-sm text-gray-500 mb-4">
+                Período: <strong>{periodLabel} {year}</strong>
+              </p>
+              <div className="space-y-3">
+                {preview.results.map((emp) => (
+                  <div
+                    key={emp.employee_id}
+                    className="border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{emp.employee_name}</p>
+                      {emp.has_payrolls ? (
+                        <p className="text-sm text-gray-600">
+                          Mejor sueldo: <span className="font-semibold">${emp.best_gross_salary?.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                          {' → '}
+                          Aguinaldo: <span className="font-semibold text-amber-600">${emp.aguinaldo_amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-red-500">Sin liquidaciones validadas en el período</p>
+                      )}
+                      {errors[emp.employee_id] && (
+                        <p className="text-sm text-red-500 mt-1">{errors[emp.employee_id]}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      {emp.already_generated ? (
+                        <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+                          <CheckCircle className="w-4 h-4" /> Generado
+                        </span>
+                      ) : emp.has_payrolls ? (
+                        <button
+                          onClick={() => handleGenerate(emp.employee_id, emp.employee_name)}
+                          disabled={generating[emp.employee_id]}
+                          className="bg-amber-500 text-white px-3 py-1.5 rounded text-sm hover:bg-amber-600 disabled:opacity-50"
+                        >
+                          {generating[emp.employee_id] ? 'Generando...' : 'Generar'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <div className="p-4 md:p-6 border-t flex flex-col sm:flex-row gap-3 justify-end">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2 border rounded-lg hover:bg-gray-50">
+            Cerrar
+          </button>
+          {pendingCount > 0 && (
+            <button
+              onClick={handleGenerateAll}
+              className="w-full sm:w-auto bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600"
+            >
+              Generar todas ({pendingCount})
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

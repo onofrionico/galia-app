@@ -139,7 +139,22 @@ const payrollService = {
       action: action
     });
     return response.data;
-  }
+  },
+
+  // Aguinaldo
+  async getAguinaldoPreview(year, semester) {
+    const response = await api.get(`/payroll/aguinaldo/preview?year=${year}&semester=${semester}`);
+    return response.data;
+  },
+
+  async generateAguinaldo(employeeId, year, semester) {
+    const response = await api.post('/payroll/aguinaldo/generate', {
+      employee_id: employeeId,
+      year,
+      semester,
+    });
+    return response.data;
+  },
 };
 
 export default payrollService;

@@ -870,3 +870,158 @@ def respond_to_claim(current_user, claim_id):
         'message': f'Reclamo {action == "approve" and "aprobado" or "rechazado"} exitosamente',
         'claim': claim.to_dict()
     })
+
+
+def _get_semester_range(year, semester):
+    """Return (start_month, end_month) for the given semester (1 or 2)."""
+    if semester == 1:
+        return 1, 6
+    return 7, 12
+
+
+def _calculate_aguinaldo_for_employee(employee_id, year, semester):
+    """
+    Return a dict with the aguinaldo calculation for one employee.
+    Looks at validated payrolls within the semester and picks the best gross_salary.
+    Aguinaldo = 50% of best gross_salary.
+    Returns None if no validated payrolls found.
+    """
+    start_month, end_month = _get_semester_range(year, semester)
+
+    best = (
+        db.session.query(func.max(Payroll.gross_salary))
+        .filter(
+            Payroll.employee_id == employee_id,
+            Payroll.year == year,
+            Payroll.month >= start_month,
+            Payroll.month <= end_month,
+            Payroll.status.in_(['validated', 'employee_validated']),
+        )
+        .scalar()
+    )
+
+    if best is None:
+        return None
+
+    aguinaldo = float(best) / 2
+    return {
+        'best_gross_salary': float(best),
+        'aguinaldo_amount': aguinaldo,
+        'semester': semester,
+        'year': year,
+        'period': f'{"Enero-Junio" if semester == 1 else "Julio-Diciembre"} {year}',
+    }
+
+
+@payroll_bp.route('/aguinaldo/preview', methods=['GET'])
+@token_required
+@admin_required
+def aguinaldo_preview(current_user):
+    """
+    Preview del aguinaldo para todas las empleadas activas.
+    Query params: year (default: año actual), semester (1 o 2, default: semestre actual).
+    """
+    now = datetime.utcnow()
+    year = request.args.get('year', type=int, default=now.year)
+    semester = request.args.get('semester', type=int, default=1 if now.month <= 6 else 2)
+
+    if semester not in (1, 2):
+        return jsonify({'error': 'El semestre debe ser 1 o 2'}), 400
+
+    employees = Employee.query.filter_by(is_active=True).all()
+
+    results = []
+    for emp in employees:
+        calc = _calculate_aguinaldo_for_employee(emp.id, year, semester)
+
+        # Check if already generated
+        sac_month = 13 if semester == 1 else 14
+        existing = Payroll.query.filter_by(
+            employee_id=emp.id, month=sac_month, year=year
+        ).first()
+
+        results.append({
+            'employee_id': emp.id,
+            'employee_name': emp.full_name,
+            'best_gross_salary': calc['best_gross_salary'] if calc else None,
+            'aguinaldo_amount': calc['aguinaldo_amount'] if calc else None,
+            'period': calc['period'] if calc else None,
+            'has_payrolls': calc is not None,
+            'already_generated': existing is not None,
+            'existing_payroll_id': existing.id if existing else None,
+        })
+
+    return jsonify({
+        'year': year,
+        'semester': semester,
+        'results': results,
+    })
+
+
+@payroll_bp.route('/aguinaldo/generate', methods=['POST'])
+@token_required
+@admin_required
+def generate_aguinaldo(current_user):
+    """
+    Genera la liquidación de aguinaldo para una empleada.
+    Body: { employee_id, year, semester }
+    Crea un recibo con month=13 (SAC1) o month=14 (SAC2),
+    gross_salary=0, extraordinary_amount=aguinaldo.
+    """
+    data = request.get_json()
+    employee_id = data.get('employee_id')
+    year = data.get('year')
+    semester = data.get('semester')
+
+    if not all([employee_id, year, semester]):
+        return jsonify({'error': 'Faltan datos: employee_id, year, semester'}), 400
+
+    if semester not in (1, 2):
+        return jsonify({'error': 'El semestre debe ser 1 o 2'}), 400
+
+    employee = Employee.query.get_or_404(employee_id)
+
+    calc = _calculate_aguinaldo_for_employee(employee_id, year, semester)
+    if calc is None:
+        return jsonify({
+            'error': 'No se encontraron liquidaciones validadas en el período para calcular el aguinaldo'
+        }), 400
+
+    sac_month = 13 if semester == 1 else 14
+    existing = Payroll.query.filter_by(
+        employee_id=employee_id, month=sac_month, year=year
+    ).first()
+    if existing:
+        return jsonify({
+            'error': 'El aguinaldo para este período ya fue generado',
+            'payroll_id': existing.id,
+        }), 400
+
+    hourly_rate = float(employee.job_position.hourly_rate) if employee.job_position else 0
+    period_label = "1er SAC" if semester == 1 else "2do SAC"
+    description = (
+        f"{period_label} {year} — mejor sueldo bruto del semestre: "
+        f"${calc['best_gross_salary']:,.2f}"
+    )
+
+    payroll = Payroll(
+        employee_id=employee_id,
+        month=sac_month,
+        year=year,
+        hours_worked=Decimal('0'),
+        scheduled_hours=Decimal('0'),
+        hourly_rate=Decimal(str(hourly_rate)),
+        gross_salary=Decimal('0'),
+        extraordinary_amount=Decimal(str(calc['aguinaldo_amount'])),
+        extraordinary_description=description,
+        status='draft',
+        notes=f'Aguinaldo ({period_label}) generado automáticamente.',
+        generated_by=current_user.id,
+    )
+
+    db.session.add(payroll)
+    db.session.commit()
+
+    result = payroll.to_dict()
+    result['aguinaldo_details'] = calc
+    return jsonify(result), 201
