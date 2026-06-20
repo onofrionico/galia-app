@@ -541,15 +541,30 @@ def generate_payroll_pdf(current_user, payroll_id):
     elements.append(employee_table)
     elements.append(Spacer(1, 0.3*inch))
     
-    payroll_data = [
-        ['DETALLE DE LIQUIDACIÓN', '', ''],
-        ['Concepto', 'Cantidad', 'Importe'],
-        ['Horas trabajadas', f"{float(payroll.hours_worked):.2f}", ''],
-        ['Tarifa por hora', '', f"${float(payroll.hourly_rate):.2f}"],
-        ['', '', ''],
-        ['TOTAL BRUTO', '', f"${float(payroll.gross_salary):.2f}"],
-    ]
-    
+    is_sac_pdf = payroll.month > 12
+    extraordinary_amount = float(payroll.extraordinary_amount) if payroll.extraordinary_amount else 0
+
+    if is_sac_pdf:
+        sac_label = '1er SAC (Aguinaldo)' if payroll.month == 13 else '2do SAC (Aguinaldo)'
+        payroll_data = [
+            ['DETALLE DE LIQUIDACIÓN', '', ''],
+            ['Concepto', '', 'Importe'],
+            [sac_label, '', f"${extraordinary_amount:,.2f}"],
+            ['', '', ''],
+            ['TOTAL A COBRAR', '', f"${extraordinary_amount:,.2f}"],
+        ]
+        total_row_idx = 4
+    else:
+        payroll_data = [
+            ['DETALLE DE LIQUIDACIÓN', '', ''],
+            ['Concepto', 'Cantidad', 'Importe'],
+            ['Horas trabajadas', f"{float(payroll.hours_worked):.2f}", ''],
+            ['Tarifa por hora', '', f"${float(payroll.hourly_rate):,.2f}"],
+            ['', '', ''],
+            ['TOTAL BRUTO', '', f"${float(payroll.gross_salary):,.2f}"],
+        ]
+        total_row_idx = 5
+
     payroll_table = Table(payroll_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
     payroll_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
@@ -560,9 +575,9 @@ def generate_payroll_pdf(current_user, payroll_id):
         ('TEXTCOLOR', (0, 0), (0, 0), colors.HexColor('#1f2937')),
         ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f3f4f6')),
         ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-        ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#dbeafe')),
-        ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 5), (-1, 5), 12),
+        ('BACKGROUND', (0, total_row_idx), (-1, total_row_idx), colors.HexColor('#dbeafe')),
+        ('FONTNAME', (0, total_row_idx), (-1, total_row_idx), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, total_row_idx), (-1, total_row_idx), 12),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
