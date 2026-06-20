@@ -468,18 +468,14 @@ def get_historical_summary(current_user):
     
     return jsonify(historical_data)
 
-@payroll_bp.route('/<int:payroll_id>/generate-pdf', methods=['POST'])
-@token_required
-@admin_required
-def generate_payroll_pdf(current_user, payroll_id):
-    
-    payroll = Payroll.query.get_or_404(payroll_id)
+def _build_pdf_bytes(payroll):
+    """Build PDF in memory and return bytes. Does not touch the filesystem."""
     employee = payroll.employee
-    
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     elements = []
-    
+
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -489,10 +485,10 @@ def generate_payroll_pdf(current_user, payroll_id):
         spaceAfter=30,
         alignment=TA_CENTER
     )
-    
+
     elements.append(Paragraph('COMPROBANTE DE NÓMINA', title_style))
     elements.append(Spacer(1, 0.3*inch))
-    
+
     sac_labels = {13: '1er SAC (Aguinaldo)', 14: '2do SAC (Aguinaldo)'}
     period_label = (
         sac_labels[payroll.month]
@@ -504,7 +500,7 @@ def generate_payroll_pdf(current_user, payroll_id):
         ['Período:', f'{period_label} {payroll.year}'],
         ['Fecha de emisión:', datetime.now().strftime('%d/%m/%Y')],
     ]
-    
+
     company_table = Table(company_info, colWidths=[2*inch, 4*inch])
     company_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
@@ -515,7 +511,7 @@ def generate_payroll_pdf(current_user, payroll_id):
     ]))
     elements.append(company_table)
     elements.append(Spacer(1, 0.3*inch))
-    
+
     employee_info = [
         ['DATOS DEL EMPLEADO', ''],
         ['Nombre completo:', employee.full_name],
@@ -524,7 +520,7 @@ def generate_payroll_pdf(current_user, payroll_id):
         ['Puesto:', employee.job_position.name if employee.job_position else 'N/A'],
         ['Tipo de relación:', employee.employment_relationship],
     ]
-    
+
     employee_table = Table(employee_info, colWidths=[2*inch, 4*inch])
     employee_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
@@ -540,7 +536,7 @@ def generate_payroll_pdf(current_user, payroll_id):
     ]))
     elements.append(employee_table)
     elements.append(Spacer(1, 0.3*inch))
-    
+
     is_sac_pdf = payroll.month > 12
     extraordinary_amount = float(payroll.extraordinary_amount) if payroll.extraordinary_amount else 0
 
@@ -549,7 +545,6 @@ def generate_payroll_pdf(current_user, payroll_id):
         semester = 1 if payroll.month == 13 else 2
         start_month, end_month = (1, 6) if semester == 1 else (7, 12)
 
-        # Find the payroll record with the best gross_salary in the semester
         best_payroll = (
             Payroll.query
             .filter(
@@ -620,33 +615,37 @@ def generate_payroll_pdf(current_user, payroll_id):
     ]))
     elements.append(payroll_table)
     elements.append(Spacer(1, 0.5*inch))
-    
+
     if payroll.notes:
         elements.append(Paragraph(f'<b>Observaciones:</b> {payroll.notes}', styles['Normal']))
         elements.append(Spacer(1, 0.3*inch))
-    
+
     footer_text = f'Documento generado el {datetime.now().strftime("%d/%m/%Y %H:%M")}'
     elements.append(Paragraph(footer_text, styles['Normal']))
-    
+
     doc.build(elements)
-    
     pdf_data = buffer.getvalue()
     buffer.close()
-    
-    pdf_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'payroll_pdfs')
-    os.makedirs(pdf_dir, exist_ok=True)
-    
+    return pdf_data
+
+
+@payroll_bp.route('/<int:payroll_id>/generate-pdf', methods=['POST'])
+@token_required
+@admin_required
+def generate_payroll_pdf(current_user, payroll_id):
+
+    payroll = Payroll.query.get_or_404(payroll_id)
+    employee = payroll.employee
+
+    pdf_data = _build_pdf_bytes(payroll)
+
+    payroll.pdf_generated = True
+    payroll.pdf_path = None  # no longer stored on disk
+    db.session.commit()
+
     month_str = 'SAC1' if payroll.month == 13 else ('SAC2' if payroll.month == 14 else f'{payroll.month:02d}')
     filename = f'nomina_{employee.dni}_{payroll.year}_{month_str}.pdf'
-    pdf_path = os.path.join(pdf_dir, filename)
-    
-    with open(pdf_path, 'wb') as f:
-        f.write(pdf_data)
-    
-    payroll.pdf_generated = True
-    payroll.pdf_path = pdf_path
-    db.session.commit()
-    
+
     return send_file(
         BytesIO(pdf_data),
         mimetype='application/pdf',
@@ -658,17 +657,23 @@ def generate_payroll_pdf(current_user, payroll_id):
 @token_required
 @admin_required
 def download_payroll_pdf(current_user, payroll_id):
-    
+
     payroll = Payroll.query.get_or_404(payroll_id)
-    
-    if not payroll.pdf_generated or not payroll.pdf_path or not os.path.exists(payroll.pdf_path):
+
+    if not payroll.pdf_generated:
         return jsonify({'error': 'PDF no disponible. Genere el PDF primero.'}), 404
-    
+
+    # Regenerate in memory — filesystem is not persistent on Render
+    pdf_data = _build_pdf_bytes(payroll)
+    employee = payroll.employee
+    month_str = 'SAC1' if payroll.month == 13 else ('SAC2' if payroll.month == 14 else f'{payroll.month:02d}')
+    filename = f'nomina_{employee.dni}_{payroll.year}_{month_str}.pdf'
+
     return send_file(
-        payroll.pdf_path,
+        BytesIO(pdf_data),
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=os.path.basename(payroll.pdf_path)
+        download_name=filename
     )
 
 # ============================================
@@ -786,15 +791,19 @@ def download_my_payroll_pdf(current_user, payroll_id):
     if payroll.employee_id != employee.id:
         return jsonify({'error': 'No tiene permiso para descargar esta nómina'}), 403
     
-    # Verificar que el PDF existe
-    if not payroll.pdf_generated or not payroll.pdf_path or not os.path.exists(payroll.pdf_path):
+    if not payroll.pdf_generated:
         return jsonify({'error': 'PDF no disponible'}), 404
-    
+
+    # Regenerate in memory — filesystem is not persistent on Render
+    pdf_data = _build_pdf_bytes(payroll)
+    month_str = 'SAC1' if payroll.month == 13 else ('SAC2' if payroll.month == 14 else f'{payroll.month:02d}')
+    filename = f'nomina_{employee.dni}_{payroll.year}_{month_str}.pdf'
+
     return send_file(
-        payroll.pdf_path,
+        BytesIO(pdf_data),
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=os.path.basename(payroll.pdf_path)
+        download_name=filename
     )
 
 @payroll_bp.route('/my-payrolls/<int:payroll_id>/claim', methods=['POST'])
