@@ -546,14 +546,48 @@ def generate_payroll_pdf(current_user, payroll_id):
 
     if is_sac_pdf:
         sac_label = '1er SAC (Aguinaldo)' if payroll.month == 13 else '2do SAC (Aguinaldo)'
+        semester = 1 if payroll.month == 13 else 2
+        start_month, end_month = (1, 6) if semester == 1 else (7, 12)
+
+        # Find the payroll record with the best gross_salary in the semester
+        best_payroll = (
+            Payroll.query
+            .filter(
+                Payroll.employee_id == payroll.employee_id,
+                Payroll.year == payroll.year,
+                Payroll.month >= start_month,
+                Payroll.month <= end_month,
+                Payroll.status.in_(['validated', 'employee_validated']),
+            )
+            .order_by(Payroll.gross_salary.desc())
+            .first()
+        )
+
+        month_names_es = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ]
+
+        if best_payroll:
+            best_month_name = f"{month_names_es[best_payroll.month - 1]} {best_payroll.year}"
+            best_gross = float(best_payroll.gross_salary)
+            best_hours = float(best_payroll.hours_worked)
+        else:
+            best_month_name = 'N/A'
+            best_gross = extraordinary_amount * 2
+            best_hours = 0.0
+
         payroll_data = [
             ['DETALLE DE LIQUIDACIÓN', '', ''],
-            ['Concepto', '', 'Importe'],
-            [sac_label, '', f"${extraordinary_amount:,.2f}"],
+            ['Concepto', 'Detalle', 'Importe'],
+            ['Mes base (mejor sueldo)', best_month_name, ''],
+            ['Horas trabajadas ese mes', f"{best_hours:.2f} hs", ''],
+            ['Mejor sueldo bruto', '', f"${best_gross:,.2f}"],
+            [f'{sac_label} (50%)', '', f"${extraordinary_amount:,.2f}"],
             ['', '', ''],
             ['TOTAL A COBRAR', '', f"${extraordinary_amount:,.2f}"],
         ]
-        total_row_idx = 4
+        total_row_idx = 7
     else:
         payroll_data = [
             ['DETALLE DE LIQUIDACIÓN', '', ''],
