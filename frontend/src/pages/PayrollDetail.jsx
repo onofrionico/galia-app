@@ -255,7 +255,7 @@ const PayrollDetail = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{payroll.employee_name}</h1>
               <p className="text-gray-600 mt-1">
-                Nómina - {months[payroll.month - 1]} {payroll.year}
+                {payroll.month === 13 ? `1er SAC (Aguinaldo) ${payroll.year}` : payroll.month === 14 ? `2do SAC (Aguinaldo) ${payroll.year}` : `Nómina - ${months[payroll.month - 1]} ${payroll.year}`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
