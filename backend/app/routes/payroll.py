@@ -714,31 +714,42 @@ def get_my_payrolls(current_user):
 @token_required
 def get_my_payroll_detail(current_user, payroll_id):
     """Obtener detalle de una nómina del empleado actual"""
-    
-    # Obtener el empleado asociado al usuario
-    employee = Employee.query.filter_by(user_id=current_user.id).first()
-    if not employee:
-        return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
-    
-    payroll = Payroll.query.get_or_404(payroll_id)
-    
-    # Verificar que la nómina pertenece al empleado
-    if payroll.employee_id != employee.id:
-        return jsonify({'error': 'No tiene permiso para ver esta nómina'}), 403
-    
-    # Obtener registros detallados
-    worked_hours, daily_records = calculate_hours_from_time_tracking(
-        payroll.employee_id, payroll.month, payroll.year
-    )
-    scheduled_hours, scheduled_records = calculate_scheduled_hours(
-        payroll.employee_id, payroll.month, payroll.year
-    )
-    
-    result = payroll.to_dict(include_details=True)
-    result['daily_records'] = daily_records
-    result['scheduled_records'] = scheduled_records
-    
-    return jsonify(result)
+    try:
+        # Obtener el empleado asociado al usuario
+        employee = Employee.query.filter_by(user_id=current_user.id).first()
+        if not employee:
+            return jsonify({'error': 'No se encontró un empleado asociado a este usuario'}), 404
+
+        payroll = Payroll.query.get_or_404(payroll_id)
+
+        # Verificar que la nómina pertenece al empleado
+        if payroll.employee_id != employee.id:
+            return jsonify({'error': 'No tiene permiso para ver esta nómina'}), 403
+
+        result = payroll.to_dict(include_details=True)
+
+        # Solo obtener registros detallados si se solicita explícitamente
+        # para evitar recalcular innecesariamente
+        include_breakdown = request.args.get('include_breakdown', 'false').lower() == 'true'
+        if include_breakdown:
+            try:
+                worked_hours, daily_records = calculate_hours_from_time_tracking(
+                    payroll.employee_id, payroll.month, payroll.year
+                )
+                scheduled_hours, scheduled_records = calculate_scheduled_hours(
+                    payroll.employee_id, payroll.month, payroll.year
+                )
+                result['daily_records'] = daily_records
+                result['scheduled_records'] = scheduled_records
+            except Exception as calc_error:
+                # Si falla el cálculo, retornar sin detalles
+                pass
+
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error al cargar detalle de nómina: {str(e)}'}), 500
 
 @payroll_bp.route('/my-payrolls/<int:payroll_id>/validate', methods=['POST'])
 @token_required

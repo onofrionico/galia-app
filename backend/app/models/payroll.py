@@ -28,6 +28,7 @@ class Payroll(db.Model):
     employee_validated_at = db.Column(db.DateTime)
     employee_validated_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     
+    employee = db.relationship('Employee', foreign_keys=[employee_id], back_populates='payrolls')
     generator = db.relationship('User', foreign_keys=[generated_by], backref='payrolls_generated')
     validator = db.relationship('User', foreign_keys=[validated_by], backref='payrolls_validated')
     employee_validator = db.relationship('User', foreign_keys=[employee_validated_by], backref='payrolls_employee_validated')
