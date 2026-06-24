@@ -156,7 +156,7 @@ const MyPayrollDetail = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              Nómina - {months[payroll.month - 1]} {payroll.year}
+              {payroll.month === 13 ? '1er SAC' : payroll.month === 14 ? '2do SAC' : `Nómina - ${months[payroll.month - 1]}`} {payroll.year}
             </h1>
             <p className="text-gray-600 mt-1">{payroll.employee_name}</p>
           </div>

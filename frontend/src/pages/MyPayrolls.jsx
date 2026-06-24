@@ -163,7 +163,7 @@ const MyPayrolls = () => {
                     <div className="flex items-center gap-3 mb-2">
                       <Calendar className="w-5 h-5 text-blue-600" />
                       <h3 className="font-semibold text-gray-900">
-                        {months[payroll.month - 1]} {payroll.year}
+                        {payroll.month === 13 ? '1er SAC' : payroll.month === 14 ? '2do SAC' : months[payroll.month - 1]} {payroll.year}
                       </h3>
                       {getStatusBadge(payroll)}
                     </div>
