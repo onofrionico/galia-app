@@ -229,15 +229,14 @@ def get_expenses_metrics(start_date, end_date):
 
 def get_payroll_metrics(start_date, end_date):
     """Calcular métricas de sueldos/payroll para un período"""
-    # Determinar mes y año del período
-    # Si el período es mensual, buscamos payrolls de ese mes
     start_month = start_date.month
     start_year = start_date.year
     end_month = end_date.month
     end_year = end_date.year
-    
-    # Obtener payrolls del período
-    query = Payroll.query.filter(
+
+    # Nóminas regulares (meses 1-12) filtradas por rango año/mes
+    regular_payrolls = Payroll.query.filter(
+        Payroll.month <= 12,
         or_(
             and_(Payroll.year == start_year, Payroll.month >= start_month),
             Payroll.year > start_year
@@ -246,13 +245,21 @@ def get_payroll_metrics(start_date, end_date):
             and_(Payroll.year == end_year, Payroll.month <= end_month),
             Payroll.year < end_year
         )
-    )
-    
-    payrolls = query.all()
-    
-    total = sum(float(p.gross_salary) for p in payrolls)
+    ).all()
+
+    # SAC/aguinaldos (mes 13 o 14) incluidos cuando el año cae en el rango
+    sac_payrolls = Payroll.query.filter(
+        Payroll.month > 12,
+        Payroll.year >= start_year,
+        Payroll.year <= end_year
+    ).all()
+
+    payrolls = regular_payrolls + sac_payrolls
+
+    # gross_salary + extraordinary_amount cubre tanto sueldos normales como aguinaldos
+    total = sum(float(p.gross_salary) + float(p.extraordinary_amount or 0) for p in payrolls)
     horas = sum(float(p.hours_worked) for p in payrolls)
-    
+
     return {
         'total': total,
         'horas': horas
