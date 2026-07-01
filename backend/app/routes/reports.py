@@ -110,7 +110,14 @@ def get_dashboard(current_user):
     total_gastos = expenses_data['total']
     total_sueldos = payroll_data['total']
     resultado_neto = total_ingresos - total_gastos - total_sueldos
-    
+
+    # Calcular GAO (Grado de Apalancamiento Operativo)
+    apalancamiento = calculate_gao(
+        ventas=total_ingresos,
+        costos_variables=expenses_data['directos'],
+        resultado_operativo=resultado_neto
+    )
+
     rentabilidad = (resultado_neto / total_ingresos * 100) if total_ingresos > 0 else 0
     
     # Calcular variaciones
@@ -152,12 +159,13 @@ def get_dashboard(current_user):
             'margen_bruto_porcentaje': round((total_ingresos - expenses_data['directos']) / total_ingresos * 100, 1) if total_ingresos > 0 else 0
         },
         'punto_equilibrio': calculate_break_even_point(
-            total_ingresos, 
+            total_ingresos,
             expenses_data['directos'],
             expenses_data['indirectos'],
             payroll_data['total']
         ),
-        'goals': goals
+        'goals': goals,
+        'apalancamiento': apalancamiento
     }), 200
 
 
