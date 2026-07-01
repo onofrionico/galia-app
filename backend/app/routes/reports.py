@@ -343,6 +343,67 @@ def calculate_break_even_point(ventas, costos_directos, costos_indirectos, sueld
     }
 
 
+def calculate_gao(ventas, costos_variables, costos_fijos, resultado_neto):
+    """
+    Calcula el Grado de Apalancamiento Operativo (GAO).
+
+    GAO = Margen de Contribución Total / Resultado Operativo
+    Margen de Contribución Total = Ventas - Costos Variables
+    """
+    if ventas <= 0:
+        return {
+            'gao': None,
+            'margen_contribucion_total': 0,
+            'resultado_operativo': resultado_neto,
+            'interpretacion': None,
+            'recomendacion': None,
+            'estado': 'sin_datos'
+        }
+
+    margen_contribucion_total = ventas - costos_variables
+
+    if margen_contribucion_total <= 0:
+        return {
+            'gao': None,
+            'margen_contribucion_total': round(margen_contribucion_total, 2),
+            'resultado_operativo': round(resultado_neto, 2),
+            'interpretacion': None,
+            'recomendacion': None,
+            'estado': 'margen_negativo'
+        }
+
+    if resultado_neto <= 0:
+        return {
+            'gao': None,
+            'margen_contribucion_total': round(margen_contribucion_total, 2),
+            'resultado_operativo': round(resultado_neto, 2),
+            'interpretacion': None,
+            'recomendacion': None,
+            'estado': 'en_perdida'
+        }
+
+    gao = margen_contribucion_total / resultado_neto
+
+    if gao < 1.5:
+        interpretacion = 'bajo'
+        recomendacion = 'precio'
+    elif gao <= 3.0:
+        interpretacion = 'medio'
+        recomendacion = 'equilibrado'
+    else:
+        interpretacion = 'alto'
+        recomendacion = 'volumen'
+
+    return {
+        'gao': round(gao, 2),
+        'margen_contribucion_total': round(margen_contribucion_total, 2),
+        'resultado_operativo': round(resultado_neto, 2),
+        'interpretacion': interpretacion,
+        'recomendacion': recomendacion,
+        'estado': 'ok'
+    }
+
+
 def get_goals_progress(sales_data, expenses_data, payroll_data, total_ingresos):
     """Calcular progreso hacia las metas configuradas"""
     goals = ReportGoal.get_active_goals()
