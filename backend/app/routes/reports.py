@@ -343,7 +343,7 @@ def calculate_break_even_point(ventas, costos_directos, costos_indirectos, sueld
     }
 
 
-def calculate_gao(ventas, costos_variables, costos_fijos, resultado_neto):
+def calculate_gao(ventas, costos_variables, resultado_operativo):
     """
     Calcula el Grado de Apalancamiento Operativo (GAO).
 
@@ -353,8 +353,8 @@ def calculate_gao(ventas, costos_variables, costos_fijos, resultado_neto):
     if ventas <= 0:
         return {
             'gao': None,
-            'margen_contribucion_total': 0,
-            'resultado_operativo': resultado_neto,
+            'margen_contribucion_total': 0.0,
+            'resultado_operativo': resultado_operativo,
             'interpretacion': None,
             'recomendacion': None,
             'estado': 'sin_datos'
@@ -366,23 +366,23 @@ def calculate_gao(ventas, costos_variables, costos_fijos, resultado_neto):
         return {
             'gao': None,
             'margen_contribucion_total': round(margen_contribucion_total, 2),
-            'resultado_operativo': round(resultado_neto, 2),
+            'resultado_operativo': round(resultado_operativo, 2),
             'interpretacion': None,
             'recomendacion': None,
             'estado': 'margen_negativo'
         }
 
-    if resultado_neto <= 0:
+    if resultado_operativo <= 0:
         return {
             'gao': None,
             'margen_contribucion_total': round(margen_contribucion_total, 2),
-            'resultado_operativo': round(resultado_neto, 2),
+            'resultado_operativo': round(resultado_operativo, 2),
             'interpretacion': None,
             'recomendacion': None,
             'estado': 'en_perdida'
         }
 
-    gao = margen_contribucion_total / resultado_neto
+    gao = margen_contribucion_total / resultado_operativo
 
     if gao < 1.5:
         interpretacion = 'bajo'
@@ -397,7 +397,7 @@ def calculate_gao(ventas, costos_variables, costos_fijos, resultado_neto):
     return {
         'gao': round(gao, 2),
         'margen_contribucion_total': round(margen_contribucion_total, 2),
-        'resultado_operativo': round(resultado_neto, 2),
+        'resultado_operativo': round(resultado_operativo, 2),
         'interpretacion': interpretacion,
         'recomendacion': recomendacion,
         'estado': 'ok'

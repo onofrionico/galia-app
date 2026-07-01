@@ -11,8 +11,7 @@ def test_gao_normal_case():
     result = calculate_gao(
         ventas=100000,
         costos_variables=40000,
-        costos_fijos=30000,
-        resultado_neto=30000
+        resultado_operativo=30000
     )
     assert result['estado'] == 'ok'
     assert result['gao'] == pytest.approx(2.0, rel=1e-3)
@@ -26,8 +25,7 @@ def test_gao_alto():
     result = calculate_gao(
         ventas=100000,
         costos_variables=20000,
-        costos_fijos=55000,
-        resultado_neto=25000
+        resultado_operativo=25000
     )
     assert result['estado'] == 'ok'
     assert result['gao'] == pytest.approx(3.2, rel=1e-3)
@@ -39,8 +37,7 @@ def test_gao_bajo():
     result = calculate_gao(
         ventas=100000,
         costos_variables=10000,
-        costos_fijos=20000,
-        resultado_neto=70000
+        resultado_operativo=70000
     )
     assert result['estado'] == 'ok'
     assert result['gao'] == pytest.approx(1.29, rel=1e-2)
@@ -52,8 +49,7 @@ def test_gao_en_perdida():
     result = calculate_gao(
         ventas=100000,
         costos_variables=60000,
-        costos_fijos=50000,
-        resultado_neto=-10000
+        resultado_operativo=-10000
     )
     assert result['estado'] == 'en_perdida'
     assert result['gao'] is None
@@ -64,8 +60,7 @@ def test_gao_margen_negativo():
     result = calculate_gao(
         ventas=50000,
         costos_variables=60000,
-        costos_fijos=10000,
-        resultado_neto=-20000
+        resultado_operativo=-20000
     )
     assert result['estado'] == 'margen_negativo'
     assert result['gao'] is None
@@ -75,8 +70,33 @@ def test_gao_sin_ventas():
     result = calculate_gao(
         ventas=0,
         costos_variables=0,
-        costos_fijos=10000,
-        resultado_neto=-10000
+        resultado_operativo=-10000
     )
     assert result['estado'] == 'sin_datos'
     assert result['gao'] is None
+
+
+def test_gao_boundary_medio_at_1_5():
+    """GAO == 1.5 → medio (not bajo, since threshold is < 1.5)"""
+    # GAO = 90000 / 60000 = 1.5
+    result = calculate_gao(
+        ventas=100000,
+        costos_variables=10000,
+        resultado_operativo=60000
+    )
+    assert result['estado'] == 'ok'
+    assert result['gao'] == pytest.approx(1.5, rel=1e-3)
+    assert result['interpretacion'] == 'medio'
+
+
+def test_gao_boundary_alto_at_3_0():
+    """GAO == 3.0 → medio (not alto, since threshold is <= 3.0)"""
+    # GAO = 90000 / 30000 = 3.0
+    result = calculate_gao(
+        ventas=100000,
+        costos_variables=10000,
+        resultado_operativo=30000
+    )
+    assert result['estado'] == 'ok'
+    assert result['gao'] == pytest.approx(3.0, rel=1e-3)
+    assert result['interpretacion'] == 'medio'
