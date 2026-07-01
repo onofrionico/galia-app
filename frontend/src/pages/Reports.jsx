@@ -770,6 +770,9 @@ const Reports = () => {
               </div>
             )}
           </div>
+
+          {/* Apalancamiento Operativo */}
+          <ApalancamientoCard dashboard={dashboard} />
         </>
       )}
 
@@ -798,6 +801,207 @@ const Reports = () => {
           }}
         />
       )}
+    </div>
+  )
+}
+
+const ApalancamientoCard = ({ dashboard }) => {
+  const [deltaVolumen, setDeltaVolumen] = useState(0)
+  const [deltaPrecio, setDeltaPrecio] = useState(0)
+
+  const apal = dashboard?.apalancamiento
+  const ventas = dashboard?.ventas?.total || 0
+  const costosVariables = dashboard?.punto_equilibrio?.costos_variables || 0
+  const costosFijos = dashboard?.punto_equilibrio?.costos_fijos || 0
+  const resultadoActual = dashboard?.rentabilidad?.resultado_neto || 0
+
+  const nuevasVentas = ventas * (1 + deltaVolumen / 100) * (1 + deltaPrecio / 100)
+  const nuevosCostosVar = costosVariables * (1 + deltaVolumen / 100)
+  const nuevoResultado = nuevasVentas - nuevosCostosVar - costosFijos
+  const variacionAbsoluta = nuevoResultado - resultadoActual
+  const variacionPct = resultadoActual !== 0
+    ? ((variacionAbsoluta / Math.abs(resultadoActual)) * 100)
+    : 0
+
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value)
+
+  const gaoColor = {
+    bajo: 'text-green-600',
+    medio: 'text-amber-600',
+    alto: 'text-orange-600'
+  }
+
+  const gaoBackground = {
+    bajo: 'bg-green-50 border-green-200',
+    medio: 'bg-amber-50 border-amber-200',
+    alto: 'bg-orange-50 border-orange-200'
+  }
+
+  const recomendacionLabel = {
+    precio: 'Defender el precio',
+    volumen: 'Generar más volumen',
+    equilibrado: 'Estrategia equilibrada'
+  }
+
+  const recomendacionBadge = {
+    precio: 'bg-green-100 text-green-800',
+    volumen: 'bg-blue-100 text-blue-800',
+    equilibrado: 'bg-amber-100 text-amber-800'
+  }
+
+  const renderGaoStatus = () => {
+    if (!apal || apal.estado === 'sin_datos') {
+      return (
+        <div className="text-center py-4 text-gray-500">
+          <p className="text-sm">Sin datos suficientes para calcular el GAO</p>
+        </div>
+      )
+    }
+    if (apal.estado === 'en_perdida') {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-red-600 font-medium">Operando con pérdida — el GAO no aplica</p>
+          <p className="text-xs text-gray-500 mt-1">Primero alcanzá el punto de equilibrio</p>
+        </div>
+      )
+    }
+    if (apal.estado === 'margen_negativo') {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-red-600 font-medium">Margen de contribución negativo</p>
+          <p className="text-xs text-gray-500 mt-1">Los costos variables superan las ventas</p>
+        </div>
+      )
+    }
+    return (
+      <div className={`rounded-lg border p-4 ${gaoBackground[apal.interpretacion]}`}>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Grado de Apalancamiento Operativo</p>
+            <p className={`text-4xl font-bold ${gaoColor[apal.interpretacion]}`}>
+              {apal.gao}x
+            </p>
+          </div>
+          <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${recomendacionBadge[apal.recomendacion]}`}>
+            {recomendacionLabel[apal.recomendacion]}
+          </span>
+        </div>
+        <p className="text-sm text-gray-600">
+          Cada <strong>1%</strong> de aumento en ventas mejora tu ganancia un{' '}
+          <strong className={gaoColor[apal.interpretacion]}>{apal.gao}%</strong>
+        </p>
+      </div>
+    )
+  }
+
+  const simulatorDisabled = !apal || apal.estado !== 'ok' || ventas === 0
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <TrendingUp size={20} className="text-indigo-600" />
+        Apalancamiento Operativo
+      </h3>
+
+      {renderGaoStatus()}
+
+      {/* Simulador */}
+      <div className={`mt-6 ${simulatorDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+        <h4 className="text-sm font-semibold text-gray-700 mb-4">Simulador: ¿Qué pasa si...?</h4>
+
+        <div className="space-y-5">
+          {/* Slider Volumen */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-sm text-gray-600">Cambio en volumen de ventas</label>
+              <span className={`text-sm font-bold ${deltaVolumen >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {deltaVolumen >= 0 ? '+' : ''}{deltaVolumen}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-30"
+              max="30"
+              step="1"
+              value={deltaVolumen}
+              onChange={(e) => setDeltaVolumen(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>-30%</span>
+              <span>0%</span>
+              <span>+30%</span>
+            </div>
+          </div>
+
+          {/* Slider Precio */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-sm text-gray-600">Cambio en precio (ticket promedio)</label>
+              <span className={`text-sm font-bold ${deltaPrecio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {deltaPrecio >= 0 ? '+' : ''}{deltaPrecio}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-30"
+              max="30"
+              step="1"
+              value={deltaPrecio}
+              onChange={(e) => setDeltaPrecio(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>-30%</span>
+              <span>0%</span>
+              <span>+30%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Resultado proyectado */}
+        <div className={`mt-5 p-4 rounded-lg border ${
+          variacionAbsoluta >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Ventas proyectadas</p>
+              <p className="text-base font-bold text-gray-900">{formatCurrency(nuevasVentas)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Resultado proyectado</p>
+              <p className={`text-base font-bold ${nuevoResultado >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                {formatCurrency(nuevoResultado)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Variación vs. actual</p>
+              <p className={`text-base font-bold ${variacionAbsoluta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {variacionAbsoluta >= 0 ? '+' : ''}{formatCurrency(variacionAbsoluta)}
+                <span className="block text-xs font-normal">
+                  ({variacionAbsoluta >= 0 ? '+' : ''}{variacionPct.toFixed(1)}%)
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Reset */}
+        {(deltaVolumen !== 0 || deltaPrecio !== 0) && (
+          <button
+            onClick={() => { setDeltaVolumen(0); setDeltaPrecio(0) }}
+            className="mt-3 text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Resetear sliders
+          </button>
+        )}
+      </div>
     </div>
   )
 }
