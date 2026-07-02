@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from sqlalchemy import func, and_, or_, extract, cast
+from sqlalchemy import func, and_, or_, extract, cast, text
 from sqlalchemy import Date as SQLDate
 from app.utils.decorators import admin_required
 from app.utils.jwt_utils import token_required
@@ -1042,14 +1042,15 @@ def get_sales_by_weekday(start_date, end_date):
 
     days_in_range = _days_in_range_by_dow(start_date, end_date)
 
-    dow_expr = func.extract('dow', Sale.cerrada)
+    local_cerrada = Sale.cerrada + text("INTERVAL '-3 hours'")
+    dow_expr = func.extract('dow', local_cerrada)
     rows = db.session.query(
         dow_expr.label('dow_pg'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(Sale.cerrada, SQLDate) >= start_date,
-        cast(Sale.cerrada, SQLDate) <= end_date,
+        cast(local_cerrada, SQLDate) >= start_date,
+        cast(local_cerrada, SQLDate) <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
     ).group_by(dow_expr).all()
@@ -1078,15 +1079,16 @@ def get_sales_by_weekday(start_date, end_date):
 
 
 def get_sales_by_hour(start_date, end_date):
-    """Ventas agrupadas por hora del día (0–23)."""
-    hour_expr = func.extract('hour', Sale.cerrada)
+    """Ventas agrupadas por hora del día (0–23), en hora local Argentina (UTC-3)."""
+    local_cerrada = Sale.cerrada + text("INTERVAL '-3 hours'")
+    hour_expr = func.extract('hour', local_cerrada)
     rows = db.session.query(
         hour_expr.label('hora'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(Sale.cerrada, SQLDate) >= start_date,
-        cast(Sale.cerrada, SQLDate) <= end_date,
+        cast(local_cerrada, SQLDate) >= start_date,
+        cast(local_cerrada, SQLDate) <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
     ).group_by(hour_expr).order_by(hour_expr).all()
@@ -1179,9 +1181,16 @@ def time_analysis(current_user):
         end_date = date.today()
 
     payroll_data = get_payroll_metrics(start_date, end_date)
-    total_horas = payroll_data['horas']
     total_sueldos = payroll_data['total']
-    tasa_horaria = total_sueldos / total_horas if total_horas > 0 else 0
+    # Usar horas reales de turnos del período para que la tasa sea consistente
+    # con la distribución que se hace en get_labor_by_weekday/get_labor_by_hour
+    total_shift_horas = db.session.query(
+        func.sum(Shift.hours)
+    ).filter(
+        Shift.shift_date >= start_date,
+        Shift.shift_date <= end_date
+    ).scalar() or 0
+    tasa_horaria = float(total_sueldos) / float(total_shift_horas) if total_shift_horas > 0 else 0
 
     sales_wd = get_sales_by_weekday(start_date, end_date)
     sales_hr = get_sales_by_hour(start_date, end_date)
