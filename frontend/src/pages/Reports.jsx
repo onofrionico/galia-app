@@ -107,6 +107,7 @@ const Reports = () => {
     try {
       setTimeLoading(true)
       setTimeError(null)
+      setTimeData(null)
       let startStr, endStr
       if (filterMode === 'range' && startDate && endDate) {
         startStr = startDate
@@ -117,6 +118,8 @@ const Reports = () => {
         startStr = start.toISOString().split('T')[0]
         endStr = end.toISOString().split('T')[0]
       } else {
+        setTimeError('El análisis por día/hora requiere seleccionar un mes o un rango de fechas específico.')
+        setTimeLoading(false)
         return
       }
       const data = await reportsService.getTimeAnalysis({ start_date: startStr, end_date: endStr })
@@ -906,6 +909,7 @@ const TimeAnalysisTab = ({ data, loading, error, formatCurrency }) => {
 
   const getRatioClass = (ratio) => {
     if (ratio == null) return 'bg-gray-50 text-gray-400'
+    if (umbralFavorable >= umbralDesfavorable) return 'bg-gray-50 text-gray-600'
     const pct = ratio * 100
     if (pct < umbralFavorable) return 'bg-green-50 text-green-700'
     if (pct <= umbralDesfavorable) return 'bg-amber-50 text-amber-700'
@@ -914,6 +918,7 @@ const TimeAnalysisTab = ({ data, loading, error, formatCurrency }) => {
 
   const getRatioBadge = (ratio) => {
     if (ratio == null) return 'Sin datos'
+    if (umbralFavorable >= umbralDesfavorable) return `${(ratio * 100).toFixed(1)}%`
     const pct = ratio * 100
     if (pct < umbralFavorable) return '✓ Favorable'
     if (pct <= umbralDesfavorable) return '~ Equilibrado'
