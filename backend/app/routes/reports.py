@@ -256,12 +256,17 @@ def get_payroll_metrics(start_date, end_date):
         )
     ).all()
 
-    # SAC/aguinaldos (mes 13 o 14) incluidos cuando el año cae en el rango
-    sac_payrolls = Payroll.query.filter(
-        Payroll.month > 12,
-        Payroll.year >= start_year,
-        Payroll.year <= end_year
-    ).all()
+    # SAC1 (mes 13) se paga en junio, SAC2 (mes 14) en diciembre.
+    # Solo se incluye si el mes de pago cae dentro del rango consultado.
+    from datetime import date as _date
+    sac_conditions = []
+    for year in range(start_year, end_year + 1):
+        if _date(year, 6, 1) >= start_date.replace(day=1) and _date(year, 6, 1) <= end_date.replace(day=1):
+            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 13))
+        if _date(year, 12, 1) >= start_date.replace(day=1) and _date(year, 12, 1) <= end_date.replace(day=1):
+            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 14))
+
+    sac_payrolls = Payroll.query.filter(or_(*sac_conditions)).all() if sac_conditions else []
 
     payrolls = regular_payrolls + sac_payrolls
 
