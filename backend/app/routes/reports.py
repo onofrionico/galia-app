@@ -1206,7 +1206,7 @@ def time_analysis(current_user):
             'nombre': DOW_NAMES[i],
             'sum_ventas': ventas,
             'sum_costo': costo,
-            'ratio': round(costo / ventas * 100, 1) if ventas > 0 else None
+            'ratio': round(costo / ventas, 4) if ventas > 0 else None
         })
 
     return jsonify({
