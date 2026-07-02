@@ -22,14 +22,19 @@ const Reports = () => {
   const [showGoalsModal, setShowGoalsModal] = useState(false)
   const [goals, setGoals] = useState([])
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [timeData, setTimeData] = useState(null)
+  const [timeLoading, setTimeLoading] = useState(false)
+  const [timeError, setTimeError] = useState(null)
 
   useEffect(() => {
     if (filterMode === 'period') {
-      loadDashboard()
+      if (activeTab === 'dashboard') loadDashboard()
+      else if (activeTab === 'time') loadTimeAnalysis()
     } else if (filterMode === 'month') {
-      loadDashboard()
+      if (activeTab === 'dashboard') loadDashboard()
+      else if (activeTab === 'time') loadTimeAnalysis()
     }
-  }, [period, filterMode, selectedMonth])
+  }, [period, filterMode, selectedMonth, activeTab])
 
   const loadDashboard = async () => {
     try {
@@ -59,7 +64,8 @@ const Reports = () => {
 
   const handleApplyDateRange = () => {
     if (startDate && endDate) {
-      loadDashboard()
+      if (activeTab === 'dashboard') loadDashboard()
+      else if (activeTab === 'time') loadTimeAnalysis()
     }
   }
 
@@ -94,6 +100,32 @@ const Reports = () => {
       setGoals(data)
     } catch (err) {
       console.error('Error loading goals:', err)
+    }
+  }
+
+  const loadTimeAnalysis = async () => {
+    try {
+      setTimeLoading(true)
+      setTimeError(null)
+      let startStr, endStr
+      if (filterMode === 'range' && startDate && endDate) {
+        startStr = startDate
+        endStr = endDate
+      } else if (filterMode === 'month') {
+        const start = new Date(selectedMonth.year, selectedMonth.month - 1, 1)
+        const end = new Date(selectedMonth.year, selectedMonth.month, 0)
+        startStr = start.toISOString().split('T')[0]
+        endStr = end.toISOString().split('T')[0]
+      } else {
+        return
+      }
+      const data = await reportsService.getTimeAnalysis({ start_date: startStr, end_date: endStr })
+      setTimeData(data)
+    } catch (err) {
+      console.error('Error loading time analysis:', err)
+      setTimeError('Error al cargar el análisis por día/hora')
+    } finally {
+      setTimeLoading(false)
     }
   }
 
@@ -376,6 +408,30 @@ const Reports = () => {
         </div>
       </div>
 
+      {/* Tab navigation */}
+      <div className="flex gap-1 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'dashboard'
+              ? 'bg-white border border-b-white border-gray-200 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab('time')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'time'
+              ? 'bg-white border border-b-white border-gray-200 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Día / Hora
+        </button>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <AlertTriangle className="text-red-500 flex-shrink-0" size={20} />
@@ -383,7 +439,7 @@ const Reports = () => {
         </div>
       )}
 
-      {dashboard && (
+      {activeTab === 'dashboard' && dashboard && (
         <>
           {/* KPIs principales */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -776,6 +832,15 @@ const Reports = () => {
         </>
       )}
 
+      {activeTab === 'time' && (
+        <TimeAnalysisTab
+          data={timeData}
+          loading={timeLoading}
+          error={timeError}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
       {/* Modal de configuración de metas */}
       {showGoalsModal && (
         <GoalsModal
@@ -801,6 +866,239 @@ const Reports = () => {
           }}
         />
       )}
+    </div>
+  )
+}
+
+const TimeAnalysisTab = ({ data, loading, error, formatCurrency }) => {
+  const [umbralFavorable, setUmbralFavorable] = useState(35)
+  const [umbralDesfavorable, setUmbralDesfavorable] = useState(50)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="animate-spin text-blue-500 mr-2" size={20} />
+        <span className="text-gray-600">Cargando análisis por día/hora...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <AlertTriangle className="text-red-500 flex-shrink-0" size={20} />
+        <p className="text-red-700">{error}</p>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+        <BarChart3 className="mx-auto text-gray-400 mb-3" size={32} />
+        <p className="text-gray-500">Seleccioná un período para ver el análisis por día y hora</p>
+      </div>
+    )
+  }
+
+  const formatPct = (v) => v != null ? `${(v * 100).toFixed(1)}%` : '—'
+  const formatHrs = (v) => v != null ? `${v.toFixed(1)}h` : '—'
+
+  const getRatioClass = (ratio) => {
+    if (ratio == null) return 'bg-gray-50 text-gray-400'
+    const pct = ratio * 100
+    if (pct < umbralFavorable) return 'bg-green-50 text-green-700'
+    if (pct <= umbralDesfavorable) return 'bg-amber-50 text-amber-700'
+    return 'bg-red-50 text-red-700'
+  }
+
+  const getRatioBadge = (ratio) => {
+    if (ratio == null) return 'Sin datos'
+    const pct = ratio * 100
+    if (pct < umbralFavorable) return '✓ Favorable'
+    if (pct <= umbralDesfavorable) return '~ Equilibrado'
+    return '✗ Desfavorable'
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Ventas por día de semana */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Ventas por día de semana</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">Día</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Total vendido</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Días en rango</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Promedio por día</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.by_weekday?.ventas || []).map((row) => (
+                <tr key={row.dow} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-900">{row.nombre}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.sum_ventas)}</td>
+                  <td className="px-6 py-3 text-right text-gray-500">{row.dias_en_rango}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.promedio_ventas)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 2. Ventas por hora */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Ventas por hora</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">Hora</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Total vendido</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500"># Ventas</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Ticket promedio</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.by_hour?.ventas || []).map((row) => (
+                <tr key={row.hora} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-900">{String(row.hora).padStart(2, '0')}:00</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.sum_ventas)}</td>
+                  <td className="px-6 py-3 text-right text-gray-500">{row.count_ventas}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.promedio_ventas)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 3. Costo laboral por día de semana */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Costo laboral por día de semana</h3>
+          {data.tasa_horaria != null && (
+            <p className="text-xs text-gray-500 mt-1">Tasa horaria: {formatCurrency(data.tasa_horaria)}/hora</p>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">Día</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Horas totales</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Costo total</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Promedio por día</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.by_weekday?.labor || []).map((row) => (
+                <tr key={row.dow} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-900">{row.nombre}</td>
+                  <td className="px-6 py-3 text-right text-gray-500">{formatHrs(row.sum_horas)}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.sum_costo)}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.promedio_costo)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 4. Costo laboral por hora */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Costo laboral por hora</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">Hora</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Horas trabajadas</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Costo total</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Promedio por día</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.by_hour?.labor || []).map((row) => (
+                <tr key={row.hora} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-900">{String(row.hora).padStart(2, '0')}:00</td>
+                  <td className="px-6 py-3 text-right text-gray-500">{formatHrs(row.sum_horas)}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.sum_costo)}</td>
+                  <td className="px-6 py-3 text-right text-gray-700">{formatCurrency(row.promedio_costo)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. Cruce costo/ventas con umbrales configurables */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-4">
+            <h3 className="text-base font-semibold text-gray-900">Cruce costo laboral / ventas por día</h3>
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-green-700 font-medium">Favorable &lt;</span>
+                <input
+                  type="number"
+                  value={umbralFavorable}
+                  onChange={(e) => setUmbralFavorable(Number(e.target.value))}
+                  className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  min={0}
+                  max={100}
+                />
+                <span className="text-xs text-gray-400">%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-700 font-medium">Desfavorable &gt;</span>
+                <input
+                  type="number"
+                  value={umbralDesfavorable}
+                  onChange={(e) => setUmbralDesfavorable(Number(e.target.value))}
+                  className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  min={0}
+                  max={100}
+                />
+                <span className="text-xs text-gray-400">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">Día</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Ventas</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Costo laboral</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Ratio</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.by_weekday?.cross || []).map((row) => (
+                <tr key={row.dow} className={`${getRatioClass(row.ratio)}`}>
+                  <td className="px-6 py-3 font-medium">{row.nombre}</td>
+                  <td className="px-6 py-3 text-right">{formatCurrency(row.sum_ventas)}</td>
+                  <td className="px-6 py-3 text-right">{formatCurrency(row.sum_costo)}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatPct(row.ratio)}</td>
+                  <td className="px-6 py-3 text-right font-medium">{getRatioBadge(row.ratio)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

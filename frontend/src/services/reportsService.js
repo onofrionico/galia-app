@@ -85,6 +85,11 @@ export const reportsService = {
   updateExpenseCategory: async (categoryId, categoryData) => {
     const response = await api.put(`/reports/expense-categories/${categoryId}`, categoryData)
     return response.data
+  },
+
+  getTimeAnalysis: async (params = {}) => {
+    const response = await api.get('/reports/time-analysis', { params })
+    return response.data
   }
 }
 
