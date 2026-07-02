@@ -1020,3 +1020,84 @@ def distribute_shift_hours(start_time, end_time):
         current_min += fraccion_min
 
     return slots
+
+
+def _days_in_range_by_dow(start_date, end_date):
+    """Cuenta cuántas veces aparece cada día de semana (0=lunes) en el rango."""
+    counts = {i: 0 for i in range(7)}
+    current = start_date
+    while current <= end_date:
+        counts[current.weekday()] += 1
+        current += timedelta(days=1)
+    return counts
+
+
+DOW_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+
+def get_sales_by_weekday(start_date, end_date):
+    """Ventas agrupadas por día de semana (0=lunes … 6=domingo)."""
+    import sqlalchemy
+
+    days_in_range = _days_in_range_by_dow(start_date, end_date)
+
+    # Use strftime for SQLite compatibility; also works via func on PostgreSQL via cast.
+    # strftime('%w'): 0=Sunday, 1=Monday, …, 6=Saturday
+    rows = db.session.query(
+        func.strftime('%w', Sale.cerrada).label('dow_sqlite'),
+        func.sum(Sale.total).label('sum_ventas'),
+        func.count(Sale.id).label('count_ventas')
+    ).filter(
+        func.date(Sale.cerrada) >= start_date.isoformat(),
+        func.date(Sale.cerrada) <= end_date.isoformat(),
+        Sale.estado == 'Cerrada',
+        Sale.cerrada.isnot(None)
+    ).group_by('dow_sqlite').all()
+
+    # Convert SQLite DOW (0=Sun) to Python weekday (0=Mon)
+    by_dow = {i: {'sum_ventas': 0.0, 'count_ventas': 0} for i in range(7)}
+    for row in rows:
+        sqlite_dow = int(row.dow_sqlite)  # 0=Sun,1=Mon,...,6=Sat
+        py_dow = (sqlite_dow - 1) % 7    # 0(Sun)->6, 1(Mon)->0, ..., 6(Sat)->5
+        by_dow[py_dow]['sum_ventas'] = float(row.sum_ventas or 0)
+        by_dow[py_dow]['count_ventas'] = row.count_ventas or 0
+
+    output = []
+    for dow in range(7):
+        dias = days_in_range[dow]
+        sum_v = by_dow[dow]['sum_ventas']
+        output.append({
+            'dow': dow,
+            'nombre': DOW_NAMES[dow],
+            'sum_ventas': round(sum_v, 2),
+            'count_ventas': by_dow[dow]['count_ventas'],
+            'promedio_ventas': round(sum_v / dias, 2) if dias > 0 else 0,
+            'dias_en_rango': dias
+        })
+    return output
+
+
+def get_sales_by_hour(start_date, end_date):
+    """Ventas agrupadas por hora del día (0–23)."""
+    rows = db.session.query(
+        func.cast(func.strftime('%H', Sale.cerrada), db.Integer).label('hora'),
+        func.sum(Sale.total).label('sum_ventas'),
+        func.count(Sale.id).label('count_ventas')
+    ).filter(
+        func.date(Sale.cerrada) >= start_date.isoformat(),
+        func.date(Sale.cerrada) <= end_date.isoformat(),
+        Sale.estado == 'Cerrada',
+        Sale.cerrada.isnot(None)
+    ).group_by('hora').order_by('hora').all()
+
+    output = []
+    for row in rows:
+        sum_v = float(row.sum_ventas or 0)
+        count_v = row.count_ventas or 0
+        output.append({
+            'hora': int(row.hora),
+            'sum_ventas': round(sum_v, 2),
+            'count_ventas': count_v,
+            'promedio_ventas': round(sum_v / count_v, 2) if count_v > 0 else 0
+        })
+    return output
