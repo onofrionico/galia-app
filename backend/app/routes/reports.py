@@ -1109,39 +1109,23 @@ def get_sales_by_hour(start_date, end_date):
 def _build_labor_lookups(start_date, end_date):
     """
     Construye estructuras de lookup para el cálculo de costo laboral real:
-    - payroll_rates: {(employee_id, year, month): hourly_rate}
-    - employee_multipliers: {employee_id: (sunday_mult, holiday_mult)} según su JobPosition
+    - employee_rates: {employee_id: (base_rate, sunday_mult, holiday_mult)} desde JobPosition
     - holiday_dates: set de fechas que son feriados en el período
+    Usa JobPosition.hourly_rate (igual que el resto de la app: time_tracking, payroll).
     """
     from app.models.ml_tracking import Holiday
     from app.models.employee import Employee
-    from app.models.job_position import JobPosition
-
-    payrolls = Payroll.query.filter(
-        Payroll.month <= 12,
-        or_(
-            and_(Payroll.year == start_date.year, Payroll.month >= start_date.month),
-            Payroll.year > start_date.year
-        ),
-        or_(
-            and_(Payroll.year == end_date.year, Payroll.month <= end_date.month),
-            Payroll.year < end_date.year
-        )
-    ).all()
-    payroll_rates = {
-        (p.employee_id, p.year, p.month): float(p.hourly_rate)
-        for p in payrolls
-    }
 
     employees = Employee.query.options(
         db.joinedload(Employee.job_position)
     ).all()
-    employee_multipliers = {}
+    employee_rates = {}
     for emp in employees:
         jp = emp.job_position
+        base_rate = float(jp.hourly_rate) if jp and jp.hourly_rate else 0.0
         sunday_mult = float(jp.sunday_rate_multiplier) if jp and jp.sunday_rate_multiplier else 1.0
         holiday_mult = float(jp.holiday_rate_multiplier) if jp and jp.holiday_rate_multiplier else 1.0
-        employee_multipliers[emp.id] = (sunday_mult, holiday_mult)
+        employee_rates[emp.id] = (base_rate, sunday_mult, holiday_mult)
 
     holidays = Holiday.query.filter(
         Holiday.date >= start_date,
@@ -1149,18 +1133,15 @@ def _build_labor_lookups(start_date, end_date):
     ).all()
     holiday_dates = {h.date for h in holidays}
 
-    return payroll_rates, employee_multipliers, holiday_dates
+    return employee_rates, holiday_dates
 
 
-def _shift_effective_rate(shift, payroll_rates, employee_multipliers, holiday_dates):
+def _shift_effective_rate(shift, employee_rates, holiday_dates):
     """
-    Tarifa efectiva de un turno usando hourly_rate del payroll del empleado
-    y los multiplicadores de domingo/feriado configurados en su JobPosition.
+    Tarifa efectiva de un turno: base_rate del JobPosition con multiplicador
+    de domingo o feriado según corresponda.
     """
-    base_rate = payroll_rates.get(
-        (shift.employee_id, shift.shift_date.year, shift.shift_date.month), 0.0
-    )
-    sunday_mult, holiday_mult = employee_multipliers.get(shift.employee_id, (1.0, 1.0))
+    base_rate, sunday_mult, holiday_mult = employee_rates.get(shift.employee_id, (0.0, 1.0, 1.0))
 
     is_sunday = shift.shift_date.weekday() == 6
     is_holiday = shift.shift_date in holiday_dates
@@ -1172,7 +1153,7 @@ def _shift_effective_rate(shift, payroll_rates, employee_multipliers, holiday_da
     return base_rate
 
 
-def get_labor_by_weekday(start_date, end_date, payroll_rates, employee_multipliers, holiday_dates):
+def get_labor_by_weekday(start_date, end_date, employee_rates, holiday_dates):
     """Costo laboral por día de semana (0=lunes … 6=domingo), con tarifa real por turno."""
     days_in_range = _days_in_range_by_dow(start_date, end_date)
 
@@ -1185,7 +1166,7 @@ def get_labor_by_weekday(start_date, end_date, payroll_rates, employee_multiplie
     for shift in shifts:
         dow = shift.shift_date.weekday()
         horas = float(shift.hours)
-        rate = _shift_effective_rate(shift, payroll_rates, employee_multipliers, holiday_dates)
+        rate = _shift_effective_rate(shift, employee_rates, holiday_dates)
         by_dow[dow]['sum_horas'] += horas
         by_dow[dow]['sum_costo'] += horas * rate
 
@@ -1204,7 +1185,7 @@ def get_labor_by_weekday(start_date, end_date, payroll_rates, employee_multiplie
     return output
 
 
-def get_labor_by_hour(start_date, end_date, payroll_rates, employee_multipliers, holiday_dates):
+def get_labor_by_hour(start_date, end_date, employee_rates, holiday_dates):
     """Costo laboral por franja horaria, con tarifa real por turno (incluye multiplicador dom/feriado)."""
     total_dias = (end_date - start_date).days + 1
 
@@ -1215,7 +1196,7 @@ def get_labor_by_hour(start_date, end_date, payroll_rates, employee_multipliers,
 
     by_hour = {}
     for shift in shifts:
-        rate = _shift_effective_rate(shift, payroll_rates, employee_multipliers, holiday_dates)
+        rate = _shift_effective_rate(shift, employee_rates, holiday_dates)
         slots = distribute_shift_hours(shift.start_time, shift.end_time)
         for hora, fraccion in slots.items():
             if hora not in by_hour:
@@ -1248,12 +1229,12 @@ def time_analysis(current_user):
     if not end_date:
         end_date = date.today()
 
-    payroll_rates, employee_multipliers, holiday_dates = _build_labor_lookups(start_date, end_date)
+    employee_rates, holiday_dates = _build_labor_lookups(start_date, end_date)
 
     sales_wd = get_sales_by_weekday(start_date, end_date)
     sales_hr = get_sales_by_hour(start_date, end_date)
-    labor_wd = get_labor_by_weekday(start_date, end_date, payroll_rates, employee_multipliers, holiday_dates)
-    labor_hr = get_labor_by_hour(start_date, end_date, payroll_rates, employee_multipliers, holiday_dates)
+    labor_wd = get_labor_by_weekday(start_date, end_date, employee_rates, holiday_dates)
+    labor_hr = get_labor_by_hour(start_date, end_date, employee_rates, holiday_dates)
 
     # Tasa efectiva promedio para mostrar en el header (costo total / horas totales)
     total_costo = sum(row['sum_costo'] for row in labor_wd)
