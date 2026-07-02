@@ -991,3 +991,32 @@ def update_expense_category(current_user, category_id):
     
     db.session.commit()
     return jsonify(category.to_dict()), 200
+
+
+# ==================== TIME ANALYSIS ====================
+
+def distribute_shift_hours(start_time, end_time):
+    """
+    Distribuye las horas de un turno entre franjas horarias.
+    Retorna dict {hora: fraccion_horas}.
+    Ejemplo: start=16:00, end=17:45 → {16: 1.0, 17: 0.75}
+    Maneja turnos que cruzan medianoche.
+    """
+    start_min = start_time.hour * 60 + start_time.minute
+    end_min = end_time.hour * 60 + end_time.minute
+
+    if end_min <= start_min:
+        end_min += 24 * 60
+
+    slots = {}
+    current_min = start_min
+
+    while current_min < end_min:
+        hora = (current_min // 60) % 24
+        minutos_hasta_fin_hora = 60 - (current_min % 60)
+        minutos_restantes = end_min - current_min
+        fraccion_min = min(minutos_hasta_fin_hora, minutos_restantes)
+        slots[hora] = slots.get(hora, 0) + fraccion_min / 60.0
+        current_min += fraccion_min
+
+    return slots
