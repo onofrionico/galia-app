@@ -4,10 +4,15 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from datetime import time, date, datetime
+import sqlalchemy
 from app.routes.reports import distribute_shift_hours, get_sales_by_weekday, get_sales_by_hour
 from app import create_app
 from app.extensions import db
 from app.models.sale import Sale
+
+
+def _is_sqlite(app_ctx):
+    return 'sqlite' in str(app_ctx.config.get('SQLALCHEMY_DATABASE_URI', ''))
 
 
 @pytest.fixture
@@ -65,6 +70,8 @@ def test_distribute_midnight_crossing():
 
 def test_sales_by_weekday_sums_correctly(app_ctx):
     """Two sales on a Monday → correct sum, promedio = sum / 1 Monday in range"""
+    if 'sqlite' in str(app_ctx.config.get('SQLALCHEMY_DATABASE_URI', '')):
+        pytest.skip('extract(dow) not reliable in SQLite — PostgreSQL only')
     # 2026-07-06 is a Monday
     sale1 = Sale(
         fecha=date(2026, 7, 6),
@@ -116,6 +123,8 @@ def test_sales_by_weekday_excludes_non_closed(app_ctx):
 
 def test_sales_by_hour_groups_correctly(app_ctx):
     """Two sales in hour 12 → correct sum and promedio"""
+    if 'sqlite' in str(app_ctx.config.get('SQLALCHEMY_DATABASE_URI', '')):
+        pytest.skip('extract(hour) not reliable in SQLite — PostgreSQL only')
     sale1 = Sale(
         fecha=date(2026, 7, 7),
         creacion=datetime(2026, 7, 7, 12, 0, 0),
