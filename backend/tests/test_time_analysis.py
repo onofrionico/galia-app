@@ -4,8 +4,10 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from datetime import time, date, datetime
-import sqlalchemy
-from app.routes.reports import distribute_shift_hours, get_sales_by_weekday, get_sales_by_hour, get_labor_by_weekday, get_labor_by_hour
+from app.routes.reports import (
+    distribute_shift_hours, get_sales_by_weekday, get_sales_by_hour,
+    get_labor_by_weekday, get_labor_by_hour, _build_labor_lookups,
+)
 from app import create_app
 from app.extensions import db
 from app.models.sale import Sale
@@ -67,13 +69,12 @@ def test_distribute_midnight_crossing():
     assert result[0] == pytest.approx(1.0)
 
 
-# ---- Sales by weekday and hour tests (need DB) ----
+# ---- Sales by weekday and hour tests (need DB + PostgreSQL) ----
 
 def test_sales_by_weekday_sums_correctly(app_ctx):
     """Two sales on a Monday → correct sum, promedio = sum / 1 Monday in range"""
-    if 'sqlite' in str(app_ctx.config.get('SQLALCHEMY_DATABASE_URI', '')):
-        pytest.skip('extract(dow) not reliable in SQLite — PostgreSQL only')
-    # 2026-07-06 is a Monday
+    if _is_sqlite(app_ctx):
+        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     sale1 = Sale(
         fecha=date(2026, 7, 6),
         creacion=datetime(2026, 7, 6, 12, 0, 0),
@@ -92,21 +93,23 @@ def test_sales_by_weekday_sums_correctly(app_ctx):
     db.session.commit()
 
     result = get_sales_by_weekday(date(2026, 7, 6), date(2026, 7, 6))
-    lunes = next(r for r in result if r['dow'] == 0)  # 0=Monday
+    lunes = next(r for r in result if r['dow'] == 0)
     assert lunes['sum_ventas'] == pytest.approx(15000)
     assert lunes['count_ventas'] == 2
-    assert lunes['promedio_ventas'] == pytest.approx(15000)  # 1 Monday in range
+    assert lunes['promedio_ventas'] == pytest.approx(15000)
     assert lunes['dias_en_rango'] == 1
 
 
 def test_sales_by_weekday_returns_all_7_days(app_ctx):
-    """Always returns 7 days even with no sales"""
+    if _is_sqlite(app_ctx):
+        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     result = get_sales_by_weekday(date(2026, 7, 6), date(2026, 7, 6))
     assert len(result) == 7
 
 
 def test_sales_by_weekday_excludes_non_closed(app_ctx):
-    """Sales with estado != 'Cerrada' are excluded"""
+    if _is_sqlite(app_ctx):
+        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     sale = Sale(
         fecha=date(2026, 7, 6),
         creacion=datetime(2026, 7, 6, 12, 0, 0),
@@ -124,8 +127,8 @@ def test_sales_by_weekday_excludes_non_closed(app_ctx):
 
 def test_sales_by_hour_groups_correctly(app_ctx):
     """Two sales in hour 12 → correct sum and promedio"""
-    if 'sqlite' in str(app_ctx.config.get('SQLALCHEMY_DATABASE_URI', '')):
-        pytest.skip('extract(hour) not reliable in SQLite — PostgreSQL only')
+    if _is_sqlite(app_ctx):
+        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     sale1 = Sale(
         fecha=date(2026, 7, 7),
         creacion=datetime(2026, 7, 7, 12, 0, 0),
@@ -153,10 +156,12 @@ def test_sales_by_hour_groups_correctly(app_ctx):
 
 # ---- Labor by weekday and hour tests (need DB) ----
 
-def _make_employee(db_session, suffix='A'):
-    """Create a minimal Employee for testing."""
+def _make_employee_with_payroll(db_session, suffix='A', hourly_rate=1000, shift_date=date(2026, 7, 6)):
+    """Create Employee + Payroll record so _build_labor_lookups can find the rate."""
     from app.models.employee import Employee
     from app.models.user import User
+    from app.models.payroll import Payroll
+
     user = User(
         email=f'testworker{suffix}@example.com',
         password_hash='x',
@@ -164,26 +169,39 @@ def _make_employee(db_session, suffix='A'):
     )
     db_session.add(user)
     db_session.flush()
+
     emp = Employee(
         user_id=user.id,
         first_name=f'Test{suffix}',
         last_name='Worker',
-        dni=f'1234567{suffix}' if suffix.isdigit() else f'0000000{ord(suffix) % 10}',
+        dni=f'0000{ord(suffix[0]) % 10000:04d}',
         hire_date=date(2025, 1, 1)
     )
     db_session.add(emp)
+    db_session.flush()
+
+    payroll = Payroll(
+        employee_id=emp.id,
+        month=shift_date.month,
+        year=shift_date.year,
+        hours_worked=160,
+        scheduled_hours=160,
+        hourly_rate=hourly_rate,
+        gross_salary=hourly_rate * 160,
+        generated_by=user.id,
+    )
+    db_session.add(payroll)
     db_session.flush()
     return emp
 
 
 def test_labor_by_weekday_distributes_cost(app_ctx):
-    """8h shift on Monday with tasa 1000/h → sum_costo=8000 for Monday"""
-    emp = _make_employee(db.session, suffix='1')
-    # 2026-07-06 is a Monday
+    """8h Monday shift with hourly_rate=1000 → sum_costo=8000"""
+    emp = _make_employee_with_payroll(db.session, suffix='1', hourly_rate=1000, shift_date=date(2026, 7, 6))
     shift = Shift(
         employee_id=emp.id,
         schedule_id=1,
-        shift_date=date(2026, 7, 6),
+        shift_date=date(2026, 7, 6),  # Monday
         start_time=time(9, 0),
         end_time=time(17, 0),
         hours=8.0
@@ -191,8 +209,9 @@ def test_labor_by_weekday_distributes_cost(app_ctx):
     db.session.add(shift)
     db.session.commit()
 
-    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), tasa_horaria=1000)
-    lunes = next(r for r in result if r['dow'] == 0)  # 0=Monday
+    payroll_rates, employee_multipliers, holiday_dates = _build_labor_lookups(date(2026, 7, 6), date(2026, 7, 6))
+    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), payroll_rates, employee_multipliers, holiday_dates)
+    lunes = next(r for r in result if r['dow'] == 0)
     assert lunes['sum_horas'] == pytest.approx(8.0)
     assert lunes['sum_costo'] == pytest.approx(8000.0)
     assert lunes['promedio_horas'] == pytest.approx(8.0)
@@ -201,13 +220,14 @@ def test_labor_by_weekday_distributes_cost(app_ctx):
 
 
 def test_labor_by_weekday_returns_7_days(app_ctx):
-    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), tasa_horaria=1000)
+    payroll_rates, employee_multipliers, holiday_dates = _build_labor_lookups(date(2026, 7, 6), date(2026, 7, 6))
+    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), payroll_rates, employee_multipliers, holiday_dates)
     assert len(result) == 7
 
 
 def test_labor_by_hour_distributes_fractional(app_ctx):
-    """Shift 16:00-17:45 with tasa 1000/h → slot 16h=1000, slot 17h=750"""
-    emp = _make_employee(db.session, suffix='2')
+    """Shift 16:00-17:45 with hourly_rate=1000 → slot 16h=$1000, slot 17h=$750"""
+    emp = _make_employee_with_payroll(db.session, suffix='2', hourly_rate=1000, shift_date=date(2026, 7, 7))
     shift = Shift(
         employee_id=emp.id,
         schedule_id=1,
@@ -219,7 +239,8 @@ def test_labor_by_hour_distributes_fractional(app_ctx):
     db.session.add(shift)
     db.session.commit()
 
-    result = get_labor_by_hour(date(2026, 7, 7), date(2026, 7, 7), tasa_horaria=1000)
+    payroll_rates, employee_multipliers, holiday_dates = _build_labor_lookups(date(2026, 7, 7), date(2026, 7, 7))
+    result = get_labor_by_hour(date(2026, 7, 7), date(2026, 7, 7), payroll_rates, employee_multipliers, holiday_dates)
     slot_16 = next((r for r in result if r['hora'] == 16), None)
     slot_17 = next((r for r in result if r['hora'] == 17), None)
     assert slot_16 is not None
