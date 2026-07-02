@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from sqlalchemy import func, and_, or_, extract
+from sqlalchemy import func, and_, or_, extract, cast
+from sqlalchemy import Date as SQLDate
 from app.utils.decorators import admin_required
 from app.utils.jwt_utils import token_required
 from app.extensions import db
@@ -1041,24 +1042,23 @@ def get_sales_by_weekday(start_date, end_date):
 
     days_in_range = _days_in_range_by_dow(start_date, end_date)
 
-    # Use strftime for SQLite compatibility; also works via func on PostgreSQL via cast.
-    # strftime('%w'): 0=Sunday, 1=Monday, …, 6=Saturday
+    dow_expr = func.extract('dow', Sale.cerrada)
     rows = db.session.query(
-        func.strftime('%w', Sale.cerrada).label('dow_sqlite'),
+        dow_expr.label('dow_pg'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        func.date(Sale.cerrada) >= start_date.isoformat(),
-        func.date(Sale.cerrada) <= end_date.isoformat(),
+        cast(Sale.cerrada, SQLDate) >= start_date,
+        cast(Sale.cerrada, SQLDate) <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
-    ).group_by('dow_sqlite').all()
+    ).group_by(dow_expr).all()
 
-    # Convert SQLite DOW (0=Sun) to Python weekday (0=Mon)
+    # Convert DOW: extract('dow') returns 0=Sunday in both SQLite and PostgreSQL
+    # Convert to Python convention: 0=Monday
     by_dow = {i: {'sum_ventas': 0.0, 'count_ventas': 0} for i in range(7)}
     for row in rows:
-        sqlite_dow = int(row.dow_sqlite)  # 0=Sun,1=Mon,...,6=Sat
-        py_dow = (sqlite_dow - 1) % 7    # 0(Sun)->6, 1(Mon)->0, ..., 6(Sat)->5
+        py_dow = (int(row.dow_pg) - 1) % 7  # 0(Sun)->6, 1(Mon)->0, ..., 6(Sat)->5
         by_dow[py_dow]['sum_ventas'] = float(row.sum_ventas or 0)
         by_dow[py_dow]['count_ventas'] = row.count_ventas or 0
 
@@ -1079,16 +1079,17 @@ def get_sales_by_weekday(start_date, end_date):
 
 def get_sales_by_hour(start_date, end_date):
     """Ventas agrupadas por hora del día (0–23)."""
+    hour_expr = func.extract('hour', Sale.cerrada)
     rows = db.session.query(
-        func.cast(func.strftime('%H', Sale.cerrada), db.Integer).label('hora'),
+        hour_expr.label('hora'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        func.date(Sale.cerrada) >= start_date.isoformat(),
-        func.date(Sale.cerrada) <= end_date.isoformat(),
+        cast(Sale.cerrada, SQLDate) >= start_date,
+        cast(Sale.cerrada, SQLDate) <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
-    ).group_by('hora').order_by('hora').all()
+    ).group_by(hour_expr).order_by(hour_expr).all()
 
     output = []
     for row in rows:
