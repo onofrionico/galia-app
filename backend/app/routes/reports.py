@@ -1102,3 +1102,117 @@ def get_sales_by_hour(start_date, end_date):
             'promedio_ventas': round(sum_v / count_v, 2) if count_v > 0 else 0
         })
     return output
+
+
+def get_labor_by_weekday(start_date, end_date, tasa_horaria):
+    """Costo laboral por día de semana (0=lunes … 6=domingo)."""
+    days_in_range = _days_in_range_by_dow(start_date, end_date)
+
+    shifts = Shift.query.filter(
+        Shift.shift_date >= start_date,
+        Shift.shift_date <= end_date
+    ).all()
+
+    by_dow = {i: {'sum_horas': 0.0, 'sum_costo': 0.0} for i in range(7)}
+    for shift in shifts:
+        dow = shift.shift_date.weekday()  # 0=Monday
+        horas = float(shift.hours)
+        by_dow[dow]['sum_horas'] += horas
+        by_dow[dow]['sum_costo'] += horas * tasa_horaria
+
+    output = []
+    for dow in range(7):
+        dias = days_in_range[dow]
+        output.append({
+            'dow': dow,
+            'nombre': DOW_NAMES[dow],
+            'sum_horas': round(by_dow[dow]['sum_horas'], 2),
+            'sum_costo': round(by_dow[dow]['sum_costo'], 2),
+            'promedio_horas': round(by_dow[dow]['sum_horas'] / dias, 2) if dias > 0 else 0,
+            'promedio_costo': round(by_dow[dow]['sum_costo'] / dias, 2) if dias > 0 else 0,
+            'dias_en_rango': dias
+        })
+    return output
+
+
+def get_labor_by_hour(start_date, end_date, tasa_horaria):
+    """Costo laboral por franja horaria, distribuyendo fracciones por turno."""
+    total_dias = (end_date - start_date).days + 1
+
+    shifts = Shift.query.filter(
+        Shift.shift_date >= start_date,
+        Shift.shift_date <= end_date
+    ).all()
+
+    by_hour = {}
+    for shift in shifts:
+        slots = distribute_shift_hours(shift.start_time, shift.end_time)
+        for hora, fraccion in slots.items():
+            if hora not in by_hour:
+                by_hour[hora] = {'sum_horas': 0.0, 'sum_costo': 0.0}
+            by_hour[hora]['sum_horas'] += fraccion
+            by_hour[hora]['sum_costo'] += fraccion * tasa_horaria
+
+    output = []
+    for hora in sorted(by_hour.keys()):
+        output.append({
+            'hora': hora,
+            'sum_horas': round(by_hour[hora]['sum_horas'], 2),
+            'sum_costo': round(by_hour[hora]['sum_costo'], 2),
+            'promedio_horas': round(by_hour[hora]['sum_horas'] / total_dias, 2),
+            'promedio_costo': round(by_hour[hora]['sum_costo'] / total_dias, 2)
+        })
+    return output
+
+
+@bp.route('/time-analysis', methods=['GET'])
+@token_required
+@admin_required
+def time_analysis(current_user):
+    """Análisis de ventas y costo laboral por día de semana y hora."""
+    start_date = parse_date(request.args.get('start_date'))
+    end_date = parse_date(request.args.get('end_date'))
+
+    if not start_date:
+        start_date, end_date = get_period_dates('mensual')
+    if not end_date:
+        end_date = date.today()
+
+    payroll_data = get_payroll_metrics(start_date, end_date)
+    total_horas = payroll_data['horas']
+    total_sueldos = payroll_data['total']
+    tasa_horaria = total_sueldos / total_horas if total_horas > 0 else 0
+
+    sales_wd = get_sales_by_weekday(start_date, end_date)
+    sales_hr = get_sales_by_hour(start_date, end_date)
+    labor_wd = get_labor_by_weekday(start_date, end_date, tasa_horaria)
+    labor_hr = get_labor_by_hour(start_date, end_date, tasa_horaria)
+
+    cross = []
+    for i in range(7):
+        ventas = sales_wd[i]['sum_ventas']
+        costo = labor_wd[i]['sum_costo']
+        cross.append({
+            'dow': i,
+            'nombre': DOW_NAMES[i],
+            'sum_ventas': ventas,
+            'sum_costo': costo,
+            'ratio': round(costo / ventas * 100, 1) if ventas > 0 else None
+        })
+
+    return jsonify({
+        'period': {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat()
+        },
+        'tasa_horaria': round(tasa_horaria, 2),
+        'by_weekday': {
+            'ventas': sales_wd,
+            'labor': labor_wd,
+            'cross': cross
+        },
+        'by_hour': {
+            'ventas': sales_hr,
+            'labor': labor_hr
+        }
+    }), 200

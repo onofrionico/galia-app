@@ -5,10 +5,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from datetime import time, date, datetime
 import sqlalchemy
-from app.routes.reports import distribute_shift_hours, get_sales_by_weekday, get_sales_by_hour
+from app.routes.reports import distribute_shift_hours, get_sales_by_weekday, get_sales_by_hour, get_labor_by_weekday, get_labor_by_hour
 from app import create_app
 from app.extensions import db
 from app.models.sale import Sale
+from app.models.shift import Shift
 
 
 def _is_sqlite(app_ctx):
@@ -148,3 +149,80 @@ def test_sales_by_hour_groups_correctly(app_ctx):
     assert hora_12['sum_ventas'] == pytest.approx(5000)
     assert hora_12['count_ventas'] == 2
     assert hora_12['promedio_ventas'] == pytest.approx(2500)
+
+
+# ---- Labor by weekday and hour tests (need DB) ----
+
+def _make_employee(db_session, suffix='A'):
+    """Create a minimal Employee for testing."""
+    from app.models.employee import Employee
+    from app.models.user import User
+    user = User(
+        email=f'testworker{suffix}@example.com',
+        password_hash='x',
+        role='employee'
+    )
+    db_session.add(user)
+    db_session.flush()
+    emp = Employee(
+        user_id=user.id,
+        first_name=f'Test{suffix}',
+        last_name='Worker',
+        dni=f'1234567{suffix}' if suffix.isdigit() else f'0000000{ord(suffix) % 10}',
+        hire_date=date(2025, 1, 1)
+    )
+    db_session.add(emp)
+    db_session.flush()
+    return emp
+
+
+def test_labor_by_weekday_distributes_cost(app_ctx):
+    """8h shift on Monday with tasa 1000/h → sum_costo=8000 for Monday"""
+    emp = _make_employee(db.session, suffix='1')
+    # 2026-07-06 is a Monday
+    shift = Shift(
+        employee_id=emp.id,
+        schedule_id=1,
+        shift_date=date(2026, 7, 6),
+        start_time=time(9, 0),
+        end_time=time(17, 0),
+        hours=8.0
+    )
+    db.session.add(shift)
+    db.session.commit()
+
+    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), tasa_horaria=1000)
+    lunes = next(r for r in result if r['dow'] == 0)  # 0=Monday
+    assert lunes['sum_horas'] == pytest.approx(8.0)
+    assert lunes['sum_costo'] == pytest.approx(8000.0)
+    assert lunes['promedio_horas'] == pytest.approx(8.0)
+    assert lunes['promedio_costo'] == pytest.approx(8000.0)
+    assert lunes['dias_en_rango'] == 1
+
+
+def test_labor_by_weekday_returns_7_days(app_ctx):
+    result = get_labor_by_weekday(date(2026, 7, 6), date(2026, 7, 6), tasa_horaria=1000)
+    assert len(result) == 7
+
+
+def test_labor_by_hour_distributes_fractional(app_ctx):
+    """Shift 16:00-17:45 with tasa 1000/h → slot 16h=1000, slot 17h=750"""
+    emp = _make_employee(db.session, suffix='2')
+    shift = Shift(
+        employee_id=emp.id,
+        schedule_id=1,
+        shift_date=date(2026, 7, 7),
+        start_time=time(16, 0),
+        end_time=time(17, 45),
+        hours=1.75
+    )
+    db.session.add(shift)
+    db.session.commit()
+
+    result = get_labor_by_hour(date(2026, 7, 7), date(2026, 7, 7), tasa_horaria=1000)
+    slot_16 = next((r for r in result if r['hora'] == 16), None)
+    slot_17 = next((r for r in result if r['hora'] == 17), None)
+    assert slot_16 is not None
+    assert slot_16['sum_costo'] == pytest.approx(1000.0)
+    assert slot_17 is not None
+    assert slot_17['sum_costo'] == pytest.approx(750.0)
