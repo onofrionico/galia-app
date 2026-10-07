@@ -10,7 +10,7 @@ import Lightbox from './components/Lightbox'
 import Footer from './components/Footer'
 import MenuMessage from './components/MenuMessage'
 
-const MENU_URL = import.meta.env.VITE_MENU_URL || '/menu.sample.json'
+const MENU_URL = import.meta.env.VITE_MENU_URL || (import.meta.env.DEV ? '/menu.sample.json' : '')
 
 export default function App() {
   const [state, setState] = useState({ status: 'loading', menu: null })

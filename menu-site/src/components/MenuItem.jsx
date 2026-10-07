@@ -25,7 +25,7 @@ export default function MenuItem({ item, tagsBySlug, onOpenPhoto }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-bold leading-tight">
-            {item.featured && <span className="mr-1 text-coral" aria-label="Destacado">★</span>}
+            {item.featured && <span className="mr-1 text-coral" role="img" aria-label="Destacado">★</span>}
             {item.name}
           </h3>
           {item.variants.length === 1 && <span className="whitespace-nowrap font-bold">{prices}</span>}
