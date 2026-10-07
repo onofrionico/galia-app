@@ -112,3 +112,41 @@ def test_publish_endpoint(menu_client, admin_headers, storage):
     assert response.status_code == 200
     assert data['status']['has_unpublished_changes'] is False
     assert json.loads(storage.objects['menu.json']['body'])['categories'][0]['items'][0]['name'] == 'Latte'
+
+
+def test_upload_rejects_oversized_request(menu_client, admin_headers, storage):
+    item = _item()
+    response = menu_client.post(f'/api/v1/menu/items/{item.id}/image',
+                                data={'image': (io.BytesIO(b'0' * (12 * 1024 * 1024)), 'big.png')},
+                                headers=admin_headers, content_type='multipart/form-data')
+    assert response.status_code == 400
+    assert response.get_json()['error'] == 'La imagen supera los 10 MB'
+    assert storage.objects == {}
+
+
+def test_upload_storage_failure_returns_502(menu_client, admin_headers, storage, monkeypatch):
+    item = _item()
+
+    def broken_put(*args, **kwargs):
+        raise RuntimeError('s3 down: secret-detail')
+    monkeypatch.setattr(storage, 'put', broken_put)
+    response = menu_client.post(f'/api/v1/menu/items/{item.id}/image',
+                                data={'image': (_png(), 'latte.png')},
+                                headers=admin_headers, content_type='multipart/form-data')
+    assert response.status_code == 502
+    assert 'secret-detail' not in response.get_json()['error']
+    assert db.session.get(MenuItem, item.id).image_key is None
+
+
+def test_sync_and_publish_hide_internal_errors(menu_client, admin_headers, monkeypatch):
+    def broken_client():
+        raise ValueError('secret-detail')
+    monkeypatch.setattr('app.routes.menu.FudoClient', broken_client)
+    assert 'secret-detail' not in menu_client.post('/api/v1/menu/sync', headers=admin_headers).get_json()['error']
+
+    def broken_publish(storage):
+        raise RuntimeError('secret-detail')
+    monkeypatch.setattr('app.routes.menu.menu_publish_service.publish', broken_publish)
+    response = menu_client.post('/api/v1/menu/publish', headers=admin_headers)
+    assert response.status_code == 502
+    assert 'secret-detail' not in response.get_json()['error']

@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, request
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant, MenuSetting, MenuTag
 from app.services import menu_publish_service, menu_sync_service
-from app.services.menu_image_service import InvalidImageError, process_image
+from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.decorators import admin_required
 from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 SETTING_KEYS = ('footer_text', 'instagram')
 COLOR_PATTERN = re.compile(r'#[0-9A-Fa-f]{6}')
+UPLOAD_OVERHEAD_BYTES = 1024 * 1024  # overhead multipart
 MAX_PRICE = Decimal('99999999.99')  # Numeric(10, 2)
 
 
@@ -405,14 +406,21 @@ def update_settings(current_user):
 @admin_required
 def upload_item_image(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
+    if request.content_length is not None and request.content_length > MAX_UPLOAD_BYTES + UPLOAD_OVERHEAD_BYTES:
+        return _error('La imagen supera los 10 MB')
     upload = request.files.get('image')
     if upload is None:
         return _error('Falta el archivo "image"')
     try:
-        body, key = process_image(upload.read())
+        body, key = process_image(upload.read(MAX_UPLOAD_BYTES + 1))
     except InvalidImageError as exc:
         return _error(str(exc))
-    get_menu_storage().put(key, body, 'image/webp', 'public, max-age=31536000, immutable')
+    try:
+        get_menu_storage().put(key, body, 'image/webp', 'public, max-age=31536000, immutable')
+    except Exception:
+        db.session.rollback()
+        logger.exception('Error subiendo la foto del ítem %s', item_id)
+        return _error('No se pudo subir la foto, probá de nuevo', 502)
     item.image_key = key
     db.session.commit()
     return jsonify(item.to_dict()), 200
@@ -482,10 +490,10 @@ def get_inbox(current_user):
 def sync_fudo(current_user):
     try:
         stats = menu_sync_service.sync_fudo_products(FudoClient())
-    except Exception as exc:
+    except Exception:
         db.session.rollback()
         logger.exception('Error sincronizando la carta con Fudo')
-        return _error(f'Error sincronizando con Fudo: {exc}', 502)
+        return _error('Error sincronizando con Fudo. Revisá las credenciales o probá más tarde.', 502)
     return jsonify({**stats, 'status': _status()}), 200
 
 
@@ -495,8 +503,8 @@ def sync_fudo(current_user):
 def publish_menu(current_user):
     try:
         result = menu_publish_service.publish(get_menu_storage())
-    except Exception as exc:
+    except Exception:
         db.session.rollback()
         logger.exception('Error publicando la carta')
-        return _error(f'Error publicando la carta: {exc}', 502)
+        return _error('Error publicando la carta. Probá de nuevo en unos minutos.', 502)
     return jsonify({**result, 'status': _status()}), 200
