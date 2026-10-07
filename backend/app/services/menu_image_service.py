@@ -5,6 +5,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_SIDE = 800
+MAX_PIXELS = 40_000_000
 ALLOWED_FORMATS = {'JPEG', 'PNG', 'WEBP'}
 
 
@@ -21,12 +22,18 @@ def process_image(data):
         raise InvalidImageError('La imagen supera los 10 MB')
     try:
         image = Image.open(io.BytesIO(data))
-        image_format = image.format
-        image.load()
-    except (UnidentifiedImageError, OSError):
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError):
         raise InvalidImageError('El archivo no es una imagen válida')
+    image_format = image.format
     if image_format not in ALLOWED_FORMATS:
         raise InvalidImageError('Formato no soportado: usá JPG, PNG o WebP')
+    width, height = image.size
+    if width * height > MAX_PIXELS:
+        raise InvalidImageError('La imagen es demasiado grande (máximo 40 megapíxeles)')
+    try:
+        image.load()
+    except (Image.DecompressionBombError, OSError):
+        raise InvalidImageError('El archivo no es una imagen válida')
 
     image = ImageOps.exif_transpose(image)
     if image.mode not in ('RGB', 'RGBA'):

@@ -43,3 +43,12 @@ def test_rejects_unsupported_format():
 def test_rejects_large_files():
     with pytest.raises(InvalidImageError):
         process_image(b'0' * (MAX_UPLOAD_BYTES + 1))
+
+
+def test_rejects_too_many_pixels_before_decoding():
+    buffer = io.BytesIO()
+    Image.new('L', (8000, 6000), color=0).save(buffer, format='PNG')
+    data = buffer.getvalue()
+    assert len(data) < MAX_UPLOAD_BYTES
+    with pytest.raises(InvalidImageError):
+        process_image(data)
