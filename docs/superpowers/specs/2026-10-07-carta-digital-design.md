@@ -26,7 +26,7 @@ Fudo ──(sync productos/precios)──▶ galia-app backend ◀── pantall
                                         │
                                   [Publicar / sync nocturno]
                                         ▼
-                    S3 público (galia-menu-public): menu.json + images/
+                    S3 bucket existente, prefijo público menu/: menu.json + images/
                                         ▼
                      menu-site/ (static, Render) ◀── QR en las mesas
 ```
@@ -56,9 +56,12 @@ Reglas:
 
 ## 2. Sincronización con Fudo
 
-- `FudoClient` (`backend/app/utils/fudo_client.py`) suma `get_all_products()` (y categorías si hace falta para mostrar contexto). **Verificar en implementación** el endpoint y campos exactos de productos en `api.fu.do/v1alpha1`.
+- `FudoClient` (`backend/app/utils/fudo_client.py`) suma `get_products(page_number)` / `get_all_products()` y `get_all_product_categories()`, reutilizando `_make_request`. Referencia: OpenAPI en `https://api.fu.do/v1alpha1/openapi.yml` (docs: https://dev.fu.do/api/).
+  - `GET /products`: paginado `page[size]` (máx. 500) / `page[number]`; `include=productCategory`; `fields[product]=name,price,active,position,description,imageUrl`. Respuesta JSON:API: `data[].id`, `data[].attributes.{name, price, active, position, description, imageUrl}`, `data[].relationships.productCategory.data.id`.
+  - `GET /product-categories`: `data[].id`, `data[].attributes.{name, position}`. Se usa solo para mostrar la categoría de Fudo en la bandeja "Sin asignar" y en el selector de productos.
+  - Se piden todos los productos (activos e inactivos) para poder detectar desactivaciones.
 - Servicio `backend/app/services/menu_sync_service.py`:
-  1. Trae todos los productos de Fudo y hace upsert en `FudoProduct`.
+  1. Trae todos los productos y categorías de Fudo y hace upsert en `FudoProduct` (guardando `category_name`).
   2. Para cada variante vinculada: actualiza `price`; `fudo_status = 'inactive'` si el producto está inactivo, `'missing'` si ya no existe, `'ok'` si no.
   3. Nunca crea, borra ni mueve ítems de la carta.
 - "Sin asignar" = `FudoProduct` activos, no ignorados, sin variante vinculada.
@@ -66,9 +69,15 @@ Reglas:
 
 ## 3. Publicación del snapshot
 
-- Servicio `backend/app/services/menu_publish_service.py` arma el JSON con solo categorías e ítems visibles, ordenados, y lo sube a `s3://galia-menu-public/menu.json` con `Cache-Control: max-age=60`.
+- Servicio `backend/app/services/menu_publish_service.py` arma el JSON con solo categorías e ítems visibles, ordenados, y lo sube a `s3://<AWS_S3_BUCKET_NAME>/menu/menu.json` con `Cache-Control: max-age=60`.
 - "Hay cambios sin publicar": se compara el hash del JSON generado contra `last_published_hash`.
-- Bucket **nuevo y separado** del privado de comprobantes (`galia-app-attachments`), con política de lectura pública y CORS `GET` para el origen de la carta. Variables nuevas: `MENU_S3_BUCKET`, `MENU_PUBLIC_BASE_URL`.
+- Se reutiliza el **bucket existente** (el de comprobantes). Todo lo de la carta vive bajo el prefijo `menu/`, que es lo único público:
+  - Bucket policy con `s3:GetObject` para `Principal: "*"` **solo** sobre `arn:aws:s3:::<bucket>/menu/*`. Los comprobantes y documentos siguen privados.
+  - En "Block Public Access" del bucket hay que desactivar *BlockPublicPolicy* y *RestrictPublicBuckets* (para permitir esa policy). *BlockPublicAcls* e *IgnorePublicAcls* quedan activados: no se usan ACLs.
+  - CORS del bucket: `GET`/`HEAD` desde `https://galia-carta.onrender.com` y `http://localhost:5174`.
+  - El usuario IAM ya tiene `PutObject`/`DeleteObject` sobre `<bucket>/*`; no requiere cambios.
+  - Variable nueva: `MENU_PUBLIC_BASE_URL` (ej. `https://<bucket>.s3.<region>.amazonaws.com/menu`). El bucket sale de la config S3 existente.
+  - El código de subida de la carta debe forzar el prefijo `menu/` (nunca escribir fuera de él), y los servicios existentes nunca escriben bajo `menu/`.
 
 Contrato `menu.json` (versión 1):
 
@@ -101,7 +110,7 @@ Contrato `menu.json` (versión 1):
 
 ## 4. Fotos
 
-- Upload desde el modal de ítem → backend redimensiona (máx. 800px de lado) y convierte a WebP con Pillow → sube a `images/<sha256-corto>.webp` con `Cache-Control: max-age=31536000, immutable`.
+- Upload desde el modal de ítem → backend redimensiona (máx. 800px de lado) y convierte a WebP con Pillow → sube a `menu/images/<sha256-corto>.webp` con `Cache-Control: max-age=31536000, immutable`.
 - Al reemplazar la foto, la anterior se borra al publicar si ya no la referencia ningún ítem.
 - Límite: 10 MB por archivo, solo JPG/PNG/WebP (los navegadores de iPhone convierten HEIC a JPEG al subir).
 
@@ -159,6 +168,7 @@ Script `backend/seed_menu.py` con la transcripción de `Carta_01.pdf` (categorí
 
 ## Pendientes / riesgos
 
-- Confirmar endpoint y campos de productos en la API de Fudo antes de implementar la sync.
-- Crear bucket `galia-menu-public` y credenciales/política en AWS (requiere acceso del usuario a la consola AWS).
+- `stock`/`stockControl` de Fudo permitirían más adelante el estado "Agotado" automático (fuera de alcance v1).
+- Fudo tiene su propio menú QR (`enableQrMenu`); esta carta lo reemplaza y no lo usa.
+- Configurar en la consola AWS la bucket policy del prefijo `menu/`, los ajustes de Block Public Access y la CORS (lo hace el usuario; el plan incluye el JSON exacto).
 - Render free/starter: el static site no se duerme; no depende del backend en runtime.
