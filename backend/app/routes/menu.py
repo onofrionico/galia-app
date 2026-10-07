@@ -13,7 +13,8 @@ from app.utils.slug import unique_slug
 bp = Blueprint('menu', __name__, url_prefix='/api/v1/menu')
 
 SETTING_KEYS = ('footer_text', 'instagram')
-COLOR_PATTERN = re.compile(r'^#[0-9A-Fa-f]{6}$')
+COLOR_PATTERN = re.compile(r'#[0-9A-Fa-f]{6}')
+MAX_PRICE = Decimal('99999999.99')  # Numeric(10, 2)
 
 
 def _error(message, status=400):
@@ -29,15 +30,38 @@ def _status():
     }
 
 
+def _is_int(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_int_list(value):
+    return isinstance(value, list) and all(_is_int(v) for v in value)
+
+
+def _clean_text(value, max_len, field='El nombre'):
+    """Normaliza un texto opcional. Devuelve (valor, error); valor es None si queda vacío."""
+    if value is not None and not isinstance(value, str):
+        return None, f'{field} debe ser texto'
+    value = (value or '').strip()
+    if len(value) > max_len:
+        return None, f'{field} es demasiado largo (máximo {max_len} caracteres)'
+    return value or None, None
+
+
+def _required_text(value, max_len):
+    text, error = _clean_text(value, max_len)
+    if error is None and text is None:
+        return None, 'El nombre es obligatorio'
+    return text, error
+
+
 def _apply_order(model, ids, scope=None):
-    """Asigna sort_order según `ids`. Devuelve False si la lista no coincide con los registros."""
-    if not isinstance(ids, list) or len(set(ids)) != len(ids):
+    """Asigna sort_order según `ids`. Devuelve False si no son exactamente todos los registros."""
+    if not _is_int_list(ids) or len(set(ids)) != len(ids):
         return False
-    query = model.query.filter(model.id.in_(ids))
-    if scope is not None:
-        query = query.filter(scope)
+    query = model.query if scope is None else model.query.filter(scope)
     records = {record.id: record for record in query.all()}
-    if len(records) != len(ids):
+    if set(records) != set(ids):
         return False
     for position, record_id in enumerate(ids):
         records[record_id].sort_order = position
@@ -55,7 +79,7 @@ def _parse_price(value):
         price = Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return None
-    if not price.is_finite() or price < 0:
+    if not price.is_finite() or price < 0 or price > MAX_PRICE:
         return None
     return price
 
@@ -81,13 +105,16 @@ def get_menu(current_user):
 @admin_required
 def create_category(current_user):
     data = request.get_json() or {}
-    name = (data.get('name') or '').strip()
-    if not name:
-        return _error('El nombre es obligatorio')
+    name, error = _required_text(data.get('name'), 100)
+    if error:
+        return _error(error)
+    description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
+    if error:
+        return _error(error)
     category = MenuCategory(
         name=name,
         slug=unique_slug(MenuCategory, name),
-        description=(data.get('description') or '').strip() or None,
+        description=description,
         is_visible=bool(data.get('is_visible', True)),
         sort_order=_next_order(MenuCategory.sort_order),
     )
@@ -112,13 +139,16 @@ def update_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
     data = request.get_json() or {}
     if 'name' in data:
-        name = (data.get('name') or '').strip()
-        if not name:
-            return _error('El nombre es obligatorio')
+        name, error = _required_text(data.get('name'), 100)
+        if error:
+            return _error(error)
         category.name = name
         category.slug = unique_slug(MenuCategory, name, exclude_id=category.id)
     if 'description' in data:
-        category.description = (data.get('description') or '').strip() or None
+        description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
+        if error:
+            return _error(error)
+        category.description = description
     if 'is_visible' in data:
         category.is_visible = bool(data['is_visible'])
     db.session.commit()
@@ -156,10 +186,15 @@ def _build_variants(item, variants_data):
         return None, 'El ítem necesita al menos un precio'
     variants = []
     seen_fudo_ids = set()
+    if not all(isinstance(raw, dict) for raw in variants_data):
+        return None, 'Las variantes no son válidas'
     for position, raw in enumerate(variants_data):
-        raw = raw or {}
-        label = (raw.get('label') or '').strip() or None
+        label, error = _clean_text(raw.get('label'), 100, 'La etiqueta')
+        if error:
+            return None, error
         fudo_id = str(raw['fudo_product_id']) if raw.get('fudo_product_id') else None
+        if fudo_id is not None and not isinstance(raw['fudo_product_id'], (str, int)):
+            return None, 'Producto de Fudo inválido'
         if fudo_id:
             if fudo_id in seen_fudo_ids:
                 return None, 'Un producto de Fudo no puede repetirse en el mismo ítem'
@@ -188,14 +223,18 @@ def _build_variants(item, variants_data):
 def _apply_item_payload(item, data):
     """Aplica los campos presentes en `data`. Devuelve un mensaje de error o None."""
     if 'name' in data:
-        name = (data.get('name') or '').strip()
-        if not name:
-            return 'El nombre es obligatorio'
+        name, error = _required_text(data.get('name'), 200)
+        if error:
+            return error
         item.name = name
     if 'description' in data:
-        item.description = (data.get('description') or '').strip() or None
+        description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
+        if error:
+            return error
+        item.description = description
     if 'category_id' in data:
-        category = db.session.get(MenuCategory, data['category_id']) if data['category_id'] else None
+        category_id = data['category_id']
+        category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
         if category is None:
             return 'Categoría inexistente'
         if item.category_id != category.id:
@@ -206,6 +245,8 @@ def _apply_item_payload(item, data):
     if 'is_featured' in data:
         item.is_featured = bool(data['is_featured'])
     if 'tag_ids' in data:
+        if not _is_int_list(data.get('tag_ids') or []):
+            return 'Etiquetas inválidas'
         tag_ids = set(data.get('tag_ids') or [])
         tags = MenuTag.query.filter(MenuTag.id.in_(tag_ids)).all() if tag_ids else []
         if len(tags) != len(tag_ids):
@@ -231,7 +272,7 @@ def create_item(current_user):
     if 'variants' not in data:
         return _error('El ítem necesita al menos un precio')
     category_id = data.get('category_id')
-    category = db.session.get(MenuCategory, category_id) if category_id else None
+    category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
     if category is None:
         return _error('Categoría inexistente')
     item = MenuItem(
@@ -277,15 +318,16 @@ def delete_item(current_user, item_id):
 
 def _apply_tag_payload(tag, data):
     if 'name' in data:
-        name = (data.get('name') or '').strip()
-        if not name:
-            return 'El nombre es obligatorio'
+        name, error = _required_text(data.get('name'), 50)
+        if error:
+            return error
         tag.name = name
         tag.slug = unique_slug(MenuTag, name, exclude_id=tag.id)
     if 'color' in data:
-        if not COLOR_PATTERN.match(data.get('color') or ''):
+        color = data.get('color')
+        if not isinstance(color, str) or not COLOR_PATTERN.fullmatch(color):
             return 'Color inválido (formato #RRGGBB)'
-        tag.color = data['color']
+        tag.color = color
     return None
 
 
