@@ -1,3 +1,4 @@
+import logging
 import re
 from decimal import Decimal, InvalidOperation
 
@@ -6,11 +7,15 @@ from flask import Blueprint, jsonify, request
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant, MenuSetting, MenuTag
 from app.services import menu_publish_service, menu_sync_service
+from app.services.menu_image_service import InvalidImageError, process_image
 from app.utils.decorators import admin_required
+from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
+from app.utils.menu_storage import get_menu_storage
 from app.utils.slug import unique_slug
 
 bp = Blueprint('menu', __name__, url_prefix='/api/v1/menu')
+logger = logging.getLogger(__name__)
 
 SETTING_KEYS = ('footer_text', 'instagram')
 COLOR_PATTERN = re.compile(r'#[0-9A-Fa-f]{6}')
@@ -391,3 +396,107 @@ def update_settings(current_user):
             MenuSetting.set(key, str(data[key] or '').strip())
     db.session.commit()
     return jsonify(_settings()), 200
+
+
+# ---------- Fotos ----------
+
+@bp.route('/items/<int:item_id>/image', methods=['POST'])
+@token_required
+@admin_required
+def upload_item_image(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    upload = request.files.get('image')
+    if upload is None:
+        return _error('Falta el archivo "image"')
+    try:
+        body, key = process_image(upload.read())
+    except InvalidImageError as exc:
+        return _error(str(exc))
+    get_menu_storage().put(key, body, 'image/webp', 'public, max-age=31536000, immutable')
+    item.image_key = key
+    db.session.commit()
+    return jsonify(item.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>/image', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_item_image(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    item.image_key = None  # el archivo se borra de S3 al publicar si nadie lo usa
+    db.session.commit()
+    return jsonify(item.to_dict()), 200
+
+
+# ---------- Productos de Fudo y bandeja ----------
+
+@bp.route('/fudo-products', methods=['GET'])
+@token_required
+@admin_required
+def list_fudo_products(current_user):
+    if request.args.get('unassigned') == 'true':
+        products = menu_sync_service.unassigned_products()
+    else:
+        products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
+    query = (request.args.get('q') or '').strip().lower()
+    if query:
+        products = [p for p in products if query in p.name.lower()]
+    linked = menu_sync_service.linked_fudo_ids()
+    return jsonify([{**p.to_dict(), 'linked': p.fudo_id in linked} for p in products]), 200
+
+
+@bp.route('/fudo-products/<fudo_id>/ignore', methods=['POST'])
+@token_required
+@admin_required
+def ignore_fudo_product(current_user, fudo_id):
+    product = db.get_or_404(FudoProduct, fudo_id)
+    product.ignored = True
+    db.session.commit()
+    return jsonify(product.to_dict()), 200
+
+
+@bp.route('/inbox', methods=['GET'])
+@token_required
+@admin_required
+def get_inbox(current_user):
+    alerts = []
+    for variant in menu_sync_service.alert_variants():
+        product = db.session.get(FudoProduct, variant.fudo_product_id)
+        alerts.append({
+            **variant.to_dict(),
+            'item_id': variant.item_id,
+            'item_name': variant.item.name,
+            'fudo_name': product.name if product else None,
+        })
+    return jsonify({
+        'unassigned': [p.to_dict() for p in menu_sync_service.unassigned_products()],
+        'alerts': alerts,
+    }), 200
+
+
+# ---------- Sync y publicación ----------
+
+@bp.route('/sync', methods=['POST'])
+@token_required
+@admin_required
+def sync_fudo(current_user):
+    try:
+        stats = menu_sync_service.sync_fudo_products(FudoClient())
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Error sincronizando la carta con Fudo')
+        return _error(f'Error sincronizando con Fudo: {exc}', 502)
+    return jsonify({**stats, 'status': _status()}), 200
+
+
+@bp.route('/publish', methods=['POST'])
+@token_required
+@admin_required
+def publish_menu(current_user):
+    try:
+        result = menu_publish_service.publish(get_menu_storage())
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Error publicando la carta')
+        return _error(f'Error publicando la carta: {exc}', 502)
+    return jsonify({**result, 'status': _status()}), 200
