@@ -1,0 +1,351 @@
+import re
+from decimal import Decimal, InvalidOperation
+
+from flask import Blueprint, jsonify, request
+
+from app.extensions import db
+from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant, MenuSetting, MenuTag
+from app.services import menu_publish_service, menu_sync_service
+from app.utils.decorators import admin_required
+from app.utils.jwt_utils import token_required
+from app.utils.slug import unique_slug
+
+bp = Blueprint('menu', __name__, url_prefix='/api/v1/menu')
+
+SETTING_KEYS = ('footer_text', 'instagram')
+COLOR_PATTERN = re.compile(r'^#[0-9A-Fa-f]{6}$')
+
+
+def _error(message, status=400):
+    return jsonify({'error': message}), status
+
+
+def _status():
+    return {
+        'has_unpublished_changes': menu_publish_service.has_unpublished_changes(),
+        'last_published_at': MenuSetting.get('last_published_at'),
+        'unassigned_count': len(menu_sync_service.unassigned_products()),
+        'alerts_count': len(menu_sync_service.alert_variants()),
+    }
+
+
+def _apply_order(model, ids, scope=None):
+    """Asigna sort_order según `ids`. Devuelve False si la lista no coincide con los registros."""
+    if not isinstance(ids, list) or len(set(ids)) != len(ids):
+        return False
+    query = model.query.filter(model.id.in_(ids))
+    if scope is not None:
+        query = query.filter(scope)
+    records = {record.id: record for record in query.all()}
+    if len(records) != len(ids):
+        return False
+    for position, record_id in enumerate(ids):
+        records[record_id].sort_order = position
+    db.session.commit()
+    return True
+
+
+def _next_order(column, *filters):
+    current = db.session.query(db.func.max(column)).filter(*filters).scalar()
+    return 0 if current is None else current + 1
+
+
+def _parse_price(value):
+    try:
+        price = Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+    if not price.is_finite() or price < 0:
+        return None
+    return price
+
+
+# ---------- Árbol ----------
+
+@bp.route('', methods=['GET'])
+@token_required
+@admin_required
+def get_menu(current_user):
+    categories = MenuCategory.query.order_by(MenuCategory.sort_order, MenuCategory.id).all()
+    return jsonify({
+        'categories': [category.to_dict(include_items=True) for category in categories],
+        'tags': [tag.to_dict() for tag in MenuTag.query.order_by(MenuTag.name).all()],
+        'status': _status(),
+    }), 200
+
+
+# ---------- Categorías ----------
+
+@bp.route('/categories', methods=['POST'])
+@token_required
+@admin_required
+def create_category(current_user):
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return _error('El nombre es obligatorio')
+    category = MenuCategory(
+        name=name,
+        slug=unique_slug(MenuCategory, name),
+        description=(data.get('description') or '').strip() or None,
+        is_visible=bool(data.get('is_visible', True)),
+        sort_order=_next_order(MenuCategory.sort_order),
+    )
+    db.session.add(category)
+    db.session.commit()
+    return jsonify(category.to_dict(include_items=True)), 201
+
+
+@bp.route('/categories/reorder', methods=['PUT'])
+@token_required
+@admin_required
+def reorder_categories(current_user):
+    if not _apply_order(MenuCategory, (request.get_json() or {}).get('ids')):
+        return _error('La lista de categorías no es válida')
+    return jsonify({'message': 'Orden actualizado'}), 200
+
+
+@bp.route('/categories/<int:category_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_category(current_user, category_id):
+    category = db.get_or_404(MenuCategory, category_id)
+    data = request.get_json() or {}
+    if 'name' in data:
+        name = (data.get('name') or '').strip()
+        if not name:
+            return _error('El nombre es obligatorio')
+        category.name = name
+        category.slug = unique_slug(MenuCategory, name, exclude_id=category.id)
+    if 'description' in data:
+        category.description = (data.get('description') or '').strip() or None
+    if 'is_visible' in data:
+        category.is_visible = bool(data['is_visible'])
+    db.session.commit()
+    return jsonify(category.to_dict(include_items=True)), 200
+
+
+@bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_category(current_user, category_id):
+    category = db.get_or_404(MenuCategory, category_id)
+    if category.items:
+        return _error('La categoría tiene ítems: movelos o borralos primero', 409)
+    db.session.delete(category)
+    db.session.commit()
+    return jsonify({'message': 'Categoría eliminada'}), 200
+
+
+@bp.route('/categories/<int:category_id>/items/reorder', methods=['PUT'])
+@token_required
+@admin_required
+def reorder_items(current_user, category_id):
+    db.get_or_404(MenuCategory, category_id)
+    ids = (request.get_json() or {}).get('ids')
+    if not _apply_order(MenuItem, ids, MenuItem.category_id == category_id):
+        return _error('La lista de ítems no es válida')
+    return jsonify({'message': 'Orden actualizado'}), 200
+
+
+# ---------- Ítems ----------
+
+def _build_variants(item, variants_data):
+    """Valida y construye las variantes. Devuelve (variantes, error)."""
+    if not isinstance(variants_data, list) or not variants_data:
+        return None, 'El ítem necesita al menos un precio'
+    variants = []
+    seen_fudo_ids = set()
+    for position, raw in enumerate(variants_data):
+        raw = raw or {}
+        label = (raw.get('label') or '').strip() or None
+        fudo_id = str(raw['fudo_product_id']) if raw.get('fudo_product_id') else None
+        if fudo_id:
+            if fudo_id in seen_fudo_ids:
+                return None, 'Un producto de Fudo no puede repetirse en el mismo ítem'
+            seen_fudo_ids.add(fudo_id)
+            product = db.session.get(FudoProduct, fudo_id)
+            if product is None:
+                return None, f'Producto de Fudo {fudo_id} no encontrado: sincronizá con Fudo primero'
+            taken = MenuItemVariant.query.filter(MenuItemVariant.fudo_product_id == fudo_id)
+            if item.id is not None:
+                taken = taken.filter(MenuItemVariant.item_id != item.id)
+            if taken.first() is not None:
+                return None, f'El producto de Fudo "{product.name}" ya está en otro ítem'
+            price = product.price
+            status = 'ok' if product.is_active else 'inactive'
+        else:
+            price = _parse_price(raw.get('price'))
+            if price is None:
+                return None, 'Precio inválido'
+            status = None
+        variants.append(MenuItemVariant(
+            label=label, fudo_product_id=fudo_id, price=price, fudo_status=status, sort_order=position,
+        ))
+    return variants, None
+
+
+def _apply_item_payload(item, data):
+    """Aplica los campos presentes en `data`. Devuelve un mensaje de error o None."""
+    if 'name' in data:
+        name = (data.get('name') or '').strip()
+        if not name:
+            return 'El nombre es obligatorio'
+        item.name = name
+    if 'description' in data:
+        item.description = (data.get('description') or '').strip() or None
+    if 'category_id' in data:
+        category = db.session.get(MenuCategory, data['category_id']) if data['category_id'] else None
+        if category is None:
+            return 'Categoría inexistente'
+        if item.category_id != category.id:
+            item.sort_order = _next_order(MenuItem.sort_order, MenuItem.category_id == category.id)
+            item.category_id = category.id
+    if 'is_visible' in data:
+        item.is_visible = bool(data['is_visible'])
+    if 'is_featured' in data:
+        item.is_featured = bool(data['is_featured'])
+    if 'tag_ids' in data:
+        tag_ids = set(data.get('tag_ids') or [])
+        tags = MenuTag.query.filter(MenuTag.id.in_(tag_ids)).all() if tag_ids else []
+        if len(tags) != len(tag_ids):
+            return 'Etiqueta inexistente'
+        item.tags = tags
+    if 'variants' in data:
+        variants, error = _build_variants(item, data['variants'])
+        if error:
+            return error
+        if item.id is not None:
+            # Borrar primero para no chocar con el unique de fudo_product_id al re-vincular.
+            item.variants.clear()
+            db.session.flush()
+        item.variants = variants
+    return None
+
+
+@bp.route('/items', methods=['POST'])
+@token_required
+@admin_required
+def create_item(current_user):
+    data = request.get_json() or {}
+    if 'variants' not in data:
+        return _error('El ítem necesita al menos un precio')
+    category_id = data.get('category_id')
+    category = db.session.get(MenuCategory, category_id) if category_id else None
+    if category is None:
+        return _error('Categoría inexistente')
+    item = MenuItem(
+        category_id=category.id,
+        name='',
+        sort_order=_next_order(MenuItem.sort_order, MenuItem.category_id == category.id),
+    )
+    payload = {key: value for key, value in data.items() if key != 'category_id'}
+    payload.setdefault('name', '')
+    error = _apply_item_payload(item, payload)
+    if error:
+        db.session.rollback()
+        return _error(error)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify(item.to_dict()), 201
+
+
+@bp.route('/items/<int:item_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_item(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    error = _apply_item_payload(item, request.get_json() or {})
+    if error:
+        db.session.rollback()
+        return _error(error)
+    db.session.commit()
+    return jsonify(item.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_item(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'message': 'Ítem eliminado'}), 200
+
+
+# ---------- Tags ----------
+
+def _apply_tag_payload(tag, data):
+    if 'name' in data:
+        name = (data.get('name') or '').strip()
+        if not name:
+            return 'El nombre es obligatorio'
+        tag.name = name
+        tag.slug = unique_slug(MenuTag, name, exclude_id=tag.id)
+    if 'color' in data:
+        if not COLOR_PATTERN.match(data.get('color') or ''):
+            return 'Color inválido (formato #RRGGBB)'
+        tag.color = data['color']
+    return None
+
+
+@bp.route('/tags', methods=['POST'])
+@token_required
+@admin_required
+def create_tag(current_user):
+    data = request.get_json() or {}
+    tag = MenuTag(color='#5C2E46')
+    error = _apply_tag_payload(tag, {'name': data.get('name'), **({'color': data['color']} if 'color' in data else {})})
+    if error:
+        return _error(error)
+    db.session.add(tag)
+    db.session.commit()
+    return jsonify(tag.to_dict()), 201
+
+
+@bp.route('/tags/<int:tag_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_tag(current_user, tag_id):
+    tag = db.get_or_404(MenuTag, tag_id)
+    error = _apply_tag_payload(tag, request.get_json() or {})
+    if error:
+        db.session.rollback()
+        return _error(error)
+    db.session.commit()
+    return jsonify(tag.to_dict()), 200
+
+
+@bp.route('/tags/<int:tag_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_tag(current_user, tag_id):
+    tag = db.get_or_404(MenuTag, tag_id)
+    db.session.delete(tag)
+    db.session.commit()
+    return jsonify({'message': 'Etiqueta eliminada'}), 200
+
+
+# ---------- Configuración ----------
+
+def _settings():
+    return {key: MenuSetting.get(key, '') or '' for key in SETTING_KEYS}
+
+
+@bp.route('/settings', methods=['GET'])
+@token_required
+@admin_required
+def get_settings(current_user):
+    return jsonify(_settings()), 200
+
+
+@bp.route('/settings', methods=['PUT'])
+@token_required
+@admin_required
+def update_settings(current_user):
+    data = request.get_json() or {}
+    for key in SETTING_KEYS:
+        if key in data:
+            MenuSetting.set(key, str(data[key] or '').strip())
+    db.session.commit()
+    return jsonify(_settings()), 200

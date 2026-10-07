@@ -34,7 +34,7 @@ def _login_headers(client, email, role):
     db.session.add(user)
     db.session.commit()
     response = client.post('/api/v1/auth/login', json={'email': email, 'password': 'secret123'})
-    return {'Authorization': f"Bearer {response.get_json()['access_token']}"}
+    return {'Authorization': f"Bearer {response.get_json()['token']}"}
 
 
 @pytest.fixture
