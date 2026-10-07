@@ -1,59 +1,1955 @@
 {
   "version": 1,
-  "published_at": "2026-10-07T00:00:00Z",
   "settings": {
-    "footer_text": "¡Que disfrutes tu estadía! Si estás con menores es muy importante que sepas que no contamos con servicio de cuidadores. También contamos con juegos de mesa para distintas edades. ¡Consultanos!",
-    "instagram": "galia.cafe"
+    "footer_text": "¡Que disfrutes tu estadía! Si estás con menores es muy importante que sepas que no contamos con servicio de cuidadores, la responsabilidad queda a cargo del adulto que acompaña. También contamos con juegos de mesa para distintas edades, para que todos se diviertan. Estamos a disposición ¡Consultanos!",
+    "instagram": ""
   },
   "tags": [
-    { "slug": "sin-tacc", "name": "Sin TACC", "color": "#7FA34A" },
-    { "slug": "recomendado", "name": "Recomendado", "color": "#5C2E46" }
+    {
+      "slug": "keto",
+      "name": "Keto",
+      "color": "#4A7A3A"
+    },
+    {
+      "slug": "recomendado",
+      "name": "Recomendado",
+      "color": "#5C2E46"
+    },
+    {
+      "slug": "sin-tacc",
+      "name": "Sin TACC",
+      "color": "#7FA34A"
+    }
   ],
   "categories": [
     {
       "slug": "cafeteria",
       "name": "Cafetería",
-      "description": "Contanos si lo preferís con azúcar, stevia o sin nada",
+      "description": null,
       "items": [
-        { "id": 1, "name": "Café con leche", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5500 }] },
-        { "id": 2, "name": "Latte", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5500 }] },
-        { "id": 3, "name": "Latte Vainilla", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5900 }] },
-        { "id": 4, "name": "Moka", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 7000 }] },
-        { "id": 5, "name": "Capuchino Italiano", "description": "con crema", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 7000 }] },
-        { "id": 6, "name": "Expresso", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 3900 }] },
-        { "id": 7, "name": "Americano", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 4400 }] },
-        { "id": 8, "name": "Té en hebras", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 4000 }] },
-        { "id": 9, "name": "Mate en combo", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 19000 }] }
+        {
+          "id": 1,
+          "name": "Café con leche",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5500
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Latte",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5500
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Latte Vainilla",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5900
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Latte Caramel",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5900
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Moka",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Capuchino",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "Capuchino Italiano",
+          "description": "Con crema",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "Submarino",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "Macchiato",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4400
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "Doppio",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4400
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "name": "Americano",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4400
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "Expresso",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 3900
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "Té en hebras",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4000
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "name": "Mate en combo",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 19000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "cafes-frios",
+      "name": "Cafés fríos",
+      "description": null,
+      "items": [
+        {
+          "id": 15,
+          "name": "Café frío",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": "Vainilla",
+              "price": 6900
+            },
+            {
+              "label": "Caramelo",
+              "price": 6900
+            },
+            {
+              "label": "Avellana",
+              "price": 6900
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "name": "Frappé",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": "Moka c/ choco blanco o negro",
+              "price": 8100
+            },
+            {
+              "label": "Tramontana",
+              "price": 8100
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "name": "Matcha Latte Ice",
+          "description": "Matcha + leche + syrup de frutilla",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8500
+            }
+          ]
+        }
       ]
     },
     {
       "slug": "bebidas-frias",
       "name": "Bebidas frías",
-      "description": "",
+      "description": "500 ml",
       "items": [
-        { "id": 10, "name": "Limonada de maracuyá", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 6500 }] },
-        { "id": 11, "name": "Jugo de naranja exprimido", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 6000 }] },
-        { "id": 12, "name": "Agua", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "Con gas", "price": 3000 }, { "label": "Sin gas", "price": 3000 }] }
+        {
+          "id": 18,
+          "name": "Limonada de menta & jengibre",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6300
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "name": "Limonada de frutos rojos",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6500
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "name": "Limonada de hibiscus",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6500
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "name": "Limonada de maracuyá",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6900
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "Jugo de naranja exprimido",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "Naranjada con hibiscus",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7100
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "name": "Pomelada",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6500
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "name": "Coca Cola",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 3400
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "name": "Fanta",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 3400
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "name": "Sprite",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 3400
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "name": "Agua",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": "Con gas",
+              "price": 2900
+            },
+            {
+              "label": "Sin gas",
+              "price": 2900
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "licuados",
+      "name": "Licuados",
+      "description": "Contanos si lo preferís con azúcar, stevia o sin nada",
+      "items": [
+        {
+          "id": 29,
+          "name": "Banana con leche",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7300
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "name": "Frutilla con leche",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7500
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "name": "Banana & frutilla con leche",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7900
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "name": "Frutilla con agua",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "name": "Frutilla & naranja con agua",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7700
+            }
+          ]
+        }
       ]
     },
     {
       "slug": "pasteleria",
       "name": "Pastelería",
-      "description": "",
+      "description": null,
       "items": [
-        { "id": 13, "name": "Medialuna", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 2500 }] },
-        { "id": 14, "name": "Croissant c/ jamón crudo & rúcula", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 9500 }] }
+        {
+          "id": 34,
+          "name": "Torta Galia",
+          "description": "Bizcocho de chocolate relleno con ganache de chocolate & crema c/ frutos rojos",
+          "image": null,
+          "featured": false,
+          "tags": [
+            "recomendado"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 12600
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "name": "Key Lime Pie",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11200
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "name": "Torta Dos Mousses",
+          "description": "Frutilla & chocolate",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "name": "Torta Brownie Franui",
+          "description": "Ddl, crema y frambuesas bañadas",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11600
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "name": "Pavlova rellena",
+          "description": "Con curd de limón y frutas de estación",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 10500
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "name": "Soufflé de nuez",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "name": "Brownie c/ helado & frutos rojos",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9900
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "name": "Torta Matilda",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "name": "Torta Alpina",
+          "description": "Masa de nuez rellena de dulce de leche, crema chantilly & corazón de frutos rojos",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11000
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "name": "Cheesecake New York",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "name": "Crumble de manzana tibio",
+          "description": "Con bocha de helado de americana",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9200
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "name": "Lingote de chocotorta",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 10000
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "name": "Tarta de maracuyá",
+          "description": "Choconegro & merengue",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "name": "Tarta Banoffee",
+          "description": "Masa sablé, dulce de leche, bananas, ganache de choco amargo y crema",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11000
+            }
+          ]
+        }
       ]
     },
     {
-      "slug": "tortas",
-      "name": "Tortas",
-      "description": "",
+      "slug": "laminados",
+      "name": "Laminados",
+      "description": null,
       "items": [
-        { "id": 15, "name": "Torta Galia", "description": "Masa de nuez rellena de dulce de leche, crema chantilly & corazón de frutos rojos", "image": "https://picsum.photos/seed/galia/600/600", "featured": true, "tags": ["recomendado"], "variants": [{ "label": "Porción", "price": 11200 }, { "label": "Entera", "price": 12600 }] },
-        { "id": 16, "name": "Key Lime Pie", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "Porción", "price": 9800 }] },
-        { "id": 17, "name": "Cheesecake New York", "description": "", "image": null, "featured": false, "tags": ["sin-tacc"], "variants": [{ "label": "Porción", "price": 10500 }] }
+        {
+          "id": 48,
+          "name": "Medialuna",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 2500
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "name": "Croissant",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4200
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "name": "Pan de chocolate",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5500
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "name": "Roll de canela",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5100
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "name": "Medialuna c/ jamón y queso",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4200
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "name": "Croissant c/ jamón y queso",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7600
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "name": "Croissant c/ jamón crudo & rúcula",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7900
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "alfajores",
+      "name": "Alfajores",
+      "description": null,
+      "items": [
+        {
+          "id": 55,
+          "name": "Maicena",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4800
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "name": "Marplatense",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6000
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "name": "Nuez y choco blanco",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5400
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "name": "Alfacoco",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5000
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "name": "Pistacho y choco blanco",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 6900
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "cookies",
+      "name": "Cookies",
+      "description": null,
+      "items": [
+        {
+          "id": 60,
+          "name": "Red Velvet",
+          "description": "Centro de choco blanco",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4900
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "name": "Chips de chocolate",
+          "description": "Con frutos secos",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4300
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "name": "Pistacho",
+          "description": "Centro de pasta de pistacho",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5300
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "name": "Nutella",
+          "description": "Centro de pasta de avellanas",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5300
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "muffins",
+      "name": "Muffins",
+      "description": null,
+      "items": [
+        {
+          "id": 64,
+          "name": "Vainilla & chip de choco",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5000
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "name": "Manzana y canela",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5100
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "name": "Vainilla & frutos rojos",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5400
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "opciones-saludables",
+      "name": "Opciones saludables",
+      "description": null,
+      "items": [
+        {
+          "id": 67,
+          "name": "Plato de frutas de estación",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9000
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "name": "Panqueques de banana + 2 dips",
+          "description": "6 panqueques en discos. Dips: mantequilla de maní / dulce de leche / mermelada / queso crema",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "name": "Bowl de yogurt con granola + frutas de estación",
+          "description": "150 g de yogurt + 50 g de granola con frutos secos",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "name": "Bowl de yogurt (solo)",
+          "description": "150 g de yogurt",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "keto",
+      "name": "Keto",
+      "description": "Sin gluten & sin azúcar",
+      "items": [
+        {
+          "id": 71,
+          "name": "Cheesecake de frutos rojos",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 14000
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "name": "Lingote",
+          "description": "Coco & dulce de leche",
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 9100
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "name": "Alfajor con corazón de frambuesa",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 7900
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "name": "Alfajor ganache choco & pasta de maní",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 7900
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "name": "Barrita de coco bañada",
+          "description": "En chocolate al 80%",
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 5900
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "name": "Torta toffee",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 12400
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "name": "Wafle salado",
+          "description": "Lomito, queso tybo, rúcula & cherrys",
+          "image": null,
+          "featured": false,
+          "tags": [
+            "keto",
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 8900
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "sin-tacc",
+      "name": "Sin TACC",
+      "description": "Libre de gluten con sello",
+      "items": [
+        {
+          "id": 78,
+          "name": "Medialunas de manteca",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 3200
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "name": "Alfajor de nuez",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 5100
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "name": "Tarta de coco",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 8100
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "name": "Tarta toffee",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 9500
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "name": "Tarta de frutos rojos & chocolate al 70%",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 10500
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "name": "Medialuna rellena de J&Q",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 5200
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "name": "Sándwich chipá J&Q",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 85,
+          "name": "Sándwich en pan de ciabatta",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 10000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "amantes-de-lo-salado",
+      "name": "Amantes de lo salado",
+      "description": null,
+      "items": [
+        {
+          "id": 86,
+          "name": "Scon de queso",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4500
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "name": "Scon de queso 01",
+          "description": "Relleno de queso crema, jamón crudo & rúcula",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8400
+            }
+          ]
+        },
+        {
+          "id": 88,
+          "name": "Scon de queso 02",
+          "description": "Relleno de queso crema, queso tybo, tomate cherry & rúcula",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7900
+            }
+          ]
+        },
+        {
+          "id": 89,
+          "name": "Focaccia rellena",
+          "description": "Rellena de lomito, queso tybo, tomate, pesto de rúcula & maní",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 14300
+            }
+          ]
+        },
+        {
+          "id": 90,
+          "name": "Danesa de roquefort",
+          "description": "Rellena de queso crema, roquefort, nuez & jamón crudo",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8500
+            }
+          ]
+        },
+        {
+          "id": 91,
+          "name": "Omelette",
+          "description": "Relleno de jamón & queso",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8900
+            }
+          ]
+        },
+        {
+          "id": 92,
+          "name": "Huevo revuelto con palta",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "tostados",
+      "name": "Tostados",
+      "description": "Jamón & queso / rúcula, tomate & queso",
+      "items": [
+        {
+          "id": 93,
+          "name": "En pan árabe",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8600
+            }
+          ]
+        },
+        {
+          "id": 94,
+          "name": "En pan ciabatta",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8600
+            }
+          ]
+        },
+        {
+          "id": 95,
+          "name": "En pan de chipá",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9200
+            }
+          ]
+        },
+        {
+          "id": 96,
+          "name": "En pan de molde (brioche)",
+          "description": "Con queso gratinado arriba",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9900
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "name": "Baguette Stracciatella",
+          "description": "Jamón crudo, queso stracciatella, tomates secos & rúcula",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 13700
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "name": "Baguette Cheddar",
+          "description": "Lomito ahumado & queso cheddar",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "tostas",
+      "name": "Tostas",
+      "description": "También podés pedir opción sin gluten",
+      "items": [
+        {
+          "id": 99,
+          "name": "Avocado",
+          "description": "Con palta & huevo revuelto",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 11200
+            }
+          ]
+        },
+        {
+          "id": 100,
+          "name": "Brie",
+          "description": "Con queso untable, tomates secos, queso brie & un hilo de miel",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12800
+            }
+          ]
+        },
+        {
+          "id": 101,
+          "name": "Roque & Nuez",
+          "description": "Con queso untable, colchón de rúcula, queso roquefort & nuez",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 10800
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "name": "Campo",
+          "description": "Porción para compartir. Acompañadas de queso untable, mermelada casera & dulce de leche",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "combos-galia",
+      "name": "Combos Galia",
+      "description": null,
+      "items": [
+        {
+          "id": 103,
+          "name": "Desayuno",
+          "description": "Café o infusión + avotoast + bowl con frutas de estación",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 19900
+            }
+          ]
+        },
+        {
+          "id": 104,
+          "name": "Clásico",
+          "description": "Café o infusión + 2 medialunas",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8500
+            }
+          ]
+        },
+        {
+          "id": 105,
+          "name": "Mate para dos",
+          "description": "Set de mate + termo de 750 ml + 1 acompañamiento a elegir: 2 cookies, 2 scons de queso o porción de tostas campo con queso untable, mermelada casera y dulce de leche",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 19000
+            }
+          ]
+        },
+        {
+          "id": 106,
+          "name": "Saludable",
+          "description": "Café o infusión + panqueques de banana + 2 dips + plato de frutas",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 16000
+            }
+          ]
+        },
+        {
+          "id": 107,
+          "name": "Saladito",
+          "description": "Jugo de naranja exprimido + huevo revuelto con palta + scon de queso",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 16000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "para-los-mas-peques",
+      "name": "Para los más peques",
+      "description": null,
+      "items": [
+        {
+          "id": 108,
+          "name": "Panquequitos de harina de almendras sin azúcar + 2 dips",
+          "description": "4 panquequitos. Dips: mantequilla de maní, mermelada de frutos rojos o dulce de leche",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 7500
+            }
+          ]
+        },
+        {
+          "id": 109,
+          "name": "Panquequitos + 2 dips + plato de frutas",
+          "description": "4 panquequitos de harina de almendras sin azúcar. Dips: mantequilla de maní, mermelada de frutos rojos o dulce de leche",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9900
+            }
+          ]
+        },
+        {
+          "id": 110,
+          "name": "Muffin",
+          "description": "Vainilla con chips de chocolate, manzana y canela o vainilla con frutos rojos",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 5400
+            }
+          ]
+        },
+        {
+          "id": 111,
+          "name": "Jugo Smudis",
+          "description": "500 ml. Naranja, manzana o multifruta. Sin azúcar ni conservantes",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 4300
+            }
+          ]
+        },
+        {
+          "id": 112,
+          "name": "Leche chocolatada",
+          "description": "250 ml",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 3500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pizzas",
+      "name": "Pizzas",
+      "description": "Individuales de masa madre. Almuerzos de 12:00 a 15:00",
+      "items": [
+        {
+          "id": 113,
+          "name": "Muzzarella",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 114,
+          "name": "Jamón crudo, rúcula y tomates secos",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 16500
+            }
+          ]
+        },
+        {
+          "id": 115,
+          "name": "Muzzarella, pesto de rúcula & cherrys",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 14300
+            }
+          ]
+        },
+        {
+          "id": 116,
+          "name": "Muzzarella con masa de zanahoria",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 117,
+          "name": "Muzzarella con masa de espinaca",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12000
+            }
+          ]
+        },
+        {
+          "id": 118,
+          "name": "Pizza muzzarella sin TACC",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 13000
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "name": "Chipizzita",
+          "description": "En masa de chipá",
+          "image": null,
+          "featured": false,
+          "tags": [
+            "sin-tacc"
+          ],
+          "variants": [
+            {
+              "label": null,
+              "price": 11000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ensaladas-y-tartas",
+      "name": "Ensaladas y tartas",
+      "description": "Almuerzos de 12:00 a 15:00. Consultá opciones keto",
+      "items": [
+        {
+          "id": 120,
+          "name": "Ensalada César",
+          "description": "Colchón de lechuga, croutons, queso parmesano, pollo & salsa César",
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 12500
+            }
+          ]
+        },
+        {
+          "id": 121,
+          "name": "Tarta de espinaca",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9000
+            }
+          ]
+        },
+        {
+          "id": 122,
+          "name": "Tarta de jamón & queso",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 8500
+            }
+          ]
+        },
+        {
+          "id": 123,
+          "name": "Tarta de pollo & verdeo",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 10500
+            }
+          ]
+        },
+        {
+          "id": 124,
+          "name": "Tarta de roquefort & champiñones",
+          "description": null,
+          "image": null,
+          "featured": false,
+          "tags": [],
+          "variants": [
+            {
+              "label": null,
+              "price": 9800
+            }
+          ]
+        }
       ]
     }
-  ]
+  ],
+  "published_at": "2026-10-07T00:00:00Z"
 }
