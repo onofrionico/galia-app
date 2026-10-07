@@ -129,7 +129,7 @@ Blueprint `backend/app/routes/menu.py`, prefijo `/api/v1/menu`, todo con `token_
 
 Nuevo grupo **Carta** en `Sidebar.jsx`. Servicio `frontend/src/services/menuService.js`.
 
-- **`/menu`** (`pages/Menu.jsx`): categorías colapsables con ítems; drag & drop para reordenar; toggle de visibilidad; badges de estado Fudo; barra superior con "Sincronizar Fudo", "Publicar", indicador de cambios sin publicar, contador de sin asignar/alertas y link "Ver carta". Pestaña **Configuración** para tags y settings.
+- **`/menu`** (`pages/Menu.jsx`): categorías colapsables con ítems; botones ↑↓ para reordenar categorías e ítems; toggle de visibilidad; badges de estado Fudo; barra superior con "Sincronizar Fudo", "Publicar", indicador de cambios sin publicar, contador de sin asignar/alertas y link "Ver carta". Pestaña **Configuración** para tags y settings.
 - **Modal de ítem** (`components/menu/MenuItemModal.jsx`): nombre, descripción, categoría, tags, foto con preview, lista de variantes con selector de producto Fudo (buscador). Precio de variante vinculada en solo lectura.
 - **`/menu/inbox`** (`pages/MenuInbox.jsx`): productos Fudo sin asignar (crear ítem / agregar como variante / ignorar) y variantes con alerta.
 - Usable en mobile (tarjetas en lugar de filas, modal a pantalla completa).
