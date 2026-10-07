@@ -202,4 +202,4 @@ def test_settings(menu_client, admin_headers):
     response = menu_client.put('/api/v1/menu/settings',
                                json={'footer_text': '¡Que disfrutes!', 'instagram': '@galia', 'otro': 'x'},
                                headers=admin_headers)
-    assert response.get_json() == {'footer_text': '¡Que disfrutes!', 'instagram': '@galia'}
+    assert response.get_json() == {'footer_text': '¡Que disfrutes!', 'instagram': 'galia'}

@@ -96,3 +96,23 @@ def test_publish_survives_image_cleanup_failure(menu_app, storage):
 
     assert 'published_at' in result
     assert 'menu.json' in storage.objects
+
+
+def test_hash_does_not_depend_on_public_base_url(menu_app, storage, monkeypatch):
+    _seed()
+    monkeypatch.setenv('MENU_PUBLIC_BASE_URL', 'https://a.test/menu')
+    publish(storage)
+    monkeypatch.setenv('MENU_PUBLIC_BASE_URL', 'https://b.test/menu')
+    assert has_unpublished_changes() is False
+
+    payload = json.loads(storage.objects['menu.json']['body'].decode('utf-8'))
+    images = [i['image'] for c in payload['categories'] for i in c['items'] if i['image']]
+    assert images == ['https://a.test/menu/images/latte.webp']
+
+
+def test_publish_warns_when_base_url_empty_with_images(menu_app, storage, monkeypatch, caplog):
+    _seed()
+    monkeypatch.setenv('MENU_PUBLIC_BASE_URL', '')
+    with caplog.at_level('WARNING'):
+        publish(storage)
+    assert 'MENU_PUBLIC_BASE_URL' in caplog.text

@@ -386,6 +386,19 @@ def delete_tag(current_user, tag_id):
 
 # ---------- Configuración ----------
 
+SETTING_MAX_LENGTH = {'footer_text': 2000, 'instagram': 100}
+SETTING_LABELS = {'footer_text': 'El texto del pie', 'instagram': 'El usuario de Instagram'}
+
+
+def _normalize_instagram(value):
+    value = value.strip()
+    marker = 'instagram.com/'
+    index = value.lower().find(marker)
+    if index != -1:
+        value = re.split(r'[/?#]', value[index + len(marker):], maxsplit=1)[0]
+    return value.strip().lstrip('@').strip()
+
+
 def _settings():
     return {key: MenuSetting.get(key, '') or '' for key in SETTING_KEYS}
 
@@ -402,9 +415,23 @@ def get_settings(current_user):
 @admin_required
 def update_settings(current_user):
     data = request.get_json() or {}
+    values = {}
     for key in SETTING_KEYS:
-        if key in data:
-            MenuSetting.set(key, str(data[key] or '').strip())
+        if key not in data:
+            continue
+        value = data[key]
+        if value is None:
+            value = ''
+        if not isinstance(value, str):
+            return _error(f'{SETTING_LABELS[key]} debe ser texto')
+        value = value.strip()
+        if key == 'instagram':
+            value = _normalize_instagram(value)
+        if len(value) > SETTING_MAX_LENGTH[key]:
+            return _error(f'{SETTING_LABELS[key]} es demasiado largo (máximo {SETTING_MAX_LENGTH[key]} caracteres)')
+        values[key] = value
+    for key, value in values.items():
+        MenuSetting.set(key, value)
     db.session.commit()
     return jsonify(_settings()), 200
 

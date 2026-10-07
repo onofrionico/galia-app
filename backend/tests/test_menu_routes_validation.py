@@ -102,3 +102,27 @@ def test_tag_color_strict(menu_client, admin_headers, color):
     response = menu_client.post('/api/v1/menu/tags', json={'name': 'X', 'color': color}, headers=admin_headers)
     assert response.status_code == 400
     assert MenuTag.query.count() == 0
+
+
+@pytest.mark.parametrize('payload', [
+    {'footer_text': 123},
+    {'instagram': ['x']},
+    {'footer_text': 'x' * 2001},
+    {'instagram': 'x' * 101},
+])
+def test_settings_reject_invalid_values(menu_client, admin_headers, payload):
+    response = menu_client.put('/api/v1/menu/settings', json=payload, headers=admin_headers)
+    assert response.status_code == 400
+    assert response.get_json()['error']
+
+
+@pytest.mark.parametrize('raw,expected', [
+    ('  @galia.cafe ', 'galia.cafe'),
+    ('https://www.instagram.com/galia.cafe/?hl=es', 'galia.cafe'),
+    ('instagram.com/galia.cafe', 'galia.cafe'),
+    (None, ''),
+])
+def test_settings_normalize_instagram(menu_client, admin_headers, raw, expected):
+    response = menu_client.put('/api/v1/menu/settings', json={'instagram': raw}, headers=admin_headers)
+    assert response.status_code == 200
+    assert response.get_json()['instagram'] == expected

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 from datetime import datetime
 
 from app.extensions import db
@@ -17,8 +18,8 @@ def _price(value):
     return int(number) if number.is_integer() else number
 
 
-def build_snapshot():
-    """Arma el contenido público de la carta (sin `published_at`)."""
+def _build(image_url):
+    """Arma el contenido de la carta usando `image_url(image_key)` para las fotos."""
     categories = []
     used_tags = set()
     visible_categories = (
@@ -37,7 +38,7 @@ def build_snapshot():
                 'id': item.id,
                 'name': item.name,
                 'description': item.description,
-                'image': public_url(item.image_key),
+                'image': image_url(item.image_key),
                 'featured': bool(item.is_featured),
                 'tags': tag_slugs,
                 'variants': [{'label': v.label, 'price': _price(v.price)} for v in item.variants],
@@ -66,22 +67,36 @@ def build_snapshot():
     }
 
 
+def build_snapshot():
+    """Arma el contenido público de la carta (sin `published_at`)."""
+    return _build(public_url)
+
+
+def _hash_snapshot():
+    """Snapshot con la clave cruda de la imagen: el hash no depende de MENU_PUBLIC_BASE_URL."""
+    return _build(lambda key: key)
+
+
 def snapshot_hash(snapshot):
     encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode('utf-8')
     return hashlib.sha256(encoded).hexdigest()
 
 
 def has_unpublished_changes():
-    return MenuSetting.get('last_published_hash') != snapshot_hash(build_snapshot())
+    return MenuSetting.get('last_published_hash') != snapshot_hash(_hash_snapshot())
 
 
 def publish(storage):
     snapshot = build_snapshot()
+    if not os.getenv('MENU_PUBLIC_BASE_URL', '').strip() and any(
+        item['image'] for category in snapshot['categories'] for item in category['items']
+    ):
+        logger.warning('MENU_PUBLIC_BASE_URL no está configurada: las fotos de la carta tendrán URLs relativas')
     published_at = datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
     body = json.dumps({**snapshot, 'published_at': published_at}, ensure_ascii=False).encode('utf-8')
     storage.put('menu.json', body, 'application/json; charset=utf-8', 'public, max-age=60')
 
-    MenuSetting.set('last_published_hash', snapshot_hash(snapshot))
+    MenuSetting.set('last_published_hash', snapshot_hash(_hash_snapshot()))
     MenuSetting.set('last_published_at', published_at)
     db.session.commit()
 
