@@ -19,6 +19,8 @@ import {
   Brain,
   DollarSign,
   LogIn,
+  BookOpen,
+  Inbox,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -76,6 +78,17 @@ const navGroups = [
     items: [
       { to: '/reports', icon: BarChart3, label: 'Reportes' },
       { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML' },
+    ],
+  },
+  {
+    id: 'carta',
+    label: 'Carta',
+    icon: BookOpen,
+    activeClass: 'text-rose-700 bg-rose-50 border-rose-200',
+    headerClass: 'text-rose-700 bg-rose-50',
+    items: [
+      { to: '/menu', icon: BookOpen, label: 'Carta' },
+      { to: '/menu/inbox', icon: Inbox, label: 'Sin asignar', subItem: true },
     ],
   },
 ]
