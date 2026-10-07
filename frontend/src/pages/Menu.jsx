@@ -77,7 +77,18 @@ const Menu = () => {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600" /></div>
   }
 
-  const status = menu?.status
+  if (!menu) {
+    return (
+      <div className="space-y-3">
+        <div className="p-3 bg-red-50 text-red-700 rounded text-sm">{error || 'No se pudo cargar la carta'}</div>
+        <button type="button" onClick={() => { setLoading(true); load() }} className="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+          Reintentar
+        </button>
+      </div>
+    )
+  }
+
+  const status = menu.status
   const pendingCount = (status?.unassigned_count || 0) + (status?.alerts_count || 0)
 
   return (
@@ -112,7 +123,8 @@ const Menu = () => {
         )}
         {pendingCount > 0 && (
           <Link to="/menu/inbox" className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded bg-blue-50 text-blue-800 hover:bg-blue-100">
-            <Inbox className="h-4 w-4" /> {status.unassigned_count} sin asignar
+            <Inbox className="h-4 w-4" />
+            {status.unassigned_count > 0 && <>{status.unassigned_count} sin asignar</>}
             {status.alerts_count > 0 && <><AlertTriangle className="h-4 w-4 ml-1 text-amber-600" /> {status.alerts_count} alertas</>}
           </Link>
         )}

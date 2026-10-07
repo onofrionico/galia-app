@@ -7,7 +7,12 @@ import { formatPrice, errorMessage } from '../../utils/menuFormat'
 
 const emptyVariant = () => ({ label: '', fudo_product_id: null, price: '' })
 
-const toFormVariant = (v) => ({ label: v.label || '', fudo_product_id: v.fudo_product_id || null, price: v.price ?? '' })
+const toFormVariant = (v) => ({
+  label: v.label || '',
+  fudo_product_id: v.fudo_product_id || null,
+  price: v.price ?? '',
+  fudo_status: v.fudo_status || null,
+})
 
 // item: ítem existente o null. prefill: datos iniciales para un ítem nuevo (desde la bandeja).
 const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onClose, onSaved }) => {
@@ -93,13 +98,16 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
     }
   }
 
+  // Si el ítem se creó en esta sesión (ej. falló la foto), cerrar debe refrescar la lista.
+  const handleClose = () => (!item && savedItemId ? onSaved() : onClose())
+
   const usedFudoIds = (exceptIndex) =>
     new Set(variants.filter((v, i) => i !== exceptIndex && v.fudo_product_id).map((v) => v.fudo_product_id))
 
   return (
     <ModalShell
       title={item ? 'Editar ítem' : 'Nuevo ítem'}
-      onClose={onClose}
+      onClose={handleClose}
       footer={
         <>
           {item && (
@@ -107,7 +115,7 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
               Borrar
             </button>
           )}
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Cancelar</button>
+          <button type="button" onClick={handleClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Cancelar</button>
           <button type="submit" form="item-form" disabled={saving} className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50">
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
@@ -192,13 +200,20 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
                   </div>
                   <div className="mt-1 text-xs">
                     {variant.fudo_product_id ? (
-                      <button type="button" onClick={() => updateVariant(index, { fudo_product_id: null, price: product?.price ?? variant.price })} className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                      <button type="button" onClick={() => updateVariant(index, { fudo_product_id: null, fudo_status: null, price: product?.price ?? variant.price })} className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
                         <Unlink className="h-3 w-3" /> Vinculado a "{product?.name || variant.fudo_product_id}" — desvincular
                       </button>
                     ) : (
                       <button type="button" onClick={() => setPickerIndex(index)} className="inline-flex items-center gap-1 text-rose-700 hover:underline">
                         <Link2 className="h-3 w-3" /> Vincular con Fudo
                       </button>
+                    )}
+                    {variant.fudo_product_id && (variant.fudo_status === 'missing' || variant.fudo_status === 'inactive') && (
+                      <p className="mt-1 text-amber-700">
+                        {variant.fudo_status === 'missing'
+                          ? 'Este producto ya no existe en Fudo — desvinculalo y cargá el precio a mano o vinculá otro.'
+                          : 'Este producto está desactivado en Fudo.'}
+                      </p>
                     )}
                   </div>
                   {pickerIndex === index && (
@@ -208,7 +223,7 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
                       excludedIds={usedFudoIds(index)}
                       onCancel={() => setPickerIndex(null)}
                       onSelect={(p) => {
-                        updateVariant(index, { fudo_product_id: p.fudo_id, price: p.price })
+                        updateVariant(index, { fudo_product_id: p.fudo_id, fudo_status: null, price: p.price })
                         setPickerIndex(null)
                       }}
                     />

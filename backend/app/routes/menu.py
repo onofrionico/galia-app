@@ -207,7 +207,17 @@ def _build_variants(item, variants_data):
             seen_fudo_ids.add(fudo_id)
             product = db.session.get(FudoProduct, fudo_id)
             if product is None:
-                return None, f'Producto de Fudo {fudo_id} no encontrado: sincronizá con Fudo primero'
+                # Producto desaparecido de Fudo: se conserva solo si este ítem ya lo tenía vinculado.
+                existing = None
+                if item.id is not None:
+                    existing = next((v for v in item.variants if v.fudo_product_id == fudo_id), None)
+                if existing is None:
+                    return None, f'Producto de Fudo {fudo_id} no encontrado: sincronizá con Fudo primero'
+                variants.append(MenuItemVariant(
+                    label=label, fudo_product_id=fudo_id, price=existing.price,
+                    fudo_status='missing', sort_order=position,
+                ))
+                continue
             taken = MenuItemVariant.query.filter(MenuItemVariant.fudo_product_id == fudo_id)
             if item.id is not None:
                 taken = taken.filter(MenuItemVariant.item_id != item.id)
