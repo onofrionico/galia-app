@@ -30,12 +30,12 @@ def sync_fudo_products(client):
     for raw in raw_products:
         fudo_id = str(raw['id'])
         attrs = raw.get('attributes') or {}
-        product = existing.get(fudo_id)
+        product = by_id.get(fudo_id) or existing.get(fudo_id)
         if product is None:
             product = FudoProduct(fudo_id=fudo_id, ignored=False)
             db.session.add(product)
         product.name = (attrs.get('name') or '')[:100]
-        product.price = Decimal(str(attrs.get('price') or 0))
+        product.price = Decimal(str(attrs.get('price') or 0)).quantize(Decimal('0.01'))
         product.is_active = bool(attrs.get('active', True))
         product.category_name = category_names.get(str(_category_id(raw)))
         product.synced_at = now

@@ -99,3 +99,18 @@ def test_unassigned_excludes_linked_ignored_and_inactive(menu_app):
     db.session.commit()
 
     assert [p.fudo_id for p in unassigned_products()] == ['4']
+
+
+def test_sync_quantizes_prices_so_second_sync_has_no_changes(menu_app):
+    _, variant = _item_with_variant('1', '6500')
+    client = FakeFudoClient(products=[fudo_product(1, 'Latte', '6900.123')])
+    sync_fudo_products(client)
+    stats = sync_fudo_products(client)
+
+    assert stats['price_changes'] == 0
+    assert variant.price == Decimal('6900.12')
+
+
+def test_sync_tolerates_duplicate_product_ids(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1), fudo_product(1, 'A', 2)]))
+    assert FudoProduct.query.count() == 1
