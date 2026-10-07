@@ -1,10 +1,13 @@
 import hashlib
 import json
+import logging
 from datetime import datetime
 
 from app.extensions import db
 from app.models.menu import MenuCategory, MenuItem, MenuTag, MenuSetting
 from app.utils.menu_storage import public_url
+
+logger = logging.getLogger(__name__)
 
 SNAPSHOT_VERSION = 1
 
@@ -49,7 +52,7 @@ def build_snapshot():
 
     tags = [
         {'slug': tag.slug, 'name': tag.name, 'color': tag.color}
-        for tag in MenuTag.query.order_by(MenuTag.name).all()
+        for tag in MenuTag.query.order_by(MenuTag.name, MenuTag.id).all()
         if tag.slug in used_tags
     ]
     return {
@@ -82,7 +85,10 @@ def publish(storage):
     MenuSetting.set('last_published_at', published_at)
     db.session.commit()
 
-    _delete_orphan_images(storage)
+    try:
+        _delete_orphan_images(storage)
+    except Exception:
+        logger.exception('No se pudieron borrar imágenes huérfanas de la carta')
     return {'published_at': published_at}
 
 

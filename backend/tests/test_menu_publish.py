@@ -83,3 +83,16 @@ def test_publish_deletes_orphan_images_only(menu_app, storage):
     storage.put('images/old.webp', b'x', 'image/webp', 'c')
     publish(storage)
     assert storage.list('images/') == ['images/latte.webp']
+
+
+def test_publish_survives_image_cleanup_failure(menu_app, storage):
+    _seed()
+
+    def boom(prefix):
+        raise RuntimeError('s3 down')
+
+    storage.list = boom
+    result = publish(storage)
+
+    assert 'published_at' in result
+    assert 'menu.json' in storage.objects
