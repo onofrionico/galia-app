@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "published_at": "2026-10-07T00:00:00Z",
+  "settings": {
+    "footer_text": "¡Que disfrutes tu estadía! Si estás con menores es muy importante que sepas que no contamos con servicio de cuidadores. También contamos con juegos de mesa para distintas edades. ¡Consultanos!",
+    "instagram": "galia.cafe"
+  },
+  "tags": [
+    { "slug": "sin-tacc", "name": "Sin TACC", "color": "#7FA34A" },
+    { "slug": "recomendado", "name": "Recomendado", "color": "#5C2E46" }
+  ],
+  "categories": [
+    {
+      "slug": "cafeteria",
+      "name": "Cafetería",
+      "description": "Contanos si lo preferís con azúcar, stevia o sin nada",
+      "items": [
+        { "id": 1, "name": "Café con leche", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5500 }] },
+        { "id": 2, "name": "Latte", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5500 }] },
+        { "id": 3, "name": "Latte Vainilla", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 5900 }] },
+        { "id": 4, "name": "Moka", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 7000 }] },
+        { "id": 5, "name": "Capuchino Italiano", "description": "con crema", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 7000 }] },
+        { "id": 6, "name": "Expresso", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 3900 }] },
+        { "id": 7, "name": "Americano", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 4400 }] },
+        { "id": 8, "name": "Té en hebras", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 4000 }] },
+        { "id": 9, "name": "Mate en combo", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 19000 }] }
+      ]
+    },
+    {
+      "slug": "bebidas-frias",
+      "name": "Bebidas frías",
+      "description": "",
+      "items": [
+        { "id": 10, "name": "Limonada de maracuyá", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 6500 }] },
+        { "id": 11, "name": "Jugo de naranja exprimido", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 6000 }] },
+        { "id": 12, "name": "Agua", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "Con gas", "price": 3000 }, { "label": "Sin gas", "price": 3000 }] }
+      ]
+    },
+    {
+      "slug": "pasteleria",
+      "name": "Pastelería",
+      "description": "",
+      "items": [
+        { "id": 13, "name": "Medialuna", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 2500 }] },
+        { "id": 14, "name": "Croissant c/ jamón crudo & rúcula", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "", "price": 9500 }] }
+      ]
+    },
+    {
+      "slug": "tortas",
+      "name": "Tortas",
+      "description": "",
+      "items": [
+        { "id": 15, "name": "Torta Galia", "description": "Masa de nuez rellena de dulce de leche, crema chantilly & corazón de frutos rojos", "image": "https://picsum.photos/seed/galia/600/600", "featured": true, "tags": ["recomendado"], "variants": [{ "label": "Porción", "price": 11200 }, { "label": "Entera", "price": 12600 }] },
+        { "id": 16, "name": "Key Lime Pie", "description": "", "image": null, "featured": false, "tags": [], "variants": [{ "label": "Porción", "price": 9800 }] },
+        { "id": 17, "name": "Cheesecake New York", "description": "", "image": null, "featured": false, "tags": ["sin-tacc"], "variants": [{ "label": "Porción", "price": 10500 }] }
+      ]
+    }
+  ]
+}
