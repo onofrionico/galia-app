@@ -1,10 +1,11 @@
+from datetime import datetime
 from decimal import Decimal
 
 import pytest
 
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant
-from app.services.menu_sync_service import sync_fudo_products, unassigned_products, alert_variants
+from app.services.menu_sync_service import sync_fudo_products, new_items, alert_variants
 from menu_fakes import FakeFudoClient, fudo_product, fudo_category
 
 
@@ -31,7 +32,7 @@ def test_sync_caches_products_with_category_names(menu_app):
     assert product.name == 'Latte'
     assert product.price == Decimal('6900')
     assert product.category_name == 'Cafetería'
-    assert stats == {'products': 1, 'price_changes': 0, 'alerts': 0}
+    assert stats == {'products': 1, 'price_changes': 0, 'alerts': 0, 'categories_created': 1, 'items_created': 1}
 
 
 def test_sync_updates_linked_variant_price(menu_app):
@@ -59,13 +60,6 @@ def test_sync_flags_inactive_and_missing_products(menu_app):
     assert {v.id for v in alert_variants()} == {inactive_variant.id, missing_variant.id}
 
 
-def test_sync_never_creates_or_deletes_menu_items(menu_app):
-    _item_with_variant('1', '6900')
-    sync_fudo_products(FakeFudoClient(products=[fudo_product(2, 'Nuevo', 100)]))
-    assert MenuItem.query.count() == 1
-    assert MenuItemVariant.query.count() == 1
-
-
 def test_sync_removes_products_no_longer_in_fudo(menu_app):
     sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1), fudo_product(2, 'B', 2)]))
     sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1)]))
@@ -87,20 +81,6 @@ def test_sync_refuses_empty_product_list(menu_app):
     assert MenuItemVariant.query.first().fudo_status == 'ok'
 
 
-def test_unassigned_excludes_linked_ignored_and_inactive(menu_app):
-    sync_fudo_products(FakeFudoClient(products=[
-        fudo_product(1, 'Vinculado', 1),
-        fudo_product(2, 'Ignorado', 1),
-        fudo_product(3, 'Inactivo', 1, active=False),
-        fudo_product(4, 'Libre', 1),
-    ]))
-    _item_with_variant('1', '1')
-    db.session.get(FudoProduct, '2').ignored = True
-    db.session.commit()
-
-    assert [p.fudo_id for p in unassigned_products()] == ['4']
-
-
 def test_sync_quantizes_prices_so_second_sync_has_no_changes(menu_app):
     _, variant = _item_with_variant('1', '6500')
     client = FakeFudoClient(products=[fudo_product(1, 'Latte', '6900.123')])
@@ -114,3 +94,83 @@ def test_sync_quantizes_prices_so_second_sync_has_no_changes(menu_app):
 def test_sync_tolerates_duplicate_product_ids(menu_app):
     sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1), fudo_product(1, 'A', 2)]))
     assert FudoProduct.query.count() == 1
+
+
+def _categories():
+    return [fudo_category(1, 'Cafetería'), fudo_category(2, 'Pastelería')]
+
+
+def test_sync_creates_categories_from_fudo(menu_app):
+    stats = sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)], categories=_categories()))
+    cats = {c.fudo_category_id: c for c in MenuCategory.query.all()}
+    assert set(cats) == {'1', '2'}
+    assert cats['1'].name == 'Cafetería' and cats['1'].is_visible and cats['1'].group_id is None
+    assert stats['categories_created'] == 2
+
+
+def test_sync_renames_and_flags_missing_categories(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1)], categories=_categories()))
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1)], categories=[fudo_category(1, 'Cafés')]))
+    cafe = MenuCategory.query.filter_by(fudo_category_id='1').one()
+    pasteleria = MenuCategory.query.filter_by(fudo_category_id='2').one()
+    assert cafe.name == 'Cafés' and cafe.slug == 'cafes'
+    assert pasteleria.is_visible is False and pasteleria.fudo_status == 'missing'
+
+
+def test_sync_creates_hidden_items_for_new_products(menu_app):
+    stats = sync_fudo_products(FakeFudoClient(
+        products=[fudo_product(1, 'Latte', 6900, category_id='1'), fudo_product(2, 'Medialuna', 2500, category_id='2')],
+        categories=_categories(),
+    ))
+    latte = MenuItem.query.filter_by(name='Latte').one()
+    assert latte.is_visible is False and latte.reviewed_at is None
+    assert latte.category.fudo_category_id == '1'
+    assert [(v.fudo_product_id, v.price, v.fudo_status) for v in latte.variants] == [('1', Decimal('6900'), 'ok')]
+    assert stats['items_created'] == 2
+
+    again = sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900, category_id='1')], categories=_categories()))
+    assert again['items_created'] == 0
+    assert MenuItem.query.filter_by(name='Latte').count() == 1
+
+
+def test_sync_skips_ignored_and_inactive_products(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1)], categories=_categories()))
+    item = MenuItem.query.one()
+    db.session.get(FudoProduct, '1').ignored = True
+    db.session.delete(item)
+    db.session.commit()
+
+    stats = sync_fudo_products(FakeFudoClient(
+        products=[fudo_product(1, 'A', 1), fudo_product(2, 'B', 1, active=False)], categories=_categories(),
+    ))
+    assert stats['items_created'] == 0
+    assert MenuItem.query.count() == 0
+
+
+def test_sync_moves_item_when_fudo_category_changes(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1, category_id='1')], categories=_categories()))
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1, category_id='2')], categories=_categories()))
+    assert MenuItem.query.one().category.fudo_category_id == '2'
+
+
+def test_sync_puts_products_without_category_in_sin_categoria(menu_app):
+    product = fudo_product(1, 'Raro', 1)
+    product['relationships'] = {}
+    sync_fudo_products(FakeFudoClient(products=[product], categories=_categories()))
+    assert MenuItem.query.one().category.name == 'Sin categoría'
+    assert MenuItem.query.one().category.fudo_category_id == '__none__'
+
+
+def test_hidden_new_items_do_not_create_unpublished_changes(menu_app, storage):
+    from app.services.menu_publish_service import publish, has_unpublished_changes
+    publish(storage)
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1)], categories=_categories()))
+    assert has_unpublished_changes() is False
+
+
+def test_new_items_lists_unreviewed(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1), fudo_product(2, 'B', 1)], categories=_categories()))
+    reviewed = MenuItem.query.filter_by(name='A').one()
+    reviewed.reviewed_at = datetime.utcnow()
+    db.session.commit()
+    assert [i.name for i in new_items()] == ['B']

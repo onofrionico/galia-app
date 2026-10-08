@@ -93,7 +93,7 @@ def test_sync_endpoint(menu_client, admin_headers, monkeypatch):
     monkeypatch.setattr('app.routes.menu.FudoClient', lambda: FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]))
     data = menu_client.post('/api/v1/menu/sync', headers=admin_headers).get_json()
     assert (data['products'], data['price_changes'], data['alerts']) == (1, 0, 0)
-    assert data['status']['unassigned_count'] == 1
+    assert data['status']['unassigned_count'] == 0  # el sync crea el ítem oculto (Task 5 reemplaza este campo)
 
 
 def test_sync_endpoint_reports_fudo_errors(menu_client, admin_headers, monkeypatch):
