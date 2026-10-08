@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { activeSectionIndex } from '../lib/activeSection'
 
-export const sectionId = (slug) => `cat-${slug}`
-
 const CLICK_LOCK_MS = 700
 
-export default function CategoryNav({ categories }) {
-  const [storedSlug, setStoredSlug] = useState(categories[0]?.slug)
+export default function CategoryNav({ entries }) {
+  const [storedSlug, setStoredSlug] = useState(entries[0]?.slug)
   const navRef = useRef(null)
   const chipRefs = useRef({})
   const lockUntil = useRef(0)
 
-  const activeSlug = categories.some((c) => c.slug === storedSlug) ? storedSlug : categories[0]?.slug
+  const activeSlug = entries.some((e) => e.slug === storedSlug) ? storedSlug : entries[0]?.slug
 
   useEffect(() => {
-    if (categories.length === 0) return undefined
+    if (entries.length === 0) return undefined
     let frame = 0
 
     const update = () => {
@@ -22,11 +20,11 @@ export default function CategoryNav({ categories }) {
       if (performance.now() < lockUntil.current) return
       const bar = navRef.current?.closest('.sticky')
       const threshold = (bar ? bar.getBoundingClientRect().bottom : 0) + 8
-      const tops = categories.map((c) => {
-        const el = document.getElementById(sectionId(c.slug))
+      const tops = entries.map((e) => {
+        const el = document.getElementById(e.targetId)
         return el ? el.getBoundingClientRect().top : Infinity
       })
-      setStoredSlug(categories[activeSectionIndex(tops, threshold)].slug)
+      setStoredSlug(entries[activeSectionIndex(tops, threshold)].slug)
     }
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update)
@@ -38,7 +36,7 @@ export default function CategoryNav({ categories }) {
       window.removeEventListener('scroll', onScroll)
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [categories])
+  }, [entries])
 
   useEffect(() => {
     chipRefs.current[activeSlug]?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
@@ -51,17 +49,17 @@ export default function CategoryNav({ categories }) {
 
   return (
     <nav ref={navRef} aria-label="Categorías" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
-      {categories.map((c) => (
+      {entries.map((e) => (
         <a
-          key={c.slug}
-          ref={(el) => { chipRefs.current[c.slug] = el }}
-          href={`#${sectionId(c.slug)}`}
-          onClick={() => onChipClick(c.slug)}
+          key={e.slug}
+          ref={(el) => { chipRefs.current[e.slug] = el }}
+          href={`#${e.targetId}`}
+          onClick={() => onChipClick(e.slug)}
           className={`whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-            c.slug === activeSlug ? 'bg-plum text-cream' : 'bg-plum/5 text-plum'
+            e.slug === activeSlug ? 'bg-plum text-cream' : 'bg-plum/5 text-plum'
           }`}
         >
-          {c.name}
+          {e.label}
         </a>
       ))}
     </nav>
