@@ -183,15 +183,18 @@ def update_category(current_user, category_id):
     data = request.get_json() or {}
     if 'name' in data:
         if category.fudo_category_id:
+            db.session.rollback()
             return _error('El nombre de la categoría viene de Fudo')
         name, error = _required_text(data.get('name'), 100)
         if error:
+            db.session.rollback()
             return _error(error)
         category.name = name
         category.slug = unique_slug(MenuCategory, name, exclude_id=category.id)
     if 'description' in data:
         description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
         if error:
+            db.session.rollback()
             return _error(error)
         category.description = description
     if 'is_visible' in data:
@@ -201,6 +204,7 @@ def update_category(current_user, category_id):
     if 'group_id' in data:
         group_id = data['group_id']
         if group_id is not None and (not _is_int(group_id) or db.session.get(MenuGroup, group_id) is None):
+            db.session.rollback()
             return _error('Grupo inexistente')
         if category.group_id != group_id:
             scope = MenuCategory.group_id.is_(None) if group_id is None else MenuCategory.group_id == group_id
@@ -287,7 +291,7 @@ def _build_variants(item, variants_data):
     return variants, None
 
 
-def _apply_item_payload(item, data):
+def _apply_item_payload(item, data, sync_category=True):
     """Aplica los campos presentes en `data`. Devuelve un mensaje de error o None."""
     if 'name' in data:
         name, error = _required_text(data.get('name'), 200)
@@ -299,14 +303,6 @@ def _apply_item_payload(item, data):
         if error:
             return error
         item.description = description
-    if 'category_id' in data:
-        category_id = data['category_id']
-        category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
-        if category is None:
-            return 'Categoría inexistente'
-        if item.category_id != category.id:
-            item.sort_order = _next_order(MenuItem.sort_order, MenuItem.category_id == category.id)
-            item.category_id = category.id
     if 'is_visible' in data:
         item.is_visible = bool(data['is_visible'])
     if 'is_featured' in data:
@@ -328,7 +324,16 @@ def _apply_item_payload(item, data):
             item.variants.clear()
             db.session.flush()
         item.variants = variants
-    assign_fudo_category(item)
+    if 'category_id' in data and not any(v.fudo_product_id for v in item.variants):
+        category_id = data['category_id']
+        category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
+        if category is None:
+            return 'Categoría inexistente'
+        if item.category_id != category.id:
+            item.sort_order = _next_order(MenuItem.sort_order, MenuItem.category_id == category.id)
+            item.category_id = category.id
+    if sync_category:
+        assign_fudo_category(item)
     return None
 
 
@@ -352,7 +357,7 @@ def create_item(current_user):
     )
     payload = {key: value for key, value in data.items() if key != 'category_id'}
     payload.setdefault('name', '')
-    error = _apply_item_payload(item, payload)
+    error = _apply_item_payload(item, payload, sync_category=False)
     if error:
         db.session.rollback()
         return _error(error)
@@ -385,10 +390,15 @@ def merge_item(current_user, item_id):
     source = db.session.get(MenuItem, source_id) if _is_int(source_id) else None
     if source is None or source.id == target.id:
         return _error('Elegí otro ítem para unir')
-    offset = len(target.variants)
+    offset = max((v.sort_order for v in target.variants), default=-1) + 1
     for position, variant in enumerate(sorted(source.variants, key=lambda v: (v.sort_order, v.id))):
         variant.item = target
         variant.sort_order = offset + position
+    target.is_visible = target.is_visible or source.is_visible
+    if not target.image_key:
+        target.image_key = source.image_key
+    target.tags = list({t.id: t for t in [*target.tags, *source.tags]}.values())
+    source.image_key = None
     db.session.flush()
     db.session.delete(source)
     assign_fudo_category(target)

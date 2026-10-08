@@ -64,3 +64,31 @@ def test_inbox_lists_new_items_and_alerts(menu_client, admin_headers):
     assert {a['type'] for a in data['alerts']} == {'variant', 'category'}
     status = menu_client.get('/api/v1/menu', headers=admin_headers).get_json()['status']
     assert status['new_count'] == 2 and status['alerts_count'] == 2
+
+
+def test_merge_keeps_visible_content(menu_client, admin_headers):
+    from app.models.menu import MenuTag
+    _sync(fudo_product(1, 'Torta A', 100), fudo_product(2, 'Torta B', 200))
+    target = MenuItem.query.filter_by(name='Torta A').one()
+    source = MenuItem.query.filter_by(name='Torta B').one()
+    tag = MenuTag(name='Vegano', slug='vegano')
+    db.session.add(tag)
+    source.is_visible = True
+    source.image_key = 'menu/b.jpg'
+    source.tags = [tag]
+    target.is_visible = False
+    db.session.commit()
+
+    data = menu_client.post(f'/api/v1/menu/items/{target.id}/merge', json={'source_item_id': source.id}, headers=admin_headers).get_json()
+    assert data['is_visible'] is True
+    assert data['image_key'] == 'menu/b.jpg'
+    assert data['tag_ids'] == [tag.id]
+
+
+def test_linked_item_ignores_category_change_and_keeps_order(menu_client, admin_headers):
+    _sync(fudo_product(1, 'Latte', 6900, category_id='2'))
+    item = MenuItem.query.one()
+    before = (item.category_id, item.sort_order)
+    other = make_category('Manual', None)
+    data = menu_client.put(f'/api/v1/menu/items/{item.id}', json={'category_id': other.id}, headers=admin_headers).get_json()
+    assert (data['category_id'], data['sort_order']) == before

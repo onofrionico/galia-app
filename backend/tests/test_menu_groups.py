@@ -55,3 +55,10 @@ def test_categories_cannot_be_created_and_only_legacy_empty_can_be_deleted(menu_
     legacy = make_category('Manual', None)
     assert menu_client.delete(f'/api/v1/menu/categories/{fudo_cat.id}', headers=admin_headers).status_code == 409
     assert menu_client.delete(f'/api/v1/menu/categories/{legacy.id}', headers=admin_headers).status_code == 200
+
+
+def test_update_category_rolls_back_on_error(menu_client, admin_headers):
+    category = make_category('Manual', None)
+    response = menu_client.put(f'/api/v1/menu/categories/{category.id}', json={'is_visible': False, 'group_id': 999}, headers=admin_headers)
+    assert response.status_code == 400
+    assert db.session.get(MenuCategory, category.id).is_visible is True
