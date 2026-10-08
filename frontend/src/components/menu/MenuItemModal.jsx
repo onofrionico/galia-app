@@ -46,7 +46,7 @@ const MenuItemModal = ({ item, allItems = [], categories, tags, defaultCategoryI
   }, [imagePreview])
 
   const isLinked = variants.some((v) => v.fudo_product_id)
-  const categoryName = categories.find((c) => c.id === form.category_id)?.name
+  const categoryName = categories.find((c) => c.id === Number(form.category_id))?.name
   const productsById = useMemo(() => Object.fromEntries(products.map((p) => [p.fudo_id, p])), [products])
   const ownFudoIds = useMemo(() => new Set((item?.variants || []).map((v) => v.fudo_product_id).filter(Boolean)), [item])
 
@@ -249,13 +249,18 @@ const MenuItemModal = ({ item, allItems = [], categories, tags, defaultCategoryI
                   </div>
                   <div className="mt-1 text-xs">
                     {variant.fudo_product_id ? (
-                      <button type="button" onClick={() => updateVariant(index, { fudo_product_id: null, fudo_status: null, price: product?.price ?? variant.price })} className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                      <button type="button" onClick={() => updateVariant(index, { fudo_product_id: null, fudo_status: null, unlinked: true, price: product?.price ?? variant.price })} className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
                         <Unlink className="h-3 w-3" /> Vinculado a "{product?.name || variant.fudo_product_id}" — desvincular
                       </button>
-                    ) : (
+                    ) : (item || savedItemId) && (
                       <button type="button" onClick={() => setPickerIndex(index)} className="inline-flex items-center gap-1 text-rose-700 hover:underline">
                         <Link2 className="h-3 w-3" /> Vincular con Fudo
                       </button>
+                    )}
+                    {variant.unlinked && !variant.fudo_product_id && (
+                      <p className="mt-1 text-amber-700">
+                        Al desvincularlo, la próxima sincronización lo vuelve a crear como ítem nuevo (oculto). Si no lo querés en la carta, usá Ignorar.
+                      </p>
                     )}
                     {variant.fudo_product_id && (variant.fudo_status === 'missing' || variant.fudo_status === 'inactive') && (
                       <p className="mt-1 text-amber-700">
@@ -272,7 +277,7 @@ const MenuItemModal = ({ item, allItems = [], categories, tags, defaultCategoryI
                       excludedIds={usedFudoIds(index)}
                       onCancel={() => setPickerIndex(null)}
                       onSelect={(p) => {
-                        updateVariant(index, { fudo_product_id: p.fudo_id, fudo_status: null, price: p.price })
+                        updateVariant(index, { fudo_product_id: p.fudo_id, fudo_status: null, unlinked: false, price: p.price })
                         setPickerIndex(null)
                       }}
                     />

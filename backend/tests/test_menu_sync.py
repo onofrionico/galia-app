@@ -16,6 +16,7 @@ def _item_with_variant(fudo_id, price):
     item = MenuItem(category_id=category.id, name='Latte')
     variant = MenuItemVariant(fudo_product_id=fudo_id, price=Decimal(price), fudo_status='ok')
     item.variants = [variant]
+    item.reviewed_at = datetime.utcnow()
     db.session.add(item)
     db.session.commit()
     return item, variant
@@ -46,7 +47,7 @@ def test_sync_updates_linked_variant_price(menu_app):
 
 def test_sync_flags_inactive_and_missing_products(menu_app):
     _, inactive_variant = _item_with_variant('1', '6900')
-    item2 = MenuItem(category_id=inactive_variant.item.category_id, name='Moka')
+    item2 = MenuItem(category_id=inactive_variant.item.category_id, name='Moka', reviewed_at=datetime.utcnow())
     missing_variant = MenuItemVariant(fudo_product_id='2', price=Decimal('7000'), fudo_status='ok')
     item2.variants = [missing_variant]
     db.session.add(item2)
@@ -204,3 +205,30 @@ def test_empty_category_list_does_not_flag_missing(menu_app):
 def test_long_category_name_gives_bounded_slug(menu_app):
     sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'L', 1)], categories=[fudo_category(1, 'x' * 300)]))
     assert len(MenuCategory.query.filter_by(fudo_category_id='1').one().slug) <= 120
+
+
+def test_sync_keeps_curated_order_when_moving_items(menu_app):
+    legacy = MenuCategory(name='Legacy', slug='legacy', sort_order=0)
+    db.session.add(legacy)
+    db.session.flush()
+    for order, name in enumerate(['C', 'A', 'B']):
+        db.session.add(FudoProduct(fudo_id=f'p{order}', name=name, price=Decimal('1'), is_active=True, fudo_category_id=None))
+        item = MenuItem(category_id=legacy.id, name=name, sort_order=order)
+        item.variants = [MenuItemVariant(fudo_product_id=f'p{order}', price=Decimal('1'), fudo_status='ok')]
+        db.session.add(item)
+    db.session.commit()
+
+    products = [fudo_product(f'p{i}', n, 1, category_id='1') for i, n in enumerate(['C', 'A', 'B'])]
+    sync_fudo_products(FakeFudoClient(products=products, categories=_categories()))
+
+    category = MenuCategory.query.filter_by(fudo_category_id='1').one()
+    ordered = MenuItem.query.filter_by(category_id=category.id).order_by(MenuItem.sort_order, MenuItem.id).all()
+    assert [i.name for i in ordered] == ['C', 'A', 'B']
+
+
+def test_alerts_only_for_reviewed_items(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'A', 1), fudo_product(2, 'B', 1)], categories=_categories()))
+    MenuItem.query.filter_by(name='B').one().reviewed_at = datetime.utcnow()
+    db.session.commit()
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(3, 'Z', 1)], categories=_categories()))
+    assert [v.item.name for v in alert_variants()] == ['B']

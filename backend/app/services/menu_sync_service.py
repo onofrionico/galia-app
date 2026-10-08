@@ -144,10 +144,18 @@ def sync_fudo_products(client):
             alerts += 1
 
     linked_items = (
-        MenuItem.query.join(MenuItemVariant).filter(MenuItemVariant.fudo_product_id.isnot(None))
-        .options(selectinload(MenuItem.variants)).distinct().all()
+        MenuItem.query.join(MenuCategory, MenuItem.category_id == MenuCategory.id)
+        .join(MenuItemVariant, MenuItemVariant.item_id == MenuItem.id)
+        .filter(MenuItemVariant.fudo_product_id.isnot(None))
+        .options(selectinload(MenuItem.variants))
+        .order_by(MenuCategory.sort_order, MenuCategory.id, MenuItem.sort_order, MenuItem.id)
+        .all()
     )
+    seen_items = set()
     for item in linked_items:
+        if item.id in seen_items:
+            continue
+        seen_items.add(item.id)
         assign_fudo_category(item, by_id, categories)
 
     linked = linked_fudo_ids()
@@ -178,8 +186,16 @@ def new_items():
     return MenuItem.query.filter(MenuItem.reviewed_at.is_(None)).order_by(MenuItem.category_id, MenuItem.name).all()
 
 
+def new_items_count():
+    return MenuItem.query.filter(MenuItem.reviewed_at.is_(None)).count()
+
+
 def alert_variants():
-    return MenuItemVariant.query.filter(MenuItemVariant.fudo_status.in_(['inactive', 'missing'])).all()
+    return (
+        MenuItemVariant.query.join(MenuItem, MenuItemVariant.item_id == MenuItem.id)
+        .filter(MenuItemVariant.fudo_status.in_(['inactive', 'missing']), MenuItem.reviewed_at.isnot(None))
+        .all()
+    )
 
 
 def alert_categories():

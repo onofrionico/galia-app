@@ -33,7 +33,7 @@ def _status():
     return {
         'has_unpublished_changes': menu_publish_service.has_unpublished_changes(),
         'last_published_at': MenuSetting.get('last_published_at'),
-        'new_count': len(menu_sync_service.new_items()),
+        'new_count': menu_sync_service.new_items_count(),
         'alerts_count': len(menu_sync_service.alert_variants()) + len(menu_sync_service.alert_categories()),
     }
 

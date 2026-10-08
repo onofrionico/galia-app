@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from app.extensions import db
@@ -58,12 +59,14 @@ def test_create_item_only_for_manual_prices(menu_client, admin_headers):
 
 def test_inbox_lists_new_items_and_alerts(menu_client, admin_headers):
     _sync(fudo_product(1, 'Latte', 1, category_id='1'), fudo_product(2, 'Moka', 1, category_id='2'))
+    MenuItem.query.filter_by(name='Moka').one().reviewed_at = datetime.utcnow()
+    db.session.commit()
     sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'Latte', 1, category_id='1')], categories=[fudo_category(1, 'Tortas')]))
     data = menu_client.get('/api/v1/menu/inbox', headers=admin_headers).get_json()
-    assert sorted(i['name'] for i in data['new_items']) == ['Latte', 'Moka']
+    assert [i['name'] for i in data['new_items']] == ['Latte']
     assert {a['type'] for a in data['alerts']} == {'variant', 'category'}
     status = menu_client.get('/api/v1/menu', headers=admin_headers).get_json()['status']
-    assert status['new_count'] == 2 and status['alerts_count'] == 2
+    assert status['new_count'] == 1 and status['alerts_count'] == 2
 
 
 def test_merge_keeps_visible_content(menu_client, admin_headers):
