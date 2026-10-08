@@ -55,12 +55,13 @@ en cada deploy de Render y el frontend se sirve aparte). No se portan `utils/sto
 ni el `upload_to_s3` agregado a `utils/s3_utils.py`.
 
 En su lugar se reutiliza lo que ya está en `main` por la carta digital:
-- `services/menu_image_service.process_image` (valida, recorta y convierte a WebP; se le agrega el parámetro
-  opcional `max_side`, default 800).
+- `services/menu_image_service.process_image` (valida, recorta y convierte a WebP; se le agregan los parámetros
+  opcionales `max_side`, default 800, y `key_prefix`, default `'images/'`).
 - `utils/menu_storage.get_menu_storage()` (prefijo público `menu/`) + `public_url()`.
 
-Claves: productos `images/<hash>.webp` (lado máximo 800), logo `branding/logo-<hash>.webp` (800),
-fondo del banner `branding/banner-<hash>.webp` (1920). Se guarda la URL pública completa. Formatos
+Claves: productos `products/<hash>.webp` (lado máximo 800), logo `branding/logo-<hash>.webp` (800),
+fondo del banner `branding/banner-<hash>.webp` (1920). **No se usa `images/`**: el publish de la carta
+(`menu_publish_service`) borra todo lo que hay bajo `images/` que no esté referenciado por el menú. Se guarda la URL pública completa. Formatos
 aceptados: JPG, PNG, WebP (SVG deja de aceptarse).
 
 Tests portados: `test_suppliers.py`, `test_products.py`, `test_product_categories.py`, `test_config.py`.
