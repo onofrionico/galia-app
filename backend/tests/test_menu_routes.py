@@ -9,6 +9,12 @@ def _create_category(client, headers, name='Cafés'):
     return make_category(name).to_dict()
 
 
+def _link_item(client, headers, category_id, fudo_id, name='Latte'):
+    """Los ítems vinculados a Fudo ya no se crean por POST: se crea manual y se vincula por PUT."""
+    item = _create_item(client, headers, category_id, name=name).get_json()
+    return client.put(f"/api/v1/menu/items/{item['id']}", json={'variants': [{'fudo_product_id': fudo_id}]}, headers=headers)
+
+
 def _create_item(client, headers, category_id, **overrides):
     payload = {'category_id': category_id, 'name': 'Latte', 'variants': [{'label': None, 'price': 6900}]}
     payload.update(overrides)
@@ -30,7 +36,7 @@ def test_get_menu_tree_and_status(menu_client, admin_headers):
     assert data['status'] == {
         'has_unpublished_changes': True,
         'last_published_at': None,
-        'unassigned_count': 0,
+        'new_count': 0,
         'alerts_count': 0,
     }
 
@@ -85,8 +91,7 @@ def test_linked_variant_uses_fudo_price(menu_client, admin_headers):
     db.session.commit()
     category = _create_category(menu_client, admin_headers)
 
-    response = _create_item(menu_client, admin_headers, category['id'],
-                            variants=[{'fudo_product_id': '7', 'price': 1}])
+    response = _link_item(menu_client, admin_headers, category['id'], '7')
 
     variant = response.get_json()['variants'][0]
     assert (variant['price'], variant['fudo_product_id'], variant['fudo_status']) == (7100.0, '7', 'ok')
@@ -96,9 +101,9 @@ def test_fudo_product_cannot_be_linked_twice(menu_client, admin_headers):
     db.session.add(FudoProduct(fudo_id='7', name='Latte', price=Decimal('7100'), is_active=True))
     db.session.commit()
     category = _create_category(menu_client, admin_headers)
-    _create_item(menu_client, admin_headers, category['id'], variants=[{'fudo_product_id': '7'}])
+    _link_item(menu_client, admin_headers, category['id'], '7')
 
-    response = _create_item(menu_client, admin_headers, category['id'], name='Otro', variants=[{'fudo_product_id': '7'}])
+    response = _link_item(menu_client, admin_headers, category['id'], '7', name='Otro')
     assert response.status_code == 400
     assert 'ya está en otro ítem' in response.get_json()['error']
 
@@ -112,7 +117,7 @@ def test_update_item_can_keep_same_fudo_link(menu_client, admin_headers):
     db.session.add(FudoProduct(fudo_id='7', name='Latte', price=Decimal('7100'), is_active=True))
     db.session.commit()
     category = _create_category(menu_client, admin_headers)
-    item = _create_item(menu_client, admin_headers, category['id'], variants=[{'fudo_product_id': '7'}]).get_json()
+    item = _link_item(menu_client, admin_headers, category['id'], '7').get_json()
 
     response = menu_client.put(f"/api/v1/menu/items/{item['id']}", json={
         'name': 'Latte grande',

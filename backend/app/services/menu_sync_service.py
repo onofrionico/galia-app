@@ -184,15 +184,3 @@ def alert_variants():
 
 def alert_categories():
     return MenuCategory.query.filter(MenuCategory.fudo_status == 'missing').all()
-
-
-def unassigned_products():
-    # Compat temporal para app/routes/menu.py: eliminado en Task 5.
-    linked = linked_fudo_ids()
-    products = (
-        FudoProduct.query
-        .filter(FudoProduct.is_active.is_(True), FudoProduct.ignored.is_(False))
-        .order_by(FudoProduct.category_name, FudoProduct.name)
-        .all()
-    )
-    return [p for p in products if p.fudo_id not in linked]

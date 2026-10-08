@@ -66,34 +66,13 @@ def test_fudo_products_list_marks_linked_and_filters(menu_client, admin_headers)
     filtered = menu_client.get('/api/v1/menu/fudo-products?q=MOK', headers=admin_headers).get_json()
     assert [p['fudo_id'] for p in filtered] == ['2']
 
-    unassigned = menu_client.get('/api/v1/menu/fudo-products?unassigned=true', headers=admin_headers).get_json()
-    assert [p['fudo_id'] for p in unassigned] == ['2']
-
-
-def test_ignore_fudo_product(menu_client, admin_headers):
-    db.session.add(FudoProduct(fudo_id='2', name='Moka', price=1, is_active=True))
-    db.session.commit()
-    assert menu_client.post('/api/v1/menu/fudo-products/2/ignore', headers=admin_headers).status_code == 200
-    assert db.session.get(FudoProduct, '2').ignored is True
-    assert menu_client.post('/api/v1/menu/fudo-products/999/ignore', headers=admin_headers).status_code == 404
-
-
-def test_inbox(menu_client, admin_headers):
-    db.session.add(FudoProduct(fudo_id='2', name='Moka', price=1, is_active=True))
-    db.session.commit()
-    item = _item(fudo_id='9', status='missing')
-
-    data = menu_client.get('/api/v1/menu/inbox', headers=admin_headers).get_json()
-    assert [p['fudo_id'] for p in data['unassigned']] == ['2']
-    alert = data['alerts'][0]
-    assert (alert['item_id'], alert['item_name'], alert['fudo_status'], alert['fudo_name']) == (item.id, 'Latte', 'missing', None)
 
 
 def test_sync_endpoint(menu_client, admin_headers, monkeypatch):
     monkeypatch.setattr('app.routes.menu.FudoClient', lambda: FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]))
     data = menu_client.post('/api/v1/menu/sync', headers=admin_headers).get_json()
     assert (data['products'], data['price_changes'], data['alerts']) == (1, 0, 0)
-    assert data['status']['unassigned_count'] == 0  # el sync crea el ítem oculto (Task 5 reemplaza este campo)
+    assert data['status']['new_count'] == 1  # el sync crea el ítem oculto
 
 
 def test_sync_endpoint_reports_fudo_errors(menu_client, admin_headers, monkeypatch):

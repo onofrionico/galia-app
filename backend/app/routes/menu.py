@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, jsonify, request
@@ -7,6 +8,7 @@ from flask import Blueprint, jsonify, request
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuGroup, MenuItem, MenuItemVariant, MenuSetting, MenuTag
 from app.services import menu_publish_service, menu_sync_service
+from app.services.menu_sync_service import assign_fudo_category
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.decorators import admin_required
 from app.utils.fudo_client import FudoClient
@@ -31,8 +33,8 @@ def _status():
     return {
         'has_unpublished_changes': menu_publish_service.has_unpublished_changes(),
         'last_published_at': MenuSetting.get('last_published_at'),
-        'unassigned_count': len(menu_sync_service.unassigned_products()),
-        'alerts_count': len(menu_sync_service.alert_variants()),
+        'new_count': len(menu_sync_service.new_items()),
+        'alerts_count': len(menu_sync_service.alert_variants()) + len(menu_sync_service.alert_categories()),
     }
 
 
@@ -326,6 +328,7 @@ def _apply_item_payload(item, data):
             item.variants.clear()
             db.session.flush()
         item.variants = variants
+    assign_fudo_category(item)
     return None
 
 
@@ -336,6 +339,8 @@ def create_item(current_user):
     data = request.get_json() or {}
     if 'variants' not in data:
         return _error('El ítem necesita al menos un precio')
+    if isinstance(data['variants'], list) and any(isinstance(v, dict) and v.get('fudo_product_id') for v in data['variants']):
+        return _error('Los ítems con productos de Fudo se crean solos al sincronizar')
     category_id = data.get('category_id')
     category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
     if category is None:
@@ -351,6 +356,7 @@ def create_item(current_user):
     if error:
         db.session.rollback()
         return _error(error)
+    item.reviewed_at = datetime.utcnow()
     db.session.add(item)
     db.session.commit()
     return jsonify(item.to_dict()), 201
@@ -365,8 +371,44 @@ def update_item(current_user, item_id):
     if error:
         db.session.rollback()
         return _error(error)
+    item.reviewed_at = datetime.utcnow()
     db.session.commit()
     return jsonify(item.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>/merge', methods=['POST'])
+@token_required
+@admin_required
+def merge_item(current_user, item_id):
+    target = db.get_or_404(MenuItem, item_id)
+    source_id = (request.get_json() or {}).get('source_item_id')
+    source = db.session.get(MenuItem, source_id) if _is_int(source_id) else None
+    if source is None or source.id == target.id:
+        return _error('Elegí otro ítem para unir')
+    offset = len(target.variants)
+    for position, variant in enumerate(sorted(source.variants, key=lambda v: (v.sort_order, v.id))):
+        variant.item = target
+        variant.sort_order = offset + position
+    db.session.flush()
+    db.session.delete(source)
+    assign_fudo_category(target)
+    target.reviewed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify(target.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>/ignore', methods=['POST'])
+@token_required
+@admin_required
+def ignore_item(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    for variant in item.variants:
+        product = db.session.get(FudoProduct, variant.fudo_product_id) if variant.fudo_product_id else None
+        if product is not None:
+            product.ignored = True
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'message': 'Ítem ignorado'}), 200
 
 
 @bp.route('/items/<int:item_id>', methods=['DELETE'])
@@ -528,25 +570,12 @@ def delete_item_image(current_user, item_id):
 @token_required
 @admin_required
 def list_fudo_products(current_user):
-    if request.args.get('unassigned') == 'true':
-        products = menu_sync_service.unassigned_products()
-    else:
-        products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
+    products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
     query = (request.args.get('q') or '').strip().lower()
     if query:
         products = [p for p in products if query in p.name.lower()]
     linked = menu_sync_service.linked_fudo_ids()
     return jsonify([{**p.to_dict(), 'linked': p.fudo_id in linked} for p in products]), 200
-
-
-@bp.route('/fudo-products/<fudo_id>/ignore', methods=['POST'])
-@token_required
-@admin_required
-def ignore_fudo_product(current_user, fudo_id):
-    product = db.get_or_404(FudoProduct, fudo_id)
-    product.ignored = True
-    db.session.commit()
-    return jsonify(product.to_dict()), 200
 
 
 @bp.route('/inbox', methods=['GET'])
@@ -556,16 +585,12 @@ def get_inbox(current_user):
     alerts = []
     for variant in menu_sync_service.alert_variants():
         product = db.session.get(FudoProduct, variant.fudo_product_id)
-        alerts.append({
-            **variant.to_dict(),
-            'item_id': variant.item_id,
-            'item_name': variant.item.name,
-            'fudo_name': product.name if product else None,
-        })
-    return jsonify({
-        'unassigned': [p.to_dict() for p in menu_sync_service.unassigned_products()],
-        'alerts': alerts,
-    }), 200
+        alerts.append({**variant.to_dict(), 'type': 'variant', 'item_id': variant.item_id,
+                       'item_name': variant.item.name, 'fudo_name': product.name if product else None})
+    for category in menu_sync_service.alert_categories():
+        alerts.append({'type': 'category', 'id': category.id, 'category_name': category.name, 'fudo_status': category.fudo_status})
+    new_items = [{**item.to_dict(), 'category_name': item.category.name} for item in menu_sync_service.new_items()]
+    return jsonify({'new_items': new_items, 'alerts': alerts}), 200
 
 
 # ---------- Sync y publicación ----------
