@@ -1,7 +1,9 @@
 # POS Base (sub-proyecto 0) — Diseño
 
 **Fecha:** 2026-10-07
-**Rama:** `feature/pos-base` (desde `main` @ `d31feec`)
+**Rama:** `feature/pos-base` (desde `main` @ `916b8cd`, que ya incluye la carta digital — PR #3)
+**Revisión 2026-10-08:** cadena de migraciones desde `add_menu_tables`; imágenes vía `MenuStorage`/`process_image`;
+regla de permisos ajustada para no cambiar comportamiento de endpoints sólo-token; módulo `Menu`.
 **Rama fuente:** `origin/release/products-menu-suppliers` (147 commits, nunca desplegada)
 
 ## Contexto
@@ -43,7 +45,23 @@ referencia y se preserva con el tag `archive/pos-v1`.
 | 1 | Permisos | `models/module.py`, `role_permission.py`, `user_permission.py`; `utils/permissions.py`; `module_required` en `utils/decorators.py`; `routes/permissions.py` | `components/configuration/PermissionMatrix.jsx`, `pages/Permissions.jsx`, `components/RoleProtectedRoute.jsx`, `userModules` en `context/AuthContext.jsx` |
 | 2 | Proveedores | `models/supplier.py`, `supplier_id` en `models/expense.py`, validación en `routes/expenses.py`, `routes/suppliers.py` | `pages/Suppliers.jsx`, `pages/SupplierDetail.jsx`, `services/suppliersService.js` |
 | 3 | Productos e insumos | `models/product_category.py`, `product.py`, `product_variant.py`, `product_recipe_item.py`, cambios en `supply.py`; `routes/product_categories.py`, `products.py`, `supplies.py`; `services/stock_service.py` | `pages/Products.jsx`, `ProductDetail.jsx`, `ProductCategories.jsx`, `Supplies.jsx`, `Stock.jsx`; `services/productsService.js`, `productCategoriesService.js`, `suppliesService.js` |
-| 4 | Branding | `models/site_config.py`, `routes/config.py`, `utils/s3_utils.py`, `utils/storage.py`, `utils/file_upload.py` | `pages/admin/BrandingConfig.jsx`, `services/configService.js`, `constants/colors.js`, cambios de `index.css` |
+| 4 | Branding | `models/site_config.py`, `routes/config.py` | `pages/admin/BrandingConfig.jsx`, `services/configService.js`, `constants/colors.js`, cambios de `index.css`, logo en `Navbar.jsx`, banner en `Dashboard.jsx` |
+
+### Imágenes (productos y branding)
+
+La rama vieja subía imágenes de productos a `products/` (prefijo **no público** del bucket; en desarrollo
+devolvía URLs falsas `cdn.mock`) y el branding a `frontend/public/uploads/` en el disco del backend (se pierde
+en cada deploy de Render y el frontend se sirve aparte). No se portan `utils/storage.py`, `utils/file_upload.py`
+ni el `upload_to_s3` agregado a `utils/s3_utils.py`.
+
+En su lugar se reutiliza lo que ya está en `main` por la carta digital:
+- `services/menu_image_service.process_image` (valida, recorta y convierte a WebP; se le agrega el parámetro
+  opcional `max_side`, default 800).
+- `utils/menu_storage.get_menu_storage()` (prefijo público `menu/`) + `public_url()`.
+
+Claves: productos `images/<hash>.webp` (lado máximo 800), logo `branding/logo-<hash>.webp` (800),
+fondo del banner `branding/banner-<hash>.webp` (1920). Se guarda la URL pública completa. Formatos
+aceptados: JPG, PNG, WebP (SVG deja de aceptarse).
 
 Tests portados: `test_suppliers.py`, `test_products.py`, `test_product_categories.py`, `test_config.py`.
 `stock_service.deduct_stock_for_sale` se porta con su lógica (receta → insumos) y tests propios,
@@ -63,8 +81,8 @@ pero ninguna venta lo invoca todavía (eso llega en el sub-proyecto 1).
 - **Check-in biométrico** completo: `biometric_session.py`, `location_boundary.py`, columnas biométricas
   de `work_block.py`, `routes/biometric.py`, `components/biometric/`, `pages/BiometricCheckIn.jsx`,
   `services/biometricService.js`, `seed_biometric_locations.py`, `setup_biometric.sh`,
-  `BIOMETRIC_README.md`, `docs/BIOMETRIC_CHECKIN_TESTING.md`, dependencias `qrcode`, `Pillow`
-  (no se usa en otro lado), `@vladmandic/face-api`, `jsqr`.
+  `BIOMETRIC_README.md`, `docs/BIOMETRIC_CHECKIN_TESTING.md`, dependencias `qrcode`,
+  `@vladmandic/face-api`, `jsqr`. (`Pillow` ya está en `main` por la carta digital y se mantiene.)
 - **Basura:** `.playwright-mcp/`, `*.png` sueltos en la raíz, `backend/frontend/public/uploads/`,
   `TASK_9_SUMMARY.md`, `TASK_10_SUMMARY.md`, `FINAL_DELIVERABLE.md`, `IMPLEMENTATION_REPORT.md`,
   `PRINTER_TESTING_GUIDE.md`, `query`, el archivo con nombre roto `C:UsersonofrDesktop…supply.py`,
@@ -77,50 +95,58 @@ pero ninguna venta lo invoca todavía (eso llega en el sub-proyecto 1).
 
 Se descartan las 13 migraciones de la rama vieja (dos raíces con `down_revision = None`, dos merges,
 `site_config` dependiente del biométrico). Se escriben 4 nuevas, en cadena lineal desde el head de `main`
-(`merge_heads_march8`):
+(`add_menu_tables`):
 
 1. `add_permissions_system` — tablas `modules`, `role_permissions`, `user_permissions` + **seed** del
-   catálogo de módulos y permisos por rol como data migration (idempotente: inserta solo si no existe).
+   catálogo de módulos y permisos por rol como data migration (con `op.bulk_insert`, sin SQL específico de
+   un motor).
 2. `add_suppliers` — tabla `suppliers`; columna `expenses.supplier_id` (FK nullable, indexada).
-3. `add_products_and_supplies` — `product_categories`, `products`, `product_variants`,
-   `product_recipe_items` y cambios de `supplies`.
+3. `add_products_and_supplies` — `product_categories`, `products` (incluye `track_stock`, que en la rama
+   vieja estaba en el modelo pero no en la migración), `product_variants`, `product_recipe_items` y
+   `supplies.stock_quantity` / `supplies.min_stock`. No incluye `sale_items`, `salones`, `mesas` ni
+   columnas nuevas de `sales` (sub-proyecto 1).
 4. `add_site_config` — tabla `site_config`.
 
 Cada una con `downgrade` funcional.
-
-**Conflicto conocido:** `feature/carta-digital` agrega `add_menu_tables` también colgando de
-`merge_heads_march8`. La rama que se mergee segunda reencadena su primera migración al head de la otra
-(cambiando `down_revision`); no se crean merge migrations.
 
 ## Permisos
 
 ### Regla
 
-- Todo endpoint de negocio usa `@token_required` + `@module_required('<Módulo>')`.
-- `@admin_required` queda sólo para administración del sistema: `permissions`, `fudo_sync`, `config` (branding).
-- Endpoints de autoservicio del empleado (`employee_schedule`, la parte propia de `absence_requests`,
-  `time_tracking` y `payroll`) usan `MySchedule` / `MyPayroll`.
-- Sin decorador de módulo: `auth`, `notifications` (lectura propia), health.
+El objetivo es que el merge **no cambie el acceso de nadie**. Por eso la conversión es mecánica:
+
+- Cada `@admin_required` de una ruta de negocio pasa a `@module_required('<Módulo del archivo>')`
+  (tanto el global de `utils/decorators.py` como las copias locales de `holidays.py`, `payroll.py`,
+  `social_security.py` y `time_tracking.py`, que se eliminan). Admin pasa siempre; employee sigue sin acceso
+  porque el seed no le otorga esos módulos.
+- `@admin_required` se mantiene sólo para administración del sistema: `permissions` (gestión), `fudo_sync`,
+  `config` (branding).
+- Los endpoints que hoy sólo tienen `@token_required` (unos 70, con validaciones de rol adentro de la función)
+  **no cambian de comportamiento**: se les agrega el marcador no-op `@authenticated_only` para que la
+  decisión quede explícita y el test de cobertura la reconozca.
+- Los decoradores propios existentes (`admin_or_supervisor_required` en `absence_requests.py`,
+  `employee_required` en `employee_documents.py`) se mantienen y se marcan como control de acceso.
 - `check_module_access` mantiene la prioridad: admin siempre → override por usuario → permiso por rol → denegado.
 
 ### Catálogo de módulos y mapeo
 
-| Módulo | Rutas |
+| Módulo | Archivos de rutas (endpoints hoy `@admin_required`) |
 |---|---|
-| `Dashboard` | página `/dashboard` del frontend (sin blueprint propio; consume endpoints de `Reports`) |
-| `Employees` | `employees`, `job_positions`, `employee_documents`, `social_security` |
-| `Schedules` | `schedules`, `shifts`, `schedule_summary`, `store_hours`, `holidays`, `vacation_periods`, `coverage`, gestión de `absence_requests` y `time_tracking` |
-| `Payroll` | `payroll` (gestión) |
+| `Employees` | `employees`, `job_positions`, `social_security` |
+| `Schedules` | `schedules`, `shifts`, `schedule_summary`, `store_hours`, `holidays`, `vacation_periods`, `time_tracking`, `csv_import` |
+| `Payroll` | `payroll` |
 | `Reports` | `reports` (incluye Día/Hora y GAO), `ml_dashboard`, `ml_predictions` |
-| `Expenses` | `expenses`, `csv_import` |
+| `Expenses` | `expenses` |
 | `Sales` | `sales` (historial e importación actual) |
+| `Menu` | `menu` (carta digital) |
 | `Suppliers` | `suppliers` |
 | `Products` | `products`, `product_categories` |
-| `Stock` | `supplies`, página de stock |
-| `MyPayroll` | recibos propios |
-| `MySchedule` | horario, ausencias y fichadas propias |
+| `Stock` | `supplies` |
+| `MyPayroll` | — (sólo visibilidad en el Sidebar en esta etapa) |
+| `MySchedule` | — (sólo visibilidad en el Sidebar en esta etapa) |
 
-`POS` y `Configuration` (mesas/salones/impresoras) se agregan en el sub-proyecto 1.
+`POS` y `Configuration` (mesas/salones/impresoras) se agregan en el sub-proyecto 1. El Dashboard no es un
+módulo: siempre está visible.
 
 ### Seed por rol
 
@@ -131,9 +157,11 @@ Esto reproduce exactamente el comportamiento actual: nadie gana ni pierde acceso
 
 ### Test de cobertura
 
-Test parametrizado que recorre `app.url_map` y verifica que cada view function esté envuelta en
-`module_required` o `admin_required` (marcado vía atributo en el wrapper), salvo una whitelist explícita
-(`auth.*`, `static`, health, notificaciones propias). Falla si aparece un endpoint nuevo sin proteger.
+Cada decorador de acceso marca su wrapper con el atributo `_access_control` (`'admin'`, `'module:<X>'`,
+`'authenticated'`, `'custom'`); `functools.wraps` lo propaga a través de `@token_required`. Un test recorre
+`app.url_map` y falla si algún endpoint no tiene `_access_control`, salvo una whitelist explícita
+(`static`, `health`, `auth.login`, `csv_import.status`, `csv_import.download_template`,
+`config.get_branding_config`). Un endpoint nuevo sin proteger rompe el test.
 
 ## Frontend
 
@@ -147,9 +175,12 @@ Test parametrizado que recorre `app.url_map` y verifica que cada view function e
 
 ## Verificación
 
-1. `pytest` backend completo en verde: tests de `main` + portados + `stock_service` + cobertura de permisos.
-2. `npm run build` y `eslint` sin errores.
-3. `flask db upgrade` desde base vacía hasta head, y `flask db downgrade` hasta `merge_heads_march8`.
+1. `pytest` backend: `main` ya tiene 29 fallas y 44 errores preexistentes (en `test_permissions`,
+   `test_sales_date_filter`, `test_employee_documents`, `test_social_security_documents`,
+   `test_schedule_management`, `test_payroll_deletion`). Se guarda esa línea base y el criterio es
+   **cero fallas nuevas** respecto de ella, más todos los tests nuevos y portados en verde.
+2. `npm run build` sin errores y `npm run lint` sin errores nuevos respecto de `main`.
+3. `flask db upgrade` desde base vacía hasta head, y `flask db downgrade` hasta `add_menu_tables`.
 4. Prueba manual en navegador:
    - admin: ve todos los módulos; crea proveedor, categoría, producto con receta; ajusta stock; cambia logo.
    - employee: ve sólo Mi Nómina y Mi Horario; los endpoints nuevos responden 403.
