@@ -111,7 +111,7 @@ def test_publish_endpoint(menu_client, admin_headers, storage):
     data = response.get_json()
     assert response.status_code == 200
     assert data['status']['has_unpublished_changes'] is False
-    assert json.loads(storage.objects['menu.json']['body'])['categories'][0]['items'][0]['name'] == 'Latte'
+    assert json.loads(storage.objects['menu.json']['body'])['groups'][0]['categories'][0]['items'][0]['name'] == 'Latte'
 
 
 def test_upload_rejects_oversized_request(menu_client, admin_headers, storage):

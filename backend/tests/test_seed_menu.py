@@ -49,4 +49,4 @@ def test_build_snapshot_returns_seeded_categories(menu_app):
     seed(_load_seed())
 
     snapshot = build_snapshot()
-    assert len(snapshot['categories']) == 19
+    assert sum(len(g['categories']) for g in snapshot['groups']) == 19

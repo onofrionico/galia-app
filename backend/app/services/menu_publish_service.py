@@ -6,12 +6,12 @@ import os
 from datetime import datetime
 
 from app.extensions import db
-from app.models.menu import MenuCategory, MenuItem, MenuTag, MenuSetting
+from app.models.menu import MenuCategory, MenuGroup, MenuItem, MenuTag, MenuSetting
 from app.utils.menu_storage import public_url
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_VERSION = 1
+SNAPSHOT_VERSION = 2
 
 
 def _price(value):
@@ -21,7 +21,7 @@ def _price(value):
 
 def _build(image_url):
     """Arma el contenido de la carta usando `image_url(image_key)` para las fotos."""
-    categories = []
+    built = []
     used_tags = set()
     visible_categories = (
         MenuCategory.query.filter_by(is_visible=True)
@@ -45,12 +45,24 @@ def _build(image_url):
                 'variants': [{'label': v.label, 'price': _price(v.price)} for v in item.variants],
             })
         if items:
-            categories.append({
+            built.append((category.group_id, {
                 'slug': category.slug,
                 'name': category.name,
                 'description': category.description,
+                'show_title': bool(category.show_title),
                 'items': items,
-            })
+            }))
+
+    groups = MenuGroup.query.order_by(MenuGroup.sort_order, MenuGroup.id).all()
+    if not groups:
+        grouped = [{'slug': '_carta', 'name': None, 'categories': [c for _, c in built]}]
+    else:
+        grouped = [
+            {'slug': g.slug, 'name': g.name, 'categories': [c for gid, c in built if gid == g.id]}
+            for g in groups
+        ]
+        grouped.append({'slug': '_otros', 'name': 'Otros', 'categories': [c for gid, c in built if gid is None]})
+    grouped = [g for g in grouped if g['categories']]
 
     tags = [
         {'slug': tag.slug, 'name': tag.name, 'color': tag.color}
@@ -64,7 +76,7 @@ def _build(image_url):
             'instagram': MenuSetting.get('instagram', '') or '',
         },
         'tags': tags,
-        'categories': categories,
+        'groups': grouped,
     }
 
 
@@ -86,10 +98,11 @@ def snapshot_hash(snapshot):
 def structure_hash():
     """Hash del snapshot ignorando precios: detecta cambios estructurales (no sólo de precio)."""
     snapshot = copy.deepcopy(_hash_snapshot())
-    for category in snapshot['categories']:
-        for item in category['items']:
-            for variant in item.get('variants', []):
-                variant.pop('price', None)
+    for group in snapshot['groups']:
+        for category in group['categories']:
+            for item in category['items']:
+                for variant in item.get('variants', []):
+                    variant.pop('price', None)
     return snapshot_hash(snapshot)
 
 
@@ -100,7 +113,8 @@ def has_unpublished_changes():
 def publish(storage):
     snapshot = build_snapshot()
     if not os.getenv('MENU_PUBLIC_BASE_URL', '').strip() and any(
-        item['image'] for category in snapshot['categories'] for item in category['items']
+        item['image']
+        for group in snapshot['groups'] for category in group['categories'] for item in category['items']
     ):
         logger.warning('MENU_PUBLIC_BASE_URL no está configurada: las fotos de la carta tendrán URLs relativas')
     published_at = datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
