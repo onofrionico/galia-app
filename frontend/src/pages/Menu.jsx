@@ -83,6 +83,11 @@ const Menu = () => {
     load()
   }
 
+  const allItems = useMemo(
+    () => (menu?.categories || []).flatMap((c) => c.items.map((i) => ({ ...i, categoryName: c.name }))),
+    [menu],
+  )
+
   if (loading) {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600" /></div>
   }
@@ -202,6 +207,7 @@ const Menu = () => {
       {itemModal && (
         <MenuItemModal
           item={itemModal.item}
+          allItems={allItems}
           defaultCategoryId={itemModal.categoryId}
           categories={menu.categories}
           tags={menu.tags}

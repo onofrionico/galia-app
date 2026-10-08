@@ -88,7 +88,7 @@ const navGroups = [
     headerClass: 'text-rose-700 bg-rose-50',
     items: [
       { to: '/menu', icon: BookOpen, label: 'Carta' },
-      { to: '/menu/inbox', icon: Inbox, label: 'Sin asignar', subItem: true },
+      { to: '/menu/inbox', icon: Inbox, label: 'Nuevos y alertas', subItem: true },
     ],
   },
 ]

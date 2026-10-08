@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Trash2, Plus, Link2, Unlink, ImagePlus } from 'lucide-react'
 import ModalShell from './ModalShell'
 import FudoProductPicker from './FudoProductPicker'
+import ItemPicker from './ItemPicker'
 import menuService from '../../services/menuService'
 import { formatPrice, errorMessage } from '../../utils/menuFormat'
 
@@ -14,9 +15,9 @@ const toFormVariant = (v) => ({
   fudo_status: v.fudo_status || null,
 })
 
-// item: ítem existente o null. prefill: datos iniciales para un ítem nuevo (desde la bandeja).
-const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onClose, onSaved }) => {
-  const source = item || prefill || {}
+// item: ítem existente o null. allItems: lista plana { id, name, categoryName, variants } para unir ítems.
+const MenuItemModal = ({ item, allItems = [], categories, tags, defaultCategoryId, onClose, onSaved }) => {
+  const source = item || {}
   const [form, setForm] = useState({
     name: source.name || '',
     description: source.description || '',
@@ -32,6 +33,7 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
   const [imagePreview, setImagePreview] = useState(item?.image_url || null)
   const [removeImage, setRemoveImage] = useState(false)
   const [savedItemId, setSavedItemId] = useState(item?.id || null)
+  const [mergePicker, setMergePicker] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,6 +45,8 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
     if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
   }, [imagePreview])
 
+  const isLinked = variants.some((v) => v.fudo_product_id)
+  const categoryName = categories.find((c) => c.id === form.category_id)?.name
   const productsById = useMemo(() => Object.fromEntries(products.map((p) => [p.fudo_id, p])), [products])
   const ownFudoIds = useMemo(() => new Set((item?.variants || []).map((v) => v.fudo_product_id).filter(Boolean)), [item])
 
@@ -64,9 +68,10 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
     e.preventDefault()
     setSaving(true)
     setError('')
+    const { category_id: _category, ...rest } = form
     const payload = {
-      ...form,
-      category_id: Number(form.category_id),
+      ...rest,
+      ...(isLinked ? {} : { category_id: Number(form.category_id) }),
       variants: variants.map((v) => ({
         label: v.label.trim() || null,
         fudo_product_id: v.fudo_product_id,
@@ -98,6 +103,30 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
     }
   }
 
+  const handleMerge = async (target) => {
+    if (!window.confirm(`¿Unir "${item.name}" dentro de "${target.name}"? Sus precios pasan a ese ítem y este se elimina.`)) return
+    setSaving(true)
+    try {
+      await menuService.mergeItem(target.id, item.id)
+      onSaved()
+    } catch (err) {
+      setError(errorMessage(err, 'Error al unir los ítems'))
+      setSaving(false)
+    }
+  }
+
+  const handleIgnore = async () => {
+    if (!window.confirm(`¿Ignorar "${item.name}"? Se quita de la carta y no se vuelve a crear al sincronizar.`)) return
+    setSaving(true)
+    try {
+      await menuService.ignoreItem(item.id)
+      onSaved()
+    } catch (err) {
+      setError(errorMessage(err, 'Error al ignorar el ítem'))
+      setSaving(false)
+    }
+  }
+
   // Si el ítem se creó en esta sesión (ej. falló la foto), cerrar debe refrescar la lista.
   const handleClose = () => (!item && savedItemId ? onSaved() : onClose())
 
@@ -111,9 +140,19 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
       footer={
         <>
           {item && (
-            <button type="button" onClick={handleDelete} disabled={saving} className="mr-auto px-4 py-2 text-red-600 hover:bg-red-50 rounded">
-              Borrar
-            </button>
+            <div className="mr-auto flex flex-wrap gap-1">
+              {!isLinked && (
+                <button type="button" onClick={handleDelete} disabled={saving} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded">
+                  Borrar
+                </button>
+              )}
+              <button type="button" onClick={() => setMergePicker((v) => !v)} disabled={saving} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                Unir con otro ítem
+              </button>
+              <button type="button" onClick={handleIgnore} disabled={saving} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                Ignorar
+              </button>
+            </div>
           )}
           <button type="button" onClick={handleClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">Cancelar</button>
           <button type="submit" form="item-form" disabled={saving} className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50">
@@ -124,6 +163,10 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
     >
       <form id="item-form" onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>}
+
+        {item && mergePicker && (
+          <ItemPicker items={allItems} excludeId={item.id} onSelect={handleMerge} onCancel={() => setMergePicker(false)} />
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -136,10 +179,16 @@ const MenuItemModal = ({ item, prefill, categories, tags, defaultCategoryId, onC
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded">
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          {isLinked ? (
+            <p className="text-sm text-gray-700">Categoría: <strong>{categoryName}</strong> <span className="text-xs text-gray-500">(de Fudo)</span></p>
+          ) : (
+            <>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded">
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </>
+          )}
         </div>
 
         <div>
