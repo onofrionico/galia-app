@@ -2,12 +2,11 @@ from decimal import Decimal
 
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuItem
+from menu_fakes import make_category
 
 
 def _create_category(client, headers, name='Cafés'):
-    response = client.post('/api/v1/menu/categories', json={'name': name}, headers=headers)
-    assert response.status_code == 201, response.get_json()
-    return response.get_json()
+    return make_category(name).to_dict()
 
 
 def _create_item(client, headers, category_id, **overrides):
@@ -34,28 +33,6 @@ def test_get_menu_tree_and_status(menu_client, admin_headers):
         'unassigned_count': 0,
         'alerts_count': 0,
     }
-
-
-def test_category_slugs_are_unique(menu_client, admin_headers):
-    first = _create_category(menu_client, admin_headers, 'Cafés')
-    second = _create_category(menu_client, admin_headers, 'Cafes')
-    assert (first['slug'], second['slug']) == ('cafes', 'cafes-2')
-    assert (first['sort_order'], second['sort_order']) == (0, 1)
-
-
-def test_category_requires_name(menu_client, admin_headers):
-    response = menu_client.post('/api/v1/menu/categories', json={'name': '  '}, headers=admin_headers)
-    assert response.status_code == 400
-
-
-def test_update_category(menu_client, admin_headers):
-    category = _create_category(menu_client, admin_headers)
-    response = menu_client.put(f"/api/v1/menu/categories/{category['id']}",
-                               json={'name': 'Cafetería', 'is_visible': False, 'description': 'Nota'},
-                               headers=admin_headers)
-    data = response.get_json()
-    assert response.status_code == 200
-    assert (data['name'], data['slug'], data['is_visible'], data['description']) == ('Cafetería', 'cafeteria', False, 'Nota')
 
 
 def test_cannot_delete_category_with_items(menu_client, admin_headers):

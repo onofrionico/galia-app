@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, jsonify, request
 
 from app.extensions import db
-from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant, MenuSetting, MenuTag
+from app.models.menu import FudoProduct, MenuCategory, MenuGroup, MenuItem, MenuItemVariant, MenuSetting, MenuTag
 from app.services import menu_publish_service, menu_sync_service
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.decorators import admin_required
@@ -98,42 +98,77 @@ def _parse_price(value):
 def get_menu(current_user):
     categories = MenuCategory.query.order_by(MenuCategory.sort_order, MenuCategory.id).all()
     return jsonify({
+        'groups': [group.to_dict() for group in MenuGroup.query.order_by(MenuGroup.sort_order, MenuGroup.id)],
         'categories': [category.to_dict(include_items=True) for category in categories],
         'tags': [tag.to_dict() for tag in MenuTag.query.order_by(MenuTag.name).all()],
         'status': _status(),
     }), 200
 
 
-# ---------- Categorías ----------
+# ---------- Grupos ----------
 
-@bp.route('/categories', methods=['POST'])
+@bp.route('/groups', methods=['POST'])
 @token_required
 @admin_required
-def create_category(current_user):
-    data = request.get_json() or {}
-    name, error = _required_text(data.get('name'), 100)
+def create_group(current_user):
+    name, error = _required_text((request.get_json() or {}).get('name'), 100)
     if error:
         return _error(error)
-    description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
-    if error:
-        return _error(error)
-    category = MenuCategory(
-        name=name,
-        slug=unique_slug(MenuCategory, name),
-        description=description,
-        is_visible=bool(data.get('is_visible', True)),
-        sort_order=_next_order(MenuCategory.sort_order),
-    )
-    db.session.add(category)
+    group = MenuGroup(name=name, slug=unique_slug(MenuGroup, name), sort_order=_next_order(MenuGroup.sort_order))
+    db.session.add(group)
     db.session.commit()
-    return jsonify(category.to_dict(include_items=True)), 201
+    return jsonify(group.to_dict()), 201
 
+
+@bp.route('/groups/reorder', methods=['PUT'])
+@token_required
+@admin_required
+def reorder_groups(current_user):
+    if not _apply_order(MenuGroup, (request.get_json() or {}).get('ids')):
+        return _error('La lista de grupos no es válida')
+    return jsonify({'message': 'Orden actualizado'}), 200
+
+
+@bp.route('/groups/<int:group_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_group(current_user, group_id):
+    group = db.get_or_404(MenuGroup, group_id)
+    name, error = _required_text((request.get_json() or {}).get('name'), 100)
+    if error:
+        return _error(error)
+    group.name = name
+    group.slug = unique_slug(MenuGroup, name, exclude_id=group.id)
+    db.session.commit()
+    return jsonify(group.to_dict()), 200
+
+
+@bp.route('/groups/<int:group_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_group(current_user, group_id):
+    group = db.get_or_404(MenuGroup, group_id)
+    start = _next_order(MenuCategory.sort_order, MenuCategory.group_id.is_(None))
+    for offset, category in enumerate(sorted(group.categories, key=lambda c: (c.sort_order, c.id))):
+        category.group_id = None
+        category.sort_order = start + offset
+    db.session.delete(group)
+    db.session.commit()
+    return jsonify({'message': 'Grupo eliminado'}), 200
+
+
+# ---------- Categorías ----------
 
 @bp.route('/categories/reorder', methods=['PUT'])
 @token_required
 @admin_required
 def reorder_categories(current_user):
-    if not _apply_order(MenuCategory, (request.get_json() or {}).get('ids')):
+    data = request.get_json() or {}
+    group_id = data.get('group_id')
+    if group_id is not None and not _is_int(group_id):
+        return _error('Grupo inexistente')
+    scope = MenuCategory.group_id.is_(None) if group_id is None else MenuCategory.group_id == group_id
+    if not _apply_order(MenuCategory, data.get('ids'), scope):
         return _error('La lista de categorías no es válida')
     return jsonify({'message': 'Orden actualizado'}), 200
 
@@ -145,6 +180,8 @@ def update_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
     data = request.get_json() or {}
     if 'name' in data:
+        if category.fudo_category_id:
+            return _error('El nombre de la categoría viene de Fudo')
         name, error = _required_text(data.get('name'), 100)
         if error:
             return _error(error)
@@ -157,6 +194,16 @@ def update_category(current_user, category_id):
         category.description = description
     if 'is_visible' in data:
         category.is_visible = bool(data['is_visible'])
+    if 'show_title' in data:
+        category.show_title = bool(data['show_title'])
+    if 'group_id' in data:
+        group_id = data['group_id']
+        if group_id is not None and (not _is_int(group_id) or db.session.get(MenuGroup, group_id) is None):
+            return _error('Grupo inexistente')
+        if category.group_id != group_id:
+            scope = MenuCategory.group_id.is_(None) if group_id is None else MenuCategory.group_id == group_id
+            category.sort_order = _next_order(MenuCategory.sort_order, scope)
+            category.group_id = group_id
     db.session.commit()
     return jsonify(category.to_dict(include_items=True)), 200
 
@@ -166,6 +213,8 @@ def update_category(current_user, category_id):
 @admin_required
 def delete_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
+    if category.fudo_category_id:
+        return _error('Las categorías de Fudo no se borran: ocultala', 409)
     if category.items:
         return _error('La categoría tiene ítems: movelos o borralos primero', 409)
     db.session.delete(category)

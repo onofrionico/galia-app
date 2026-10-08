@@ -37,3 +37,14 @@ def fudo_product(fudo_id, name, price, active=True, category_id='1'):
 
 def fudo_category(category_id, name):
     return {'id': str(category_id), 'type': 'ProductCategory', 'attributes': {'name': name}}
+
+
+def make_category(name='Cafés', fudo_category_id=None, **kwargs):
+    """Por defecto crea una categoría 'heredada' (sin vínculo a Fudo); pasar fudo_category_id único para una de Fudo."""
+    from app.extensions import db
+    from app.models.menu import MenuCategory
+    from app.utils.slug import unique_slug
+    category = MenuCategory(name=name, slug=unique_slug(MenuCategory, name), fudo_category_id=fudo_category_id, **kwargs)
+    db.session.add(category)
+    db.session.commit()
+    return category

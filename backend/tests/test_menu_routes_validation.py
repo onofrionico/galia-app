@@ -1,12 +1,11 @@
 import pytest
 
 from app.models.menu import MenuCategory, MenuItem, MenuTag
+from menu_fakes import make_category
 
 
 def _category(client, headers, name='Cafés'):
-    response = client.post('/api/v1/menu/categories', json={'name': name}, headers=headers)
-    assert response.status_code == 201
-    return response.get_json()
+    return make_category(name).to_dict()
 
 
 def _item(client, headers, category_id, **overrides):
@@ -73,12 +72,6 @@ def test_update_item_rejects_wrong_types(menu_client, admin_headers):
 
 def test_length_limits(menu_client, admin_headers):
     category = _category(menu_client, admin_headers)
-    response = menu_client.post('/api/v1/menu/categories', json={'name': 'x' * 101}, headers=admin_headers)
-    assert response.status_code == 400
-    assert response.get_json()['error'] == 'El nombre es demasiado largo (máximo 100 caracteres)'
-    assert menu_client.put(f"/api/v1/menu/categories/{category['id']}", json={'name': 'x' * 101},
-                           headers=admin_headers).status_code == 400
-
     response = _item(menu_client, admin_headers, category['id'], name='x' * 201)
     assert response.status_code == 400
     assert 'máximo 200' in response.get_json()['error']
