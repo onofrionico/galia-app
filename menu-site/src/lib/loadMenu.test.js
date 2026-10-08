@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { loadMenu, CACHE_KEY, MenuUnavailableError } from './loadMenu'
 
 const validMenu = { version: 1, settings: {}, tags: [], categories: [{ slug: 'cafes', name: 'Cafés', items: [] }] }
+const normalizedMenu = {
+  version: 2,
+  settings: {},
+  tags: [],
+  groups: [{ slug: '_carta', name: null, categories: [{ slug: 'cafes', name: 'Cafés', show_title: true, items: [] }] }],
+}
 
 function memoryStorage(initial = {}) {
   const data = { ...initial }
@@ -19,14 +25,14 @@ describe('loadMenu', () => {
   it('descarga y cachea la carta', async () => {
     const storage = memoryStorage()
     const result = await loadMenu({ url: 'u', fetchImpl: okFetch(validMenu), storage })
-    expect(result).toEqual({ menu: validMenu, source: 'network' })
-    expect(JSON.parse(storage.data[CACHE_KEY])).toEqual(validMenu)
+    expect(result).toEqual({ menu: normalizedMenu, source: 'network' })
+    expect(JSON.parse(storage.data[CACHE_KEY])).toEqual(normalizedMenu)
   })
 
   it('usa la caché si la red falla', async () => {
     const storage = memoryStorage({ [CACHE_KEY]: JSON.stringify(validMenu) })
     const result = await loadMenu({ url: 'u', fetchImpl: failingFetch, storage })
-    expect(result).toEqual({ menu: validMenu, source: 'cache' })
+    expect(result).toEqual({ menu: normalizedMenu, source: 'cache' })
   })
 
   it('usa la caché si la respuesta es inválida', async () => {
@@ -63,9 +69,23 @@ describe('loadMenu', () => {
     const { menu } = await loadMenu({ url: 'u', fetchImpl: okFetch(raw), storage: null })
     expect(menu.tags).toEqual([])
     expect(menu.settings).toEqual({})
-    expect(menu.categories[0].items[0].tags).toEqual([])
-    expect(menu.categories[0].items[0].variants).toEqual([])
-    expect(menu.categories[1].items).toEqual([])
+    expect(menu.groups[0].categories[0].items[0].tags).toEqual([])
+    expect(menu.groups[0].categories[0].items[0].variants).toEqual([])
+    expect(menu.groups[0].categories[1].items).toEqual([])
+  })
+
+  it('convierte un menú v1 en un único grupo sin título', async () => {
+    const v1 = { version: 1, settings: {}, tags: [], categories: [{ slug: 'cafes', name: 'Cafés', items: [] }] }
+    const { menu } = await loadMenu({ url: 'u', fetchImpl: okFetch(v1), storage: memoryStorage() })
+    expect(menu.version).toBe(2)
+    expect(menu.groups).toEqual([{ slug: '_carta', name: null, categories: [{ slug: 'cafes', name: 'Cafés', show_title: true, items: [] }] }])
+  })
+
+  it('acepta v2 y completa show_title', async () => {
+    const v2 = { version: 2, groups: [{ slug: 'g', name: 'G', categories: [{ slug: 'c', name: 'C', items: [{ id: 1, name: 'X' }] }] }] }
+    const { menu } = await loadMenu({ url: 'u', fetchImpl: okFetch(v2), storage: memoryStorage() })
+    expect(menu.groups[0].categories[0].show_title).toBe(true)
+    expect(menu.groups[0].categories[0].items[0].tags).toEqual([])
   })
 
   it('funciona sin storage disponible', async () => {
