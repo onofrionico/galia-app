@@ -10,7 +10,7 @@ def slugify(text):
 
 def unique_slug(model, text, exclude_id=None):
     """Devuelve un slug único para `model` (debe tener columnas `slug` e `id`)."""
-    base = slugify(text)
+    base = slugify(text)[:110].rstrip('-') or 'item'
     slug = base
     suffix = 2
     while True:

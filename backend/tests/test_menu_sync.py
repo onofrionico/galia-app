@@ -174,3 +174,33 @@ def test_new_items_lists_unreviewed(menu_app):
     reviewed.reviewed_at = datetime.utcnow()
     db.session.commit()
     assert [i.name for i in new_items()] == ['B']
+
+
+def test_reappearing_category_becomes_visible_again(menu_app):
+    prods = [fudo_product(1, 'Latte', 1)]
+    sync_fudo_products(FakeFudoClient(products=prods, categories=_categories()))
+    sync_fudo_products(FakeFudoClient(products=prods, categories=[fudo_category(1, 'Cafetería')]))
+    sync_fudo_products(FakeFudoClient(products=prods, categories=_categories()))
+    cat = MenuCategory.query.filter_by(fudo_category_id='2').one()
+    assert cat.is_visible is True and cat.fudo_status is None
+
+
+def test_admin_hidden_category_stays_hidden(menu_app):
+    prods = [fudo_product(1, 'Latte', 1)]
+    sync_fudo_products(FakeFudoClient(products=prods, categories=_categories()))
+    MenuCategory.query.filter_by(fudo_category_id='2').one().is_visible = False
+    db.session.commit()
+    sync_fudo_products(FakeFudoClient(products=prods, categories=_categories()))
+    assert MenuCategory.query.filter_by(fudo_category_id='2').one().is_visible is False
+
+
+def test_empty_category_list_does_not_flag_missing(menu_app):
+    prods = [fudo_product(1, 'Latte', 1)]
+    sync_fudo_products(FakeFudoClient(products=prods, categories=_categories()))
+    sync_fudo_products(FakeFudoClient(products=prods, categories=[]))
+    assert all(c.is_visible and c.fudo_status is None for c in MenuCategory.query.filter(MenuCategory.fudo_category_id.in_(['1', '2'])))
+
+
+def test_long_category_name_gives_bounded_slug(menu_app):
+    sync_fudo_products(FakeFudoClient(products=[fudo_product(1, 'L', 1)], categories=[fudo_category(1, 'x' * 300)]))
+    assert len(MenuCategory.query.filter_by(fudo_category_id='1').one().slug) <= 120

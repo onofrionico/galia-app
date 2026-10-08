@@ -1,6 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
 
+from sqlalchemy.orm import selectinload
+
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant
 from app.utils.slug import unique_slug
@@ -28,8 +30,9 @@ def _next_item_order(category_id):
 def _upsert_category(by_fudo_id, fudo_category_id, name, stats):
     category = by_fudo_id.get(fudo_category_id)
     if category is None:
+        name = name[:100]
         category = MenuCategory(
-            fudo_category_id=fudo_category_id, name=name[:100], slug=unique_slug(MenuCategory, name),
+            fudo_category_id=fudo_category_id, name=name, slug=unique_slug(MenuCategory, name),
             is_visible=True, show_title=True, sort_order=_next_category_order(),
         )
         db.session.add(category)
@@ -37,15 +40,20 @@ def _upsert_category(by_fudo_id, fudo_category_id, name, stats):
         by_fudo_id[fudo_category_id] = category
         stats['categories_created'] += 1
     else:
-        if category.name != name[:100]:
-            category.name = name[:100]
+        name = name[:100]
+        if category.name != name:
+            category.name = name
             category.slug = unique_slug(MenuCategory, name, exclude_id=category.id)
+        if category.fudo_status == 'missing':
+            category.is_visible = True
         category.fudo_status = None
     return category
 
 
 def _sync_categories(raw_categories, stats):
     by_fudo_id = {c.fudo_category_id: c for c in MenuCategory.query.filter(MenuCategory.fudo_category_id.isnot(None))}
+    if not raw_categories:
+        return by_fudo_id
     seen = set()
     for raw in raw_categories:
         fudo_category_id = str(raw['id'])
@@ -77,6 +85,8 @@ def assign_fudo_category(item, products_by_id=None, categories=None):
         product = (products_by_id or {}).get(variant.fudo_product_id) or db.session.get(FudoProduct, variant.fudo_product_id)
         if product is None:
             continue
+        if product.fudo_category_id and product.fudo_category_id not in categories:
+            return False  # categoría desconocida (p. ej. Fudo no devolvió categorías): no mover
         stats = {'categories_created': 0}
         category = _category_for_product(product, categories, stats)
         if item.category_id != category.id:
@@ -133,7 +143,10 @@ def sync_fudo_products(client):
         if variant.fudo_status != 'ok':
             alerts += 1
 
-    linked_items = MenuItem.query.join(MenuItemVariant).filter(MenuItemVariant.fudo_product_id.isnot(None)).distinct().all()
+    linked_items = (
+        MenuItem.query.join(MenuItemVariant).filter(MenuItemVariant.fudo_product_id.isnot(None))
+        .options(selectinload(MenuItem.variants)).distinct().all()
+    )
     for item in linked_items:
         assign_fudo_category(item, by_id, categories)
 

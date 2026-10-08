@@ -53,3 +53,28 @@ def test_does_not_publish_without_price_changes(menu_app, storage):
 def test_does_not_publish_if_never_published(menu_app, storage):
     _linked_item()
     assert sync_and_publish(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]), storage)['published'] is False
+
+
+def test_does_not_publish_structure_changes(menu_app, storage):
+    from app.models.menu import MenuCategory as Cat
+    _linked_item()
+    publish(storage)
+    storage.objects.pop('menu.json')
+
+    client = FakeFudoClient(
+        products=[fudo_product(1, 'Latte', 6900, category_id='7')],
+        categories=[{'id': '7', 'type': 'ProductCategory', 'attributes': {'name': 'Nueva'}}],
+    )
+    result = sync_and_publish(client, storage)
+
+    assert result['price_changes'] == 1
+    assert result['structure_changed'] is True
+    assert result['published'] is False
+    assert 'menu.json' not in storage.objects
+
+
+def test_price_only_change_reports_no_structure_change(menu_app, storage):
+    _linked_item()
+    publish(storage)
+    result = sync_and_publish(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]), storage)
+    assert result['published'] is True and result['structure_changed'] is False

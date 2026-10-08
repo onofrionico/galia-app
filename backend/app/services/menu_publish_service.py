@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import json
 import logging
@@ -80,6 +81,16 @@ def _hash_snapshot():
 def snapshot_hash(snapshot):
     encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode('utf-8')
     return hashlib.sha256(encoded).hexdigest()
+
+
+def structure_hash():
+    """Hash del snapshot ignorando precios: detecta cambios estructurales (no sólo de precio)."""
+    snapshot = copy.deepcopy(_hash_snapshot())
+    for category in snapshot['categories']:
+        for item in category['items']:
+            for variant in item.get('variants', []):
+                variant.pop('price', None)
+    return snapshot_hash(snapshot)
 
 
 def has_unpublished_changes():
