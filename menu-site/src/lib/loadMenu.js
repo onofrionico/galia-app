@@ -3,21 +3,39 @@ export const CACHE_KEY = 'galia-menu-v1'
 export class MenuUnavailableError extends Error {}
 
 function isValidMenu(data) {
-  return Boolean(data) && data.version === 1 && Array.isArray(data.categories)
+  if (!data) return false
+  return (
+    (data.version === 1 && Array.isArray(data.categories)) ||
+    (data.version === 2 && Array.isArray(data.groups))
+  )
+}
+
+function normalizeCategory(category) {
+  return {
+    ...category,
+    show_title: category.show_title !== false,
+    items: (Array.isArray(category.items) ? category.items : []).map((item) => ({
+      ...item,
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      variants: Array.isArray(item.variants) ? item.variants : [],
+    })),
+  }
 }
 
 function normalizeMenu(menu) {
+  const groups = menu.version === 1
+    ? [{ slug: '_carta', name: null, categories: menu.categories }]
+    : menu.groups
+  const { categories, ...rest } = menu
   return {
-    ...menu,
+    ...rest,
+    version: 2,
     tags: Array.isArray(menu.tags) ? menu.tags : [],
     settings: menu.settings && typeof menu.settings === 'object' ? menu.settings : {},
-    categories: menu.categories.map((category) => ({
-      ...category,
-      items: (Array.isArray(category.items) ? category.items : []).map((item) => ({
-        ...item,
-        tags: Array.isArray(item.tags) ? item.tags : [],
-        variants: Array.isArray(item.variants) ? item.variants : [],
-      })),
+    groups: groups.map((group) => ({
+      ...group,
+      name: group.name ?? null,
+      categories: (Array.isArray(group.categories) ? group.categories : []).map(normalizeCategory),
     })),
   }
 }

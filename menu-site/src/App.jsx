@@ -5,7 +5,7 @@ import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import TagFilters from './components/TagFilters'
 import CategoryNav from './components/CategoryNav'
-import CategorySection from './components/CategorySection'
+import GroupSection from './components/GroupSection'
 import Lightbox from './components/Lightbox'
 import Footer from './components/Footer'
 import MenuMessage from './components/MenuMessage'
@@ -25,10 +25,16 @@ export default function App() {
   }, [])
 
   const menu = state.menu
-  const categories = useMemo(
-    () => (menu ? filterMenu(menu.categories, { query, tagSlugs: activeTags }) : []),
+  const groups = useMemo(
+    () => (menu ? filterMenu(menu.groups, { query, tagSlugs: activeTags }) : []),
     [menu, query, activeTags],
   )
+  const navEntries = useMemo(() => {
+    if (groups.length === 1 && groups[0].name === null) {
+      return groups[0].categories.map((c) => ({ slug: c.slug, label: c.name, targetId: `cat-${c.slug}` }))
+    }
+    return groups.map((g) => ({ slug: g.slug, label: g.name, targetId: `grupo-${g.slug}` }))
+  }, [groups])
   const tagsBySlug = useMemo(() => Object.fromEntries((menu?.tags || []).map((t) => [t.slug, t])), [menu])
 
   const toggleTag = (slug) =>
@@ -46,14 +52,14 @@ export default function App() {
           <div className="sticky top-0 z-10 space-y-2 bg-cream/95 px-4 pb-3 pt-2 backdrop-blur">
             <SearchBar value={query} onChange={setQuery} />
             <TagFilters tags={menu.tags} active={activeTags} onToggle={toggleTag} />
-            <CategoryNav categories={categories} />
+            <CategoryNav entries={navEntries} />
           </div>
           <main className="px-4">
-            {categories.length === 0 ? (
+            {groups.length === 0 ? (
               <MenuMessage title="Sin resultados">Probá con otra palabra o sacá algún filtro.</MenuMessage>
             ) : (
-              categories.map((category) => (
-                <CategorySection key={category.slug} category={category} tagsBySlug={tagsBySlug} onOpenPhoto={setPhotoItem} />
+              groups.map((group) => (
+                <GroupSection key={group.slug} group={group} tagsBySlug={tagsBySlug} onOpenPhoto={setPhotoItem} />
               ))
             )}
           </main>

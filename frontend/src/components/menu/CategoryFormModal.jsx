@@ -4,10 +4,12 @@ import menuService from '../../services/menuService'
 import { errorMessage } from '../../utils/menuFormat'
 
 const CategoryFormModal = ({ category, onClose, onSaved }) => {
+  const isManual = !category.fudo_category_id
   const [form, setForm] = useState({
-    name: category?.name || '',
-    description: category?.description || '',
-    is_visible: category?.is_visible ?? true,
+    name: category.name || '',
+    description: category.description || '',
+    is_visible: category.is_visible ?? true,
+    show_title: category.show_title ?? true,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -17,8 +19,9 @@ const CategoryFormModal = ({ category, onClose, onSaved }) => {
     setSaving(true)
     setError('')
     try {
-      if (category) await menuService.updateCategory(category.id, form)
-      else await menuService.createCategory(form)
+      const payload = { description: form.description, is_visible: form.is_visible, show_title: form.show_title }
+      if (isManual) payload.name = form.name
+      await menuService.updateCategory(category.id, payload)
       onSaved()
     } catch (err) {
       setError(errorMessage(err, 'Error al guardar la categoría'))
@@ -42,11 +45,11 @@ const CategoryFormModal = ({ category, onClose, onSaved }) => {
 
   return (
     <ModalShell
-      title={category ? 'Editar categoría' : 'Nueva categoría'}
+      title="Editar categoría"
       onClose={onClose}
       footer={
         <>
-          {category && (
+          {isManual && (
             <button type="button" onClick={handleDelete} disabled={saving} className="mr-auto px-4 py-2 text-red-600 hover:bg-red-50 rounded">
               Borrar
             </button>
@@ -66,8 +69,10 @@ const CategoryFormModal = ({ category, onClose, onSaved }) => {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500"
+            readOnly={!isManual}
+            className={`w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 ${isManual ? '' : 'bg-gray-50 text-gray-600'}`}
           />
+          {!isManual && <p className="text-xs text-gray-500 mt-1">Viene de Fudo</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nota (se muestra bajo el título)</label>
@@ -82,6 +87,10 @@ const CategoryFormModal = ({ category, onClose, onSaved }) => {
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={form.is_visible} onChange={(e) => setForm({ ...form, is_visible: e.target.checked })} />
           Visible en la carta
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={form.show_title} onChange={(e) => setForm({ ...form, show_title: e.target.checked })} />
+          Mostrar título en la carta
         </label>
       </form>
     </ModalShell>

@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Plus, RefreshCw, Upload, ExternalLink, AlertTriangle, Inbox } from 'lucide-react'
+import { RefreshCw, Upload, ExternalLink, AlertTriangle, Inbox } from 'lucide-react'
 import menuService from '../services/menuService'
 import CategoryCard from '../components/menu/CategoryCard'
+import GroupsPanel from '../components/menu/GroupsPanel'
 import CategoryFormModal from '../components/menu/CategoryFormModal'
 import MenuItemModal from '../components/menu/MenuItemModal'
 import MenuSettingsPanel from '../components/menu/MenuSettingsPanel'
@@ -57,9 +58,18 @@ const Menu = () => {
 
   const handlePublish = () => run('publish', menuService.publish, 'Carta publicada. Los clientes ya ven los cambios.')
 
-  const moveCategory = (index, direction) => {
-    const ids = swap(menu.categories.map((c) => c.id), index, index + direction)
-    if (ids) run('reorder', () => menuService.reorderCategories(ids))
+  const sections = useMemo(() => {
+    if (!menu) return []
+    const byGroup = (groupId) => menu.categories.filter((c) => (c.group_id ?? null) === groupId)
+    return [
+      ...menu.groups.map((g) => ({ key: `g${g.id}`, groupId: g.id, title: g.name, categories: byGroup(g.id) })),
+      { key: 'none', groupId: null, title: menu.groups.length ? 'Sin grupo' : null, categories: byGroup(null) },
+    ].filter((s) => s.categories.length > 0 || s.groupId !== null)
+  }, [menu])
+
+  const moveCategory = (section, index, direction) => {
+    const ids = swap(section.categories.map((c) => c.id), index, index + direction)
+    if (ids) run('reorder', () => menuService.reorderCategories(section.groupId, ids))
   }
 
   const moveItem = (category, index, direction) => {
@@ -72,6 +82,11 @@ const Menu = () => {
     setItemModal(null)
     load()
   }
+
+  const allItems = useMemo(
+    () => (menu?.categories || []).flatMap((c) => c.items.map((i) => ({ ...i, categoryName: c.name }))),
+    [menu],
+  )
 
   if (loading) {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600" /></div>
@@ -89,7 +104,8 @@ const Menu = () => {
   }
 
   const status = menu.status
-  const pendingCount = (status?.unassigned_count || 0) + (status?.alerts_count || 0)
+  const legacy = menu.categories.filter((c) => !c.fudo_category_id)
+  const pendingCount = (status?.new_count || 0) + (status?.alerts_count || 0)
 
   return (
     <div className="space-y-4">
@@ -124,7 +140,7 @@ const Menu = () => {
         {pendingCount > 0 && (
           <Link to="/menu/inbox" className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded bg-blue-50 text-blue-800 hover:bg-blue-100">
             <Inbox className="h-4 w-4" />
-            {status.unassigned_count > 0 && <>{status.unassigned_count} sin asignar</>}
+            {status.new_count > 0 && <>{status.new_count} nuevos por revisar</>}
             {status.alerts_count > 0 && <><AlertTriangle className="h-4 w-4 ml-1 text-amber-600" /> {status.alerts_count} alertas</>}
           </Link>
         )}
@@ -134,7 +150,7 @@ const Menu = () => {
       {notice && <div className="p-3 bg-green-50 text-green-700 rounded text-sm">{notice}</div>}
 
       <div className="flex gap-4 border-b border-gray-200">
-        {[['carta', 'Carta'], ['config', 'Configuración']].map(([key, label]) => (
+        {[['carta', 'Carta'], ['grupos', 'Grupos'], ['config', 'Configuración']].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -147,31 +163,40 @@ const Menu = () => {
       </div>
 
       {tab === 'carta' ? (
-        <div className="space-y-3">
-          {menu.categories.map((category, index) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              index={index}
-              total={menu.categories.length}
-              tagsById={tagsById}
-              onMove={moveCategory}
-              onEdit={() => setCategoryModal({ category })}
-              onToggle={() => run('toggle', () => menuService.updateCategory(category.id, { is_visible: !category.is_visible }))}
-              onAddItem={() => setItemModal({ item: null, categoryId: category.id })}
-              onEditItem={(item) => setItemModal({ item, categoryId: category.id })}
-              onToggleItem={(item) => run('toggle', () => menuService.updateItem(item.id, { is_visible: !item.is_visible }))}
-              onMoveItem={moveItem}
-            />
+        <div className="space-y-5">
+          {legacy.length > 0 && (
+            <div className="p-3 bg-amber-50 text-amber-800 rounded text-sm">
+              Hay {legacy.length} categorías creadas a mano (no vienen de Fudo). Mové sus ítems o borralas.
+            </div>
+          )}
+          {sections.map((section) => (
+            <div key={section.key} className="space-y-3">
+              {section.title && (
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{section.title}</h2>
+              )}
+              {section.categories.map((category, index) => (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  index={index}
+                  total={section.categories.length}
+                  tagsById={tagsById}
+                  groups={menu.groups}
+                  onChangeGroup={(c, groupId) => run('group', () => menuService.updateCategory(c.id, { group_id: groupId }))}
+                  onMove={(i, direction) => moveCategory(section, i, direction)}
+                  onEdit={() => setCategoryModal({ category })}
+                  onToggle={() => run('toggle', () => menuService.updateCategory(category.id, { is_visible: !category.is_visible }))}
+                  onAddItem={() => setItemModal({ item: null, categoryId: category.id })}
+                  onEditItem={(item) => setItemModal({ item, categoryId: category.id })}
+                  onToggleItem={(item) => run('toggle', () => menuService.updateItem(item.id, { is_visible: !item.is_visible }))}
+                  onMoveItem={moveItem}
+                />
+              ))}
+            </div>
           ))}
-          <button
-            type="button"
-            onClick={() => setCategoryModal({ category: null })}
-            className="w-full inline-flex items-center justify-center gap-1 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-rose-400 hover:text-rose-700"
-          >
-            <Plus className="h-4 w-4" /> Categoría
-          </button>
         </div>
+      ) : tab === 'grupos' ? (
+        <GroupsPanel groups={menu.groups} onChanged={load} />
       ) : (
         <MenuSettingsPanel tags={menu.tags} onChanged={load} />
       )}
@@ -182,6 +207,7 @@ const Menu = () => {
       {itemModal && (
         <MenuItemModal
           item={itemModal.item}
+          allItems={allItems}
           defaultCategoryId={itemModal.categoryId}
           categories={menu.categories}
           tags={menu.tags}

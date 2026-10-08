@@ -1,10 +1,13 @@
 import MenuItem from './MenuItem'
-import { sectionId } from './CategoryNav'
 
-export default function CategorySection({ category, tagsBySlug, onOpenPhoto }) {
+export default function CategorySection({ category, nested = false, tagsBySlug, onOpenPhoto }) {
+  const Title = nested ? 'h3' : 'h2'
+  const titleClass = nested
+    ? 'mt-4 font-display text-2xl uppercase tracking-wide text-plum-light'
+    : 'font-display text-3xl uppercase tracking-wide'
   return (
-    <section id={sectionId(category.slug)} data-slug={category.slug} className="scroll-mt-48 py-4">
-      <h2 className="font-display text-3xl uppercase tracking-wide">{category.name}</h2>
+    <section id={`cat-${category.slug}`} data-slug={category.slug} className="scroll-mt-48 py-4">
+      {category.show_title && <Title className={titleClass}>{category.name}</Title>}
       {category.description && <p className="mt-1 text-sm italic text-plum-light">{category.description}</p>}
       <ul className="mt-2 divide-y divide-plum/10">
         {category.items.map((item) => (

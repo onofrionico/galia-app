@@ -1,12 +1,14 @@
 import logging
 import re
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, jsonify, request
 
 from app.extensions import db
-from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant, MenuSetting, MenuTag
+from app.models.menu import FudoProduct, MenuCategory, MenuGroup, MenuItem, MenuItemVariant, MenuSetting, MenuTag
 from app.services import menu_publish_service, menu_sync_service
+from app.services.menu_sync_service import assign_fudo_category
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.decorators import admin_required
 from app.utils.fudo_client import FudoClient
@@ -31,8 +33,8 @@ def _status():
     return {
         'has_unpublished_changes': menu_publish_service.has_unpublished_changes(),
         'last_published_at': MenuSetting.get('last_published_at'),
-        'unassigned_count': len(menu_sync_service.unassigned_products()),
-        'alerts_count': len(menu_sync_service.alert_variants()),
+        'new_count': menu_sync_service.new_items_count(),
+        'alerts_count': len(menu_sync_service.alert_variants()) + len(menu_sync_service.alert_categories()),
     }
 
 
@@ -98,42 +100,77 @@ def _parse_price(value):
 def get_menu(current_user):
     categories = MenuCategory.query.order_by(MenuCategory.sort_order, MenuCategory.id).all()
     return jsonify({
+        'groups': [group.to_dict() for group in MenuGroup.query.order_by(MenuGroup.sort_order, MenuGroup.id)],
         'categories': [category.to_dict(include_items=True) for category in categories],
         'tags': [tag.to_dict() for tag in MenuTag.query.order_by(MenuTag.name).all()],
         'status': _status(),
     }), 200
 
 
-# ---------- Categorías ----------
+# ---------- Grupos ----------
 
-@bp.route('/categories', methods=['POST'])
+@bp.route('/groups', methods=['POST'])
 @token_required
 @admin_required
-def create_category(current_user):
-    data = request.get_json() or {}
-    name, error = _required_text(data.get('name'), 100)
+def create_group(current_user):
+    name, error = _required_text((request.get_json() or {}).get('name'), 100)
     if error:
         return _error(error)
-    description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
-    if error:
-        return _error(error)
-    category = MenuCategory(
-        name=name,
-        slug=unique_slug(MenuCategory, name),
-        description=description,
-        is_visible=bool(data.get('is_visible', True)),
-        sort_order=_next_order(MenuCategory.sort_order),
-    )
-    db.session.add(category)
+    group = MenuGroup(name=name, slug=unique_slug(MenuGroup, name), sort_order=_next_order(MenuGroup.sort_order))
+    db.session.add(group)
     db.session.commit()
-    return jsonify(category.to_dict(include_items=True)), 201
+    return jsonify(group.to_dict()), 201
 
+
+@bp.route('/groups/reorder', methods=['PUT'])
+@token_required
+@admin_required
+def reorder_groups(current_user):
+    if not _apply_order(MenuGroup, (request.get_json() or {}).get('ids')):
+        return _error('La lista de grupos no es válida')
+    return jsonify({'message': 'Orden actualizado'}), 200
+
+
+@bp.route('/groups/<int:group_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_group(current_user, group_id):
+    group = db.get_or_404(MenuGroup, group_id)
+    name, error = _required_text((request.get_json() or {}).get('name'), 100)
+    if error:
+        return _error(error)
+    group.name = name
+    group.slug = unique_slug(MenuGroup, name, exclude_id=group.id)
+    db.session.commit()
+    return jsonify(group.to_dict()), 200
+
+
+@bp.route('/groups/<int:group_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_group(current_user, group_id):
+    group = db.get_or_404(MenuGroup, group_id)
+    start = _next_order(MenuCategory.sort_order, MenuCategory.group_id.is_(None))
+    for offset, category in enumerate(sorted(group.categories, key=lambda c: (c.sort_order, c.id))):
+        category.group_id = None
+        category.sort_order = start + offset
+    db.session.delete(group)
+    db.session.commit()
+    return jsonify({'message': 'Grupo eliminado'}), 200
+
+
+# ---------- Categorías ----------
 
 @bp.route('/categories/reorder', methods=['PUT'])
 @token_required
 @admin_required
 def reorder_categories(current_user):
-    if not _apply_order(MenuCategory, (request.get_json() or {}).get('ids')):
+    data = request.get_json() or {}
+    group_id = data.get('group_id')
+    if group_id is not None and not _is_int(group_id):
+        return _error('Grupo inexistente')
+    scope = MenuCategory.group_id.is_(None) if group_id is None else MenuCategory.group_id == group_id
+    if not _apply_order(MenuCategory, data.get('ids'), scope):
         return _error('La lista de categorías no es válida')
     return jsonify({'message': 'Orden actualizado'}), 200
 
@@ -145,18 +182,34 @@ def update_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
     data = request.get_json() or {}
     if 'name' in data:
+        if category.fudo_category_id:
+            db.session.rollback()
+            return _error('El nombre de la categoría viene de Fudo')
         name, error = _required_text(data.get('name'), 100)
         if error:
+            db.session.rollback()
             return _error(error)
         category.name = name
         category.slug = unique_slug(MenuCategory, name, exclude_id=category.id)
     if 'description' in data:
         description, error = _clean_text(data.get('description'), 10_000, 'La descripción')
         if error:
+            db.session.rollback()
             return _error(error)
         category.description = description
     if 'is_visible' in data:
         category.is_visible = bool(data['is_visible'])
+    if 'show_title' in data:
+        category.show_title = bool(data['show_title'])
+    if 'group_id' in data:
+        group_id = data['group_id']
+        if group_id is not None and (not _is_int(group_id) or db.session.get(MenuGroup, group_id) is None):
+            db.session.rollback()
+            return _error('Grupo inexistente')
+        if category.group_id != group_id:
+            scope = MenuCategory.group_id.is_(None) if group_id is None else MenuCategory.group_id == group_id
+            category.sort_order = _next_order(MenuCategory.sort_order, scope)
+            category.group_id = group_id
     db.session.commit()
     return jsonify(category.to_dict(include_items=True)), 200
 
@@ -166,6 +219,8 @@ def update_category(current_user, category_id):
 @admin_required
 def delete_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
+    if category.fudo_category_id:
+        return _error('Las categorías de Fudo no se borran: ocultala', 409)
     if category.items:
         return _error('La categoría tiene ítems: movelos o borralos primero', 409)
     db.session.delete(category)
@@ -236,7 +291,7 @@ def _build_variants(item, variants_data):
     return variants, None
 
 
-def _apply_item_payload(item, data):
+def _apply_item_payload(item, data, sync_category=True):
     """Aplica los campos presentes en `data`. Devuelve un mensaje de error o None."""
     if 'name' in data:
         name, error = _required_text(data.get('name'), 200)
@@ -248,14 +303,6 @@ def _apply_item_payload(item, data):
         if error:
             return error
         item.description = description
-    if 'category_id' in data:
-        category_id = data['category_id']
-        category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
-        if category is None:
-            return 'Categoría inexistente'
-        if item.category_id != category.id:
-            item.sort_order = _next_order(MenuItem.sort_order, MenuItem.category_id == category.id)
-            item.category_id = category.id
     if 'is_visible' in data:
         item.is_visible = bool(data['is_visible'])
     if 'is_featured' in data:
@@ -277,6 +324,16 @@ def _apply_item_payload(item, data):
             item.variants.clear()
             db.session.flush()
         item.variants = variants
+    if 'category_id' in data and not any(v.fudo_product_id for v in item.variants):
+        category_id = data['category_id']
+        category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
+        if category is None:
+            return 'Categoría inexistente'
+        if item.category_id != category.id:
+            item.sort_order = _next_order(MenuItem.sort_order, MenuItem.category_id == category.id)
+            item.category_id = category.id
+    if sync_category:
+        assign_fudo_category(item)
     return None
 
 
@@ -287,6 +344,8 @@ def create_item(current_user):
     data = request.get_json() or {}
     if 'variants' not in data:
         return _error('El ítem necesita al menos un precio')
+    if isinstance(data['variants'], list) and any(isinstance(v, dict) and v.get('fudo_product_id') for v in data['variants']):
+        return _error('Los ítems con productos de Fudo se crean solos al sincronizar')
     category_id = data.get('category_id')
     category = db.session.get(MenuCategory, category_id) if _is_int(category_id) else None
     if category is None:
@@ -298,10 +357,11 @@ def create_item(current_user):
     )
     payload = {key: value for key, value in data.items() if key != 'category_id'}
     payload.setdefault('name', '')
-    error = _apply_item_payload(item, payload)
+    error = _apply_item_payload(item, payload, sync_category=False)
     if error:
         db.session.rollback()
         return _error(error)
+    item.reviewed_at = datetime.utcnow()
     db.session.add(item)
     db.session.commit()
     return jsonify(item.to_dict()), 201
@@ -316,8 +376,49 @@ def update_item(current_user, item_id):
     if error:
         db.session.rollback()
         return _error(error)
+    item.reviewed_at = datetime.utcnow()
     db.session.commit()
     return jsonify(item.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>/merge', methods=['POST'])
+@token_required
+@admin_required
+def merge_item(current_user, item_id):
+    target = db.get_or_404(MenuItem, item_id)
+    source_id = (request.get_json() or {}).get('source_item_id')
+    source = db.session.get(MenuItem, source_id) if _is_int(source_id) else None
+    if source is None or source.id == target.id:
+        return _error('Elegí otro ítem para unir')
+    offset = max((v.sort_order for v in target.variants), default=-1) + 1
+    for position, variant in enumerate(sorted(source.variants, key=lambda v: (v.sort_order, v.id))):
+        variant.item = target
+        variant.sort_order = offset + position
+    target.is_visible = target.is_visible or source.is_visible
+    if not target.image_key:
+        target.image_key = source.image_key
+    target.tags = list({t.id: t for t in [*target.tags, *source.tags]}.values())
+    source.image_key = None
+    db.session.flush()
+    db.session.delete(source)
+    assign_fudo_category(target)
+    target.reviewed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify(target.to_dict()), 200
+
+
+@bp.route('/items/<int:item_id>/ignore', methods=['POST'])
+@token_required
+@admin_required
+def ignore_item(current_user, item_id):
+    item = db.get_or_404(MenuItem, item_id)
+    for variant in item.variants:
+        product = db.session.get(FudoProduct, variant.fudo_product_id) if variant.fudo_product_id else None
+        if product is not None:
+            product.ignored = True
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'message': 'Ítem ignorado'}), 200
 
 
 @bp.route('/items/<int:item_id>', methods=['DELETE'])
@@ -479,25 +580,12 @@ def delete_item_image(current_user, item_id):
 @token_required
 @admin_required
 def list_fudo_products(current_user):
-    if request.args.get('unassigned') == 'true':
-        products = menu_sync_service.unassigned_products()
-    else:
-        products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
+    products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
     query = (request.args.get('q') or '').strip().lower()
     if query:
         products = [p for p in products if query in p.name.lower()]
     linked = menu_sync_service.linked_fudo_ids()
     return jsonify([{**p.to_dict(), 'linked': p.fudo_id in linked} for p in products]), 200
-
-
-@bp.route('/fudo-products/<fudo_id>/ignore', methods=['POST'])
-@token_required
-@admin_required
-def ignore_fudo_product(current_user, fudo_id):
-    product = db.get_or_404(FudoProduct, fudo_id)
-    product.ignored = True
-    db.session.commit()
-    return jsonify(product.to_dict()), 200
 
 
 @bp.route('/inbox', methods=['GET'])
@@ -507,16 +595,12 @@ def get_inbox(current_user):
     alerts = []
     for variant in menu_sync_service.alert_variants():
         product = db.session.get(FudoProduct, variant.fudo_product_id)
-        alerts.append({
-            **variant.to_dict(),
-            'item_id': variant.item_id,
-            'item_name': variant.item.name,
-            'fudo_name': product.name if product else None,
-        })
-    return jsonify({
-        'unassigned': [p.to_dict() for p in menu_sync_service.unassigned_products()],
-        'alerts': alerts,
-    }), 200
+        alerts.append({**variant.to_dict(), 'type': 'variant', 'item_id': variant.item_id,
+                       'item_name': variant.item.name, 'fudo_name': product.name if product else None})
+    for category in menu_sync_service.alert_categories():
+        alerts.append({'type': 'category', 'id': category.id, 'category_name': category.name, 'fudo_status': category.fudo_status})
+    new_items = [{**item.to_dict(), 'category_name': item.category.name} for item in menu_sync_service.new_items()]
+    return jsonify({'new_items': new_items, 'alerts': alerts}), 200
 
 
 # ---------- Sync y publicación ----------

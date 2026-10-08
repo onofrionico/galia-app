@@ -68,7 +68,7 @@ const ItemRow = ({ item, index, total, tagsById, onEdit, onToggle, onMove }) => 
   </li>
 )
 
-const CategoryCard = ({ category, index, total, tagsById, onMove, onEdit, onToggle, onAddItem, onEditItem, onToggleItem, onMoveItem }) => {
+const CategoryCard = ({ category, index, total, tagsById, groups = [], onChangeGroup, onMove, onEdit, onToggle, onAddItem, onEditItem, onToggleItem, onMoveItem }) => {
   const [open, setOpen] = useState(true)
 
   return (
@@ -78,21 +78,41 @@ const CategoryCard = ({ category, index, total, tagsById, onMove, onEdit, onTogg
           {open ? <ChevronDown className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
           <span className="font-semibold text-gray-900 truncate">{category.name}</span>
           <span className="text-sm text-gray-500">({category.items.length})</span>
+          {category.fudo_category_id ? (
+            <span className="text-xs text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">de Fudo</span>
+          ) : (
+            <span className="text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">manual</span>
+          )}
+          {category.fudo_status === 'missing' && (
+            <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded">No está en Fudo</span>
+          )}
+          {!category.show_title && <span className="text-xs text-gray-400">título oculto</span>}
         </button>
-        <IconButton label="Subir categoría" onClick={() => onMove(index, -1)} disabled={index === 0}><ChevronUp className="h-4 w-4" /></IconButton>
-        <IconButton label="Bajar categoría" onClick={() => onMove(index, 1)} disabled={index === total - 1}><ChevronDown className="h-4 w-4" /></IconButton>
+        <select
+          value={category.group_id ?? ''}
+          onChange={(e) => onChangeGroup(category, e.target.value === '' ? null : Number(e.target.value))}
+          aria-label="Grupo"
+          className="text-sm border border-gray-300 rounded px-1.5 py-1 max-w-[9rem]"
+        >
+          <option value="">Sin grupo</option>
+          {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+        <IconButton label="Subir en el grupo" onClick={() => onMove(index, -1)} disabled={index === 0}><ChevronUp className="h-4 w-4" /></IconButton>
+        <IconButton label="Bajar en el grupo" onClick={() => onMove(index, 1)} disabled={index === total - 1}><ChevronDown className="h-4 w-4" /></IconButton>
         <IconButton label={category.is_visible ? 'Ocultar categoría' : 'Mostrar categoría'} onClick={onToggle}>
           {category.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </IconButton>
         <IconButton label="Editar categoría" onClick={onEdit}><Pencil className="h-4 w-4" /></IconButton>
-        <button
-          type="button"
-          onClick={onAddItem}
-          aria-label="Agregar ítem"
-          className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded bg-rose-50 text-rose-700 hover:bg-rose-100"
-        >
-          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ítem</span>
-        </button>
+        {!category.fudo_category_id && (
+          <button
+            type="button"
+            onClick={onAddItem}
+            aria-label="Agregar ítem"
+            className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded bg-rose-50 text-rose-700 hover:bg-rose-100"
+          >
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ítem</span>
+          </button>
+        )}
       </div>
       {open && (
         <ul className="divide-y divide-gray-100">

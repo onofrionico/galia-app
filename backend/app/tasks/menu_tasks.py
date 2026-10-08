@@ -11,12 +11,14 @@ logger = logging.getLogger(__name__)
 
 def sync_and_publish(client, storage):
     had_drafts = menu_publish_service.has_unpublished_changes()
+    structure_before = menu_publish_service.structure_hash()
     stats = menu_sync_service.sync_fudo_products(client)
+    structure_changed = menu_publish_service.structure_hash() != structure_before
     published = False
-    if stats['price_changes'] and not had_drafts:
+    if stats['price_changes'] and not had_drafts and not structure_changed:
         menu_publish_service.publish(storage)
         published = True
-    return {**stats, 'published': published}
+    return {**stats, 'published': published, 'structure_changed': structure_changed}
 
 
 if __name__ == '__main__':
