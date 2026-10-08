@@ -1,0 +1,6 @@
+node_modules
+dist
+.env.local
+
+# El .gitignore raíz ignora lib/ (plantilla Python); acá sí lo queremos
+!lib/

@@ -20,6 +20,8 @@ services:
         value: production
       - key: CORS_ORIGINS
         value: http://localhost:5173,https://galia-frontend.onrender.com
+      - key: MENU_PUBLIC_BASE_URL
+        sync: false
     
   # Frontend React Static Site
   - type: web
@@ -33,6 +35,51 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
+        sync: false
+      - key: VITE_PUBLIC_MENU_URL
+        value: https://galia-carta.onrender.com
+
+  # Carta pública (sitio estático)
+  - type: web
+    name: galia-carta
+    env: static
+    buildCommand: "cd menu-site && npm install && npm run build"
+    staticPublishPath: menu-site/dist
+    envVars:
+      - key: VITE_MENU_URL
+        sync: false
+
+  # Sync nocturno de la carta con Fudo (04:00 hora Argentina = 07:00 UTC)
+  - type: cron
+    name: galia-menu-sync
+    env: python
+    region: oregon
+    plan: starter
+    schedule: "0 7 * * *"
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && python -m app.tasks.menu_tasks"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: galia-db
+          property: connectionString
+      - key: FUDO_API_KEY
+        sync: false
+      - key: FUDO_API_SECRET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET_NAME
+        sync: false
+      - key: MENU_PUBLIC_BASE_URL
         sync: false
 
 databases:

@@ -241,3 +241,31 @@ class FudoClient:
             'page[number]': page_number
         }
         return self._make_request('/payment-methods', params)
+
+    def get_products(self, page_size: int = 500, page_number: int = 1) -> Dict:
+        """Get a page of products from Fudo API"""
+        params = {'page[size]': min(page_size, 500), 'page[number]': page_number}
+        return self._make_request('/products', params)
+
+    def get_product_categories(self, page_size: int = 500, page_number: int = 1) -> Dict:
+        """Get a page of product categories from Fudo API"""
+        params = {'page[size]': min(page_size, 500), 'page[number]': page_number}
+        return self._make_request('/product-categories', params)
+
+    def get_all_products(self) -> List[Dict]:
+        """Get all products (active and inactive), following pagination"""
+        return self._get_all_pages(self.get_products)
+
+    def get_all_product_categories(self) -> List[Dict]:
+        """Get all product categories, following pagination"""
+        return self._get_all_pages(self.get_product_categories)
+
+    def _get_all_pages(self, fetch_page, page_size: int = 500) -> List[Dict]:
+        items = []
+        page_number = 1
+        while True:
+            data = fetch_page(page_size=page_size, page_number=page_number).get('data', [])
+            items.extend(data)
+            if len(data) < page_size:
+                return items
+            page_number += 1
