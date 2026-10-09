@@ -27,7 +27,9 @@ const Expenses = () => {
     estados_pago: [],
     medios_pago: []
   });
-  const [supplierOptions, setSupplierOptions] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 50,
@@ -114,8 +116,8 @@ const Expenses = () => {
   const fetchSuppliers = async () => {
     try {
       const data = await suppliersService.getSuppliers({ include_inactive: false });
-      const names = (data.suppliers || []).map(s => s.name).filter(Boolean);
-      setSupplierOptions(names);
+      setSuppliers((data.suppliers || []).filter(s => s.name).map(s => ({ id: s.id, name: s.name })));
+      setSuppliersLoaded(true);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     }
@@ -227,6 +229,7 @@ const Expenses = () => {
       numero_comprobante: ''
     });
     setEditingId(null);
+    setEditingSupplierId(null);
   };
 
   const handleFormChange = (field, value) => {
@@ -243,9 +246,19 @@ const Expenses = () => {
         importe: parseFloat(formData.importe) || 0
       };
       
+      // Resolver supplier_id por nombre exacto (sin distinguir mayúsculas) contra proveedores activos.
+      const typed = (formData.proveedor || '').trim().toLowerCase();
+      const match = typed ? suppliers.find(s => s.name.trim().toLowerCase() === typed) : null;
+      const resolvedSupplierId = match ? match.id : null;
+
       if (editingId) {
+        // Solo enviar supplier_id si cambió respecto del gasto cargado (y si pudimos cargar proveedores).
+        if (suppliersLoaded && resolvedSupplierId !== editingSupplierId) {
+          payload.supplier_id = resolvedSupplierId;
+        }
         await api.put(`/expenses/${editingId}`, payload);
       } else {
+        payload.supplier_id = resolvedSupplierId;
         await api.post('/expenses', payload);
       }
       
@@ -279,6 +292,7 @@ const Expenses = () => {
       numero_comprobante: expense.numero_comprobante || ''
     });
     setEditingId(expense.id);
+    setEditingSupplierId(expense.supplier_id ?? null);
     setShowFormModal(true);
   };
 
@@ -747,21 +761,19 @@ const Expenses = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                    <select
+                    <input
+                      type="text"
+                      list="suppliers-list"
                       value={formData.proveedor}
                       onChange={(e) => handleFormChange('proveedor', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Seleccione un proveedor</option>
-                      {formData.proveedor &&
-                        !supplierOptions.includes(formData.proveedor) &&
-                        !filterOptions.proveedores.includes(formData.proveedor) && (
-                          <option value={formData.proveedor}>{formData.proveedor}</option>
-                        )}
-                      {[...new Set([...(supplierOptions || []), ...(filterOptions.proveedores || [])])].map((prov) => (
-                        <option key={prov} value={prov}>{prov}</option>
+                      placeholder="Escriba o seleccione un proveedor"
+                    />
+                    <datalist id="suppliers-list">
+                      {[...new Set([...suppliers.map((s) => s.name), ...(filterOptions.proveedores || [])])].map((prov) => (
+                        <option key={prov} value={prov} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>

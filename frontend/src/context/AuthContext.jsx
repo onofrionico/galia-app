@@ -4,12 +4,16 @@ import permissionsService from '@/services/permissionsService'
 
 const AuthContext = createContext(null)
 
-const loadModules = async () => {
+// Módulos de autoservicio previos al sistema de permisos: si falla la carga
+// (p. ej. frontend desplegado antes que las migraciones) los empleados conservan sus links.
+const LEGACY_EMPLOYEE_MODULES = [{ name: 'MyPayroll' }, { name: 'MySchedule' }]
+
+const loadModules = async (userData) => {
   try {
     return await permissionsService.getMyModules()
   } catch (error) {
     console.error('Error cargando módulos del usuario', error)
-    return []
+    return userData && userData.role !== 'admin' ? LEGACY_EMPLOYEE_MODULES : []
   }
 }
 
@@ -30,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         const userData = await authService.getCurrentUser()
         if (userData) {
           setUser(userData)
-          setUserModules(await loadModules())
+          setUserModules(await loadModules(userData))
         } else {
           setUser(null)
           setUserModules([])
@@ -47,7 +51,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const userData = await authService.login(email, password)
     setUser(userData)
-    setUserModules(await loadModules())
+    setUserModules(await loadModules(userData))
     return userData
   }
 

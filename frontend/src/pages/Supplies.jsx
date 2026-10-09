@@ -29,8 +29,16 @@ const Supplies = () => {
 
   const fetchSupplies = async () => {
     try {
-      const res = await suppliesService.getSupplies({ include_inactive: false })
-      setSupplies(res.supplies || [])
+      const all = []
+      let page = 1
+      let pages = 1
+      do {
+        const res = await suppliesService.getSupplies({ include_inactive: false, per_page: 200, page })
+        all.push(...(res.supplies || []))
+        pages = res.pages || 1
+        page += 1
+      } while (page <= pages)
+      setSupplies(all)
       setLoading(false)
     } catch (err) {
       setError('Error al cargar insumos')

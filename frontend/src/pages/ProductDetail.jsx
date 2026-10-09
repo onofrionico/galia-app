@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Save, X, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import productsService from '../services/productsService'
+import suppliesService from '../services/suppliesService'
 import productCategoriesService from '../services/productCategoriesService'
 import EditableNumberInput from '../components/EditableNumberInput'
 
@@ -43,6 +44,8 @@ const ProductDetail = () => {
   const [imageFile, setImageFile] = useState(null)
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState('')
+  const [supplies, setSupplies] = useState([])
+  const [suppliesForbidden, setSuppliesForbidden] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -52,6 +55,36 @@ const ProductDetail = () => {
     if (!isNew) {
       setLoading(true)
       fetchProduct()
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (isNew) return
+    let ignore = false
+    const loadSupplies = async () => {
+      try {
+        const all = []
+        let page = 1
+        let pages = 1
+        do {
+          const res = await suppliesService.getSupplies({ per_page: 200, page })
+          all.push(...(res.supplies || []))
+          pages = res.pages || 1
+          page += 1
+        } while (page <= pages)
+        if (!ignore) {
+          setSupplies(all)
+          setSuppliesForbidden(false)
+        }
+      } catch (err) {
+        if (ignore) return
+        if (err.response?.status === 403) setSuppliesForbidden(true)
+        else console.error('Error loading supplies:', err)
+      }
+    }
+    loadSupplies()
+    return () => {
+      ignore = true
     }
   }, [id])
 
@@ -590,18 +623,30 @@ const ProductDetail = () => {
                 <p className="text-sm text-gray-600 mb-3">
                   (Las cantidades se deducirán del stock de insumos al vender)
                 </p>
+                {suppliesForbidden && (
+                  <p className="text-sm text-red-600 mb-3">
+                    Necesitás acceso a Stock para editar recetas
+                  </p>
+                )}
                 <div className="grid grid-cols-3 gap-3">
                   <select
                     value={newRecipeForm.supply_id}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const chosen = supplies.find((s) => String(s.id) === e.target.value)
                       setNewRecipeForm({
                         ...newRecipeForm,
                         supply_id: e.target.value,
+                        unit: chosen ? chosen.unit : newRecipeForm.unit,
                       })
-                    }
+                    }}
                     className="border rounded px-3 py-2 text-sm"
                   >
                     <option value="">Seleccionar insumo</option>
+                    {supplies.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.unit})
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="number"
