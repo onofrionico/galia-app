@@ -94,7 +94,9 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
                 </td>
                 {mode === 'user' && (
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {perm.is_override ? (
+                    {(perm.role_permission !== undefined
+                      ? Boolean(perm.is_granted) !== Boolean(perm.role_permission)
+                      : perm.is_override) ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         ⚠️ Personalizado
                       </span>

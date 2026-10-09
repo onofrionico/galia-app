@@ -2,7 +2,7 @@ import pytest
 
 from app import create_app
 from app.extensions import db
-from app.models import Module, RolePermission, User
+from app.models import Module, RolePermission, User, UserPermission
 from app.utils.permissions import check_module_access
 
 
@@ -81,3 +81,50 @@ def test_admin_sets_user_override_by_user_id(client):
                           json={'permissions': [{'module_id': products_id, 'is_granted': True}]})
     assert response.status_code == 200
     assert check_module_access(employee, 'Products') is True
+
+
+def _employee():
+    employee = User(email='e9@test.com', role='employee', is_active=True)
+    employee.set_password('x12345678')
+    db.session.add(employee)
+    db.session.commit()
+    return employee
+
+
+def test_null_is_granted_keeps_inherit(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    employee = _employee()
+    products_id = _module_id('Products')
+    response = client.put(f'/api/v1/permissions/user/{employee.id}', headers=headers,
+                          json={'permissions': [{'module_id': products_id, 'is_granted': None}]})
+    assert response.status_code == 200
+    assert UserPermission.query.filter_by(user_id=employee.id).count() == 0
+    client.put('/api/v1/permissions/role/employee', headers=headers,
+               json={'permissions': [{'module_id': products_id, 'is_granted': True}]})
+    assert check_module_access(employee, 'Products') is True
+
+
+def test_user_permissions_rejects_invalid_payloads(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    employee = _employee()
+    url = f'/api/v1/permissions/user/{employee.id}'
+    for payload in ({'permissions': 'x'},
+                    {'permissions': [1]},
+                    {'permissions': [{'module_id': 99999, 'is_granted': True}]},
+                    {'permissions': [{'module_id': 'a', 'is_granted': True}]},
+                    {'permissions': [{'module_id': True, 'is_granted': True}]},
+                    {'permissions': [{'module_id': _module_id('Products'), 'is_granted': 'yes'}]}):
+        assert client.put(url, headers=headers, json=payload).status_code == 400, payload
+
+
+def test_role_permissions_rejects_invalid_payloads(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    products_id = _module_id('Products')
+    ok = {'permissions': [{'module_id': products_id, 'is_granted': True}]}
+    assert client.put('/api/v1/permissions/role/admin', headers=headers, json=ok).status_code == 400
+    assert client.put('/api/v1/permissions/role/employee', headers=headers,
+                      json={'permissions': 'x'}).status_code == 400
+    assert client.put('/api/v1/permissions/role/employee', headers=headers,
+                      json={'permissions': [{'module_id': products_id, 'is_granted': None}]}).status_code == 400
+    assert client.put('/api/v1/permissions/role/employee', headers=headers,
+                      json={'permissions': [{'module_id': 99999, 'is_granted': True}]}).status_code == 400

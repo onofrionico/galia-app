@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models import Module, RolePermission, UserPermission, User
@@ -13,7 +15,36 @@ from app.utils.permissions import (
     reset_user_permissions
 )
 
+logger = logging.getLogger(__name__)
+
 permissions_bp = Blueprint('permissions', __name__, url_prefix='/api/v1/permissions')
+
+GENERIC_ERROR = 'Internal server error'
+
+
+def _parse_permissions(data, allow_null):
+    """Validate a permissions payload. Returns ({module_id: is_granted}, error)."""
+    if not isinstance(data, dict) or 'permissions' not in data:
+        return None, 'Missing permissions data'
+    items = data['permissions']
+    if not isinstance(items, list):
+        return None, 'permissions must be a list'
+    valid_ids = {m.id for m in Module.query.with_entities(Module.id).all()}
+    result = {}
+    for perm in items:
+        if not isinstance(perm, dict):
+            return None, 'Each permission must be an object'
+        module_id = perm.get('module_id')
+        if isinstance(module_id, bool) or not isinstance(module_id, int) or module_id not in valid_ids:
+            return None, 'Invalid module_id'
+        is_granted = perm.get('is_granted')
+        if is_granted is None:
+            if not allow_null:
+                return None, 'is_granted must be a boolean'
+        elif not isinstance(is_granted, bool):
+            return None, 'is_granted must be a boolean or null'
+        result[module_id] = is_granted
+    return result, None
 
 
 @permissions_bp.route('/modules', methods=['GET'])
@@ -26,8 +57,9 @@ def list_all_modules(current_user):
         return jsonify({
             'modules': [m.to_dict() for m in modules]
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500
 
 
 @permissions_bp.route('/modules/my-modules', methods=['GET'])
@@ -66,8 +98,9 @@ def get_role_permissions_endpoint(current_user, role):
             'role': role,
             'permissions': permissions
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500
 
 
 @permissions_bp.route('/role/<role>', methods=['PUT'])
@@ -76,24 +109,22 @@ def get_role_permissions_endpoint(current_user, role):
 def update_role_permissions(current_user, role):
     """Update permissions for a specific role (admin only)"""
     try:
-        data = request.get_json()
-        if not data or 'permissions' not in data:
-            return jsonify({'error': 'Missing permissions data'}), 400
+        if role != 'employee':
+            return jsonify({'error': 'Only the employee role can be edited'}), 400
 
-        # Build module_permissions dict
-        module_permissions = {}
-        for perm in data['permissions']:
-            module_id = perm.get('module_id')
-            is_granted = perm.get('is_granted', False)
-            module_permissions[module_id] = is_granted
+        data = request.get_json(silent=True)
+        module_permissions, error = _parse_permissions(data, allow_null=False)
+        if error:
+            return jsonify({'error': error}), 400
 
         # Sync permissions
         if sync_role_permissions(role, module_permissions):
             return jsonify({'message': f'Permissions updated for role {role}'}), 200
         else:
             return jsonify({'error': 'Failed to update permissions'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500
 
 
 @permissions_bp.route('/user/<int:user_id>', methods=['GET'])
@@ -143,8 +174,9 @@ def get_user_permissions_endpoint(current_user, user_id):
             'role': user.role,
             'permissions': permissions
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500
 
 
 @permissions_bp.route('/user/<int:user_id>', methods=['PUT'])
@@ -157,25 +189,19 @@ def update_user_permissions(current_user, user_id):
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        data = request.get_json()
-        if not data or 'permissions' not in data:
-            return jsonify({'error': 'Missing permissions data'}), 400
+        data = request.get_json(silent=True)
+        module_permissions, error = _parse_permissions(data, allow_null=True)
+        if error:
+            return jsonify({'error': error}), 400
 
-        # Build module_permissions dict
-        module_permissions = {}
-        for perm in data['permissions']:
-            module_id = perm.get('module_id')
-            is_granted = perm.get('is_granted', False)
-            # Only store if it's an override (different from role default)
-            module_permissions[module_id] = is_granted
-
-        # Sync permissions
+        # Sync permissions (None = inherit from role, no row stored)
         if sync_user_permissions(user_id, module_permissions):
             return jsonify({'message': f'Permissions updated for user {user.email}'}), 200
         else:
             return jsonify({'error': 'Failed to update permissions'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500
 
 
 @permissions_bp.route('/user/<int:user_id>/reset', methods=['POST'])
@@ -192,5 +218,6 @@ def reset_user_permissions_endpoint(current_user, user_id):
             return jsonify({'message': f'Permissions reset for user {user.email}'}), 200
         else:
             return jsonify({'error': 'Failed to reset permissions'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Permissions endpoint failed')
+        return jsonify({'error': GENERIC_ERROR}), 500

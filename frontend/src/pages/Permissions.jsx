@@ -104,7 +104,13 @@ export default function Permissions() {
     if (!selectedUser) return
     setSaving(true)
     try {
-      await permissionsService.updateUserPermissions(selectedUser.id, toPayload(userPermissions))
+      // Filas que coinciden con el rol se envían como null (heredan); sólo las
+      // que difieren del rol se guardan como override explícito.
+      const payload = userPermissions.map(p => ({
+        module_id: p.module_id,
+        is_granted: p.is_granted === p.role_permission ? null : p.is_granted,
+      }))
+      await permissionsService.updateUserPermissions(selectedUser.id, payload)
       flashSuccess('Permisos del usuario actualizados')
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al guardar los permisos' })
