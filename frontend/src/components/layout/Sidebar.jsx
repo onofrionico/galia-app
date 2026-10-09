@@ -21,6 +21,12 @@ import {
   LogIn,
   BookOpen,
   Inbox,
+  Building2,
+  Package,
+  UtensilsCrossed,
+  Settings,
+  Shield,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -30,11 +36,11 @@ const alwaysVisibleAdmin = [
 
 const alwaysVisibleEmployee = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/my-schedule', icon: Clock, label: 'Mi Horario' },
-  { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios' },
-  { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas' },
-  { to: '/my-documents', icon: FileText, label: 'Mis Recibos' },
-  { to: '/my-absence-requests', icon: FileText, label: 'Mis Ausencias' },
+  { to: '/my-schedule', icon: Clock, label: 'Mi Horario', module: 'MySchedule' },
+  { to: '/time-tracking', icon: LogIn, label: 'Carga de Horarios', module: 'MySchedule' },
+  { to: '/my-payrolls', icon: Wallet, label: 'Mis Nóminas', module: 'MyPayroll' },
+  { to: '/my-documents', icon: FileText, label: 'Mis Recibos', module: 'MyPayroll' },
+  { to: '/my-absence-requests', icon: FileText, label: 'Mis Ausencias', module: 'MySchedule' },
   { to: '/profile', icon: User, label: 'Mi Perfil' },
 ]
 
@@ -46,13 +52,13 @@ const navGroups = [
     activeClass: 'text-green-700 bg-green-50 border-green-200',
     headerClass: 'text-green-700 bg-green-50',
     items: [
-      { to: '/schedules', icon: Calendar, label: 'Horarios' },
-      { to: '/admin-time-tracking', icon: Clock, label: 'Gestión de Horas' },
-      { to: '/import-time-tracking', icon: Upload, label: 'Importar Horas', subItem: true },
-      { to: '/absence-requests', icon: FileText, label: 'Solicitudes de Ausencia' },
-      { to: '/employees', icon: Users, label: 'Empleados' },
-      { to: '/job-positions', icon: Briefcase, label: 'Puestos' },
-      { to: '/holidays', icon: CalendarDays, label: 'Feriados' },
+      { to: '/schedules', icon: Calendar, label: 'Horarios', module: 'Schedules' },
+      { to: '/admin-time-tracking', icon: Clock, label: 'Gestión de Horas', module: 'Schedules' },
+      { to: '/import-time-tracking', icon: Upload, label: 'Importar Horas', subItem: true, module: 'Schedules' },
+      { to: '/absence-requests', icon: FileText, label: 'Solicitudes de Ausencia', adminOnly: true },
+      { to: '/employees', icon: Users, label: 'Empleados', module: 'Employees' },
+      { to: '/job-positions', icon: Briefcase, label: 'Puestos', module: 'Employees' },
+      { to: '/holidays', icon: CalendarDays, label: 'Feriados', module: 'Schedules' },
     ],
   },
   {
@@ -62,11 +68,25 @@ const navGroups = [
     activeClass: 'text-blue-700 bg-blue-50 border-blue-200',
     headerClass: 'text-blue-700 bg-blue-50',
     items: [
-      { to: '/sales', icon: ShoppingCart, label: 'Ventas' },
-      { to: '/expenses', icon: Receipt, label: 'Gastos' },
-      { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true },
-      { to: '/payroll', icon: Wallet, label: 'Sueldos' },
-      { to: '/payroll-claims', icon: AlertTriangle, label: 'Reclamos de Nóminas', subItem: true },
+      { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
+      { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
+      { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
+      { to: '/suppliers', icon: Building2, label: 'Proveedores', module: 'Suppliers' },
+      { to: '/payroll', icon: Wallet, label: 'Sueldos', module: 'Payroll' },
+      { to: '/payroll-claims', icon: AlertTriangle, label: 'Reclamos de Nóminas', subItem: true, module: 'Payroll' },
+    ],
+  },
+  {
+    id: 'productos',
+    label: 'Productos',
+    icon: UtensilsCrossed,
+    activeClass: 'text-amber-700 bg-amber-50 border-amber-200',
+    headerClass: 'text-amber-700 bg-amber-50',
+    items: [
+      { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products' },
+      { to: '/product-categories', icon: Tag, label: 'Categorías', subItem: true, module: 'Products' },
+      { to: '/supplies', icon: Package, label: 'Insumos', module: 'Stock' },
+      { to: '/stock', icon: Package, label: 'Stock', module: 'Stock' },
     ],
   },
   {
@@ -76,8 +96,8 @@ const navGroups = [
     activeClass: 'text-purple-700 bg-purple-50 border-purple-200',
     headerClass: 'text-purple-700 bg-purple-50',
     items: [
-      { to: '/reports', icon: BarChart3, label: 'Reportes' },
-      { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML' },
+      { to: '/reports', icon: BarChart3, label: 'Reportes', module: 'Reports' },
+      { to: '/ml-dashboard', icon: Brain, label: 'Dashboard ML', module: 'Reports' },
     ],
   },
   {
@@ -87,8 +107,19 @@ const navGroups = [
     activeClass: 'text-rose-700 bg-rose-50 border-rose-200',
     headerClass: 'text-rose-700 bg-rose-50',
     items: [
-      { to: '/menu', icon: BookOpen, label: 'Carta' },
-      { to: '/menu/inbox', icon: Inbox, label: 'Sin asignar', subItem: true },
+      { to: '/menu', icon: BookOpen, label: 'Carta', module: 'Menu' },
+      { to: '/menu/inbox', icon: Inbox, label: 'Sin asignar', subItem: true, module: 'Menu' },
+    ],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    icon: Settings,
+    activeClass: 'text-gray-800 bg-gray-100 border-gray-300',
+    headerClass: 'text-gray-800 bg-gray-100',
+    items: [
+      { to: '/permissions', icon: Shield, label: 'Permisos', adminOnly: true },
+      { to: '/admin/branding', icon: ImageIcon, label: 'Branding', adminOnly: true },
     ],
   },
 ]
@@ -97,7 +128,18 @@ const getActiveGroup = (pathname) =>
   navGroups.find(g => g.items.some(i => pathname.startsWith(i.to)))?.id ?? null
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { isAdmin } = useAuth()
+  const { isAdmin, hasModuleAccess } = useAuth()
+
+  const canSee = (item) => {
+    if (item.adminOnly) return isAdmin()
+    if (!item.module) return true
+    return hasModuleAccess(item.module)
+  }
+
+  const topItems = (isAdmin() ? alwaysVisibleAdmin : alwaysVisibleEmployee).filter(canSee)
+  const visibleGroups = navGroups
+    .map(group => ({ ...group, items: group.items.filter(canSee) }))
+    .filter(group => group.items.length > 0)
   const location = useLocation()
 
   const [openGroup, setOpenGroup] = useState(() => {
@@ -158,81 +200,77 @@ const Sidebar = ({ isOpen, onClose }) => {
             <X className="h-6 w-6 text-gray-600" />
           </button>
 
-          {isAdmin() ? (
-            <>
-              {alwaysVisibleAdmin.map(item => renderNavLink(item))}
+          {topItems.map(item => renderNavLink(item))}
 
-              <div className="pt-2 space-y-1">
-                {navGroups.map(group => {
-                  const GroupIcon = group.icon
-                  const isGroupOpen = openGroup === group.id
-                  const isGroupActive = getActiveGroup(location.pathname) === group.id
+          {visibleGroups.length > 0 && (
+            <div className="pt-2 space-y-1">
+              {visibleGroups.map(group => {
+              const GroupIcon = group.icon
+              const isGroupOpen = openGroup === group.id
+              const isGroupActive = getActiveGroup(location.pathname) === group.id
 
-                  return (
-                    <div
-                      key={group.id}
-                      className={`rounded-lg border overflow-hidden transition-colors ${
-                        isGroupActive ? group.activeClass : 'border-gray-200'
+              return (
+                <div
+                  key={group.id}
+                  className={`rounded-lg border overflow-hidden transition-colors ${
+                    isGroupActive ? group.activeClass : 'border-gray-200'
+                  }`}
+                >
+                  <button
+                    onClick={() => handleGroupClick(group.id)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      isGroupActive ? group.headerClass : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <GroupIcon className="h-4 w-4 flex-shrink-0" />
+                      {group.label}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        isGroupOpen ? 'rotate-180' : ''
                       }`}
-                    >
-                      <button
-                        onClick={() => handleGroupClick(group.id)}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors ${
-                          isGroupActive ? group.headerClass : 'text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span className="flex items-center gap-3">
-                          <GroupIcon className="h-4 w-4 flex-shrink-0" />
-                          {group.label}
-                        </span>
-                        <ChevronDown
-                          className={`h-4 w-4 transition-transform duration-200 ${
-                            isGroupOpen ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
+                    />
+                  </button>
 
-                      <div
-                        className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                          isGroupOpen ? 'max-h-96' : 'max-h-0'
-                        }`}
-                      >
-                        <div className="pb-2 pt-1 px-2 space-y-0.5">
-                          {group.items.map(item => {
-                            const Icon = item.icon
-                            return (
-                              <NavLink
-                                key={item.to}
-                                to={item.to}
-                                onClick={onClose}
-                                className={({ isActive }) =>
-                                  `flex items-center gap-3 rounded-md transition-colors ${
-                                    item.subItem
-                                      ? 'pl-7 pr-3 py-2 text-xs'
-                                      : 'px-3 py-2 text-sm'
-                                  } ${
-                                    isActive
-                                      ? 'bg-primary text-primary-foreground font-medium'
-                                      : 'text-gray-600 hover:bg-gray-100'
-                                  }`
-                                }
-                              >
-                                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                                <span className={item.subItem ? '' : 'font-medium'}>
-                                  {item.label}
-                                </span>
-                              </NavLink>
-                            )
-                          })}
-                        </div>
-                      </div>
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                      isGroupOpen ? 'max-h-96' : 'max-h-0'
+                    }`}
+                  >
+                    <div className="pb-2 pt-1 px-2 space-y-0.5">
+                      {group.items.map(item => {
+                        const Icon = item.icon
+                        return (
+                          <NavLink
+                            key={item.to}
+                            to={item.to}
+                            onClick={onClose}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 rounded-md transition-colors ${
+                                item.subItem
+                                  ? 'pl-7 pr-3 py-2 text-xs'
+                                  : 'px-3 py-2 text-sm'
+                              } ${
+                                isActive
+                                  ? 'bg-primary text-primary-foreground font-medium'
+                                  : 'text-gray-600 hover:bg-gray-100'
+                              }`
+                            }
+                          >
+                            <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className={item.subItem ? '' : 'font-medium'}>
+                              {item.label}
+                            </span>
+                          </NavLink>
+                        )
+                      })}
                     </div>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            alwaysVisibleEmployee.map(item => renderNavLink(item))
+                  </div>
+                </div>
+              )
+              })}
+            </div>
           )}
         </nav>
       </aside>
