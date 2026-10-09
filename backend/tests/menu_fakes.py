@@ -7,6 +7,12 @@ class FakeStorage:
     def put(self, rel_key, body, content_type, cache_control):
         self.objects[rel_key] = {'body': body, 'content_type': content_type, 'cache_control': cache_control}
 
+    def get(self, rel_key):
+        if rel_key not in self.objects:
+            raise KeyError(rel_key)
+        obj = self.objects[rel_key]
+        return obj['body'], obj['content_type']
+
     def delete(self, rel_key):
         self.objects.pop(rel_key, None)
 

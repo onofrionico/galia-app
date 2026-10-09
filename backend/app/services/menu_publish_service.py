@@ -121,6 +121,7 @@ def publish(storage):
     body = json.dumps({**snapshot, 'published_at': published_at}, ensure_ascii=False).encode('utf-8')
     storage.put('menu.json', body, 'application/json; charset=utf-8', 'public, max-age=60')
 
+    MenuSetting.set('published_snapshot', body.decode('utf-8'))
     MenuSetting.set('last_published_hash', snapshot_hash(_hash_snapshot()))
     MenuSetting.set('last_published_at', published_at)
     db.session.commit()
@@ -130,6 +131,11 @@ def publish(storage):
     except Exception:
         logger.exception('No se pudieron borrar imágenes huérfanas de la carta')
     return {'published_at': published_at}
+
+
+def published_snapshot():
+    """JSON exacto de la última publicación (el que sirve la API pública) o None."""
+    return MenuSetting.get('published_snapshot')
 
 
 def _delete_orphan_images(storage):
