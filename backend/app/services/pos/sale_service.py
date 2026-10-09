@@ -14,8 +14,8 @@ from app.models import ProductVariant, User
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosSale, PosSaleItem,
                             PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, stock_hooks
-from app.services.pos.common import (MAX_QUANTITY, load_sale, now, parse_id, recalc, require_module,
-                                     require_status)
+from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
+                                     require_module, require_reason, require_status)
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.utils.timezone_utils import get_current_date_argentina
 from app.utils.validation import clean_str, parse_decimal
@@ -194,5 +194,66 @@ def reopen(user, sale_id):
     require_status(sale, ('billing',), 'Solo se reabre una venta en cobro')
     sale.status = 'open'
     audit.record(sale, user, 'reopened')
+    db.session.commit()
+    return sale
+
+
+def _cancel_item_row(item, user, reason):
+    item.status = 'cancelled'
+    item.cancelled_at = now()
+    item.cancelled_by = user.id
+    item.cancel_reason = reason
+    for discount in item.discounts:
+        if discount.cancelled_at is None:
+            discount.cancelled_at = now()
+            discount.cancelled_by = user.id
+
+
+def cancel_item(user, sale_id, item_id, reason):
+    reason = require_reason(reason)
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se anulan ítems de una venta abierta o en cobro')
+    item = _find_item(sale, item_id)
+    if item.status == 'pending':
+        raise PosError('El ítem está pendiente: borralo en lugar de anularlo')
+    if item.status == 'cancelled':
+        raise PosError('El ítem ya está anulado')
+    _cancel_item_row(item, user, reason)
+    stock_hooks.restore([item])
+    recalc(sale)
+    if sale.total < sale.paid_total:
+        raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
+    audit.record(sale, user, 'item_cancelled', item=item, product=item.product_name, quantity=item.quantity,
+                 reason=reason)
+    db.session.commit()
+    return sale
+
+
+def cancel_sale_rows(sale, user, reason):
+    """Anula una venta sin pagos activos: ítems, descuentos y stock. No hace commit."""
+    confirmed = [i for i in sale.items if i.status == 'confirmed']
+    for item in sale.items:
+        if item.status != 'cancelled':
+            _cancel_item_row(item, user, reason)
+    for discount in sale.discounts:
+        if discount.cancelled_at is None:
+            discount.cancelled_at = now()
+            discount.cancelled_by = user.id
+    stock_hooks.restore(confirmed)
+    sale.status = 'cancelled'
+    sale.cancelled_at = now()
+    sale.cancelled_by = user.id
+    sale.cancel_reason = reason
+    recalc(sale)
+
+
+def cancel_sale(user, sale_id, reason):
+    reason = require_reason(reason)
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se anula una venta abierta o en cobro')
+    if active_payments(sale):
+        raise PosError('La venta tiene pagos; anulalos antes de anular la venta')
+    cancel_sale_rows(sale, user, reason)
+    audit.record(sale, user, 'cancelled', reason=reason)
     db.session.commit()
     return sale
