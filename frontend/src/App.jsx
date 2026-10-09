@@ -34,6 +34,11 @@ import Menu from './pages/Menu'
 import MenuInbox from './pages/MenuInbox'
 import { RoleProtectedRoute } from './components/RoleProtectedRoute'
 import Permissions from './pages/Permissions'
+import Products from './pages/Products'
+import ProductDetail from './pages/ProductDetail'
+import ProductCategories from './pages/ProductCategories'
+import Supplies from './pages/Supplies'
+import Stock from './pages/Stock'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 
@@ -77,6 +82,11 @@ function App() {
             <Route path="/menu/inbox" element={<RoleProtectedRoute moduleName="Menu"><MenuInbox /></RoleProtectedRoute>} />
             <Route path="/suppliers" element={<RoleProtectedRoute moduleName="Suppliers"><Suppliers /></RoleProtectedRoute>} />
             <Route path="/suppliers/:id" element={<RoleProtectedRoute moduleName="Suppliers"><SupplierDetail /></RoleProtectedRoute>} />
+            <Route path="/products" element={<RoleProtectedRoute moduleName="Products"><Products /></RoleProtectedRoute>} />
+            <Route path="/products/:id" element={<RoleProtectedRoute moduleName="Products"><ProductDetail /></RoleProtectedRoute>} />
+            <Route path="/product-categories" element={<RoleProtectedRoute moduleName="Products"><ProductCategories /></RoleProtectedRoute>} />
+            <Route path="/supplies" element={<RoleProtectedRoute moduleName="Stock"><Supplies /></RoleProtectedRoute>} />
+            <Route path="/stock" element={<RoleProtectedRoute moduleName="Stock"><Stock /></RoleProtectedRoute>} />
             <Route path="/permissions"element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
