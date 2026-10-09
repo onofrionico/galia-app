@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --background: 40 44% 84%;
+    --foreground: 330 15% 18%;
+    --card: 25 100% 99%;
+    --card-foreground: 330 15% 18%;
+    --popover: 25 100% 99%;
+    --popover-foreground: 330 15% 18%;
+    --primary: 67 71% 61%;
+    --primary-foreground: 330 15% 18%;
+    --secondary: 334 17% 36%;
+    --secondary-foreground: 25 100% 99%;
+    --muted: 40 30% 90%;
+    --muted-foreground: 0 0% 54%;
+    --accent: 67 71% 61%;
+    --accent-foreground: 330 15% 18%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 40 20% 78%;
+    --input: 40 20% 78%;
+    --ring: 67 71% 61%;
     --radius: 0.5rem;
   }
 
@@ -63,7 +63,7 @@
   position: sticky;
   left: 0;
   z-index: 20;
-  background-color: white;
+  background-color: hsl(var(--card));
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -71,6 +71,6 @@
   position: sticky;
   left: 0;
   z-index: 30;
-  background-color: rgb(249, 250, 251);
+  background-color: hsl(var(--muted));
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }

@@ -39,6 +39,7 @@ import ProductDetail from './pages/ProductDetail'
 import ProductCategories from './pages/ProductCategories'
 import Supplies from './pages/Supplies'
 import Stock from './pages/Stock'
+import BrandingConfig from './pages/admin/BrandingConfig'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 
@@ -88,6 +89,7 @@ function App() {
             <Route path="/supplies" element={<RoleProtectedRoute moduleName="Stock"><Supplies /></RoleProtectedRoute>} />
             <Route path="/stock" element={<RoleProtectedRoute moduleName="Stock"><Stock /></RoleProtectedRoute>} />
             <Route path="/permissions"element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
+            <Route path="/admin/branding" element={<RoleProtectedRoute adminOnly><BrandingConfig /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
