@@ -38,3 +38,7 @@ def test_products_follows_suppliers():
 
 def test_site_config_is_head_of_pos_base_chain():
     assert _revisions()['b1a3_add_site_config'] == ['b1a2_add_products_and_supplies']
+
+
+def test_pos_sales_engine_is_head():
+    assert _revisions()['b1a4_add_pos_sales_engine'] == ['b1a3_add_site_config']
