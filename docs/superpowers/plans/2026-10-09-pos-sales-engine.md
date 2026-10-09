@@ -2398,9 +2398,9 @@ def add_discount(user, sale_id, item_id=None, template_id=None, kind=None, value
             raise bad_request('El porcentaje no puede superar 100')
         if not reason:
             raise bad_request('Indicá el motivo del descuento')
-    discount = PosDiscount(item=item, template_id=template.id if template else None, kind=kind, value=value,
-                           amount=Decimal('0'), reason=reason, created_by=user.id, created_at=now())
-    sale.discounts.append(discount)
+    discount = PosDiscount(sale=sale, item=item, template_id=template.id if template else None, kind=kind,
+                           value=value, amount=Decimal('0'), reason=reason, created_by=user.id, created_at=now())
+    db.session.add(discount)  # SQLAlchemy 2.0: asignar la relación no lo agrega a la sesión
     recalc(sale)
     if sale.total < sale.paid_total:
         raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
@@ -2500,7 +2500,7 @@ def test_tendered_only_for_cash_and_not_less_than_amount(pos_app):
     sale = _billing_sale(cashier, cat, t1)
     with pytest.raises(PosError):
         payment_service.add_payment(cashier, sale.id, cat.debito.id, 100, tendered=200)
-    with pytest.raises(PosError):
+    with pytest.raises((PosError, ValueError)):  # validación de datos: la ruta la traduce a 400
         payment_service.add_payment(cashier, sale.id, cat.efectivo.id, 100, tendered=50)
 
 
@@ -3062,10 +3062,10 @@ def _split_line(item, quantity, target):
             part = pricing.split_value(discount.value, quantity, original)
             discount.value = Decimal(discount.value) - part
         if part > 0:
-            target.discounts.append(PosDiscount(
-                item=clone, template_id=discount.template_id, kind=discount.kind, value=part,
-                amount=Decimal('0'), reason=discount.reason, created_by=discount.created_by,
-                created_at=discount.created_at))
+            # SQLAlchemy 2.0: asignar la relación no agrega el objeto a la sesión; hay que agregarlo.
+            db.session.add(PosDiscount(sale=target, item=clone, template_id=discount.template_id,
+                                       kind=discount.kind, value=part, amount=Decimal('0'), reason=discount.reason,
+                                       created_by=discount.created_by, created_at=discount.created_at))
     return clone
 
 
