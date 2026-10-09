@@ -11,8 +11,8 @@ from sqlalchemy import func
 
 from app.extensions import db
 from app.models import ProductVariant, User
-from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosSale, PosSaleItem,
-                            PosSaleItemModifier, PosTable, ProductModifierGroup)
+from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
+                            PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, stock_hooks
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_reason, require_status)
@@ -257,3 +257,104 @@ def cancel_sale(user, sale_id, reason):
     audit.record(sale, user, 'cancelled', reason=reason)
     db.session.commit()
     return sale
+
+
+def move_sale(user, sale_id, table_id):
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se mueve una venta abierta o en cobro')
+    if sale.sale_type != 'salon':
+        raise PosError('Las ventas de mostrador no tienen mesa')
+    table_id = parse_id(table_id, 'La mesa')
+    if table_id == sale.table_id:
+        raise bad_request('La venta ya está en esa mesa')
+    target = PosTable.query.filter_by(id=table_id).with_for_update().first()
+    if target is None or not target.is_active:
+        raise not_found('La mesa no existe')
+    busy = PosSale.query.filter(PosSale.table_id == target.id, PosSale.status.in_(ACTIVE_SALE_STATUSES)).first()
+    if busy is not None:
+        raise PosError('La mesa de destino está ocupada', 409, sale_id=busy.id)
+    previous = sale.table_id
+    sale.table_id = target.id
+    audit.record(sale, user, 'moved', from_table_id=previous, to_table_id=target.id)
+    db.session.commit()
+    return sale
+
+
+def _split_line(item, quantity, target):
+    """Pasa `quantity` unidades de `item` a un renglón nuevo en `target`, repartiendo descuentos."""
+    original = Decimal(item.quantity)
+    clone = PosSaleItem(product_variant_id=item.product_variant_id, product_name=item.product_name,
+                        variant_name=item.variant_name, unit_price=item.unit_price, quantity=quantity,
+                        modifiers_total=item.modifiers_total, note=item.note,
+                        line_total=pricing.line_total(quantity, item.unit_price, item.modifiers_total),
+                        status='confirmed', batch=item.batch, created_by=item.created_by,
+                        created_at=item.created_at, confirmed_by=item.confirmed_by, confirmed_at=item.confirmed_at)
+    for modifier in item.modifiers:
+        clone.modifiers.append(PosSaleItemModifier(
+            option_id=modifier.option_id, group_name=modifier.group_name, option_name=modifier.option_name,
+            price_delta=modifier.price_delta, supply_id=modifier.supply_id,
+            supply_quantity=modifier.supply_quantity))
+    target.items.append(clone)
+    item.quantity = original - quantity
+    item.line_total = pricing.line_total(item.quantity, item.unit_price, item.modifiers_total)
+    db.session.flush()
+    for discount in list(item.discounts):
+        if discount.cancelled_at is not None:
+            continue
+        if discount.kind == 'percent':
+            part = Decimal(discount.value)
+        else:
+            part = pricing.split_value(discount.value, quantity, original)
+            discount.value = Decimal(discount.value) - part
+        if part > 0:
+            # SQLAlchemy 2.0: asignar la relación no agrega el objeto a la sesión; hay que agregarlo.
+            db.session.add(PosDiscount(sale=target, item=clone, template_id=discount.template_id,
+                                       kind=discount.kind, value=part, amount=Decimal('0'), reason=discount.reason,
+                                       created_by=discount.created_by, created_at=discount.created_at))
+    return clone
+
+
+def split_sale(user, sale_id, lines):
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se divide una venta abierta o en cobro')
+    if active_payments(sale):
+        raise PosError('La venta tiene pagos; anulalos antes de dividir')
+    if not isinstance(lines, list) or not lines:
+        raise bad_request('Elegí los ítems a separar')
+    requested = defaultdict(Decimal)
+    for line in lines:
+        if not isinstance(line, dict):
+            raise bad_request('Ítem inválido')
+        requested[parse_id(line.get('item_id'), 'El ítem')] += _parse_quantity(line.get('quantity'))
+    items = {i.id: i for i in sale.items}
+    for item_id, quantity in requested.items():
+        item = items.get(item_id)
+        if item is None or item.status != 'confirmed':
+            raise bad_request('Solo se separan ítems confirmados de esta venta')
+        if quantity > Decimal(item.quantity):
+            raise bad_request(f'No hay tantas unidades de {item.product_name}')
+    new = PosSale(business_date=get_current_date_argentina(), sale_type=sale.sale_type, table_id=sale.table_id,
+                  people=1 if sale.sale_type == 'salon' else None, customer_name=sale.customer_name,
+                  waiter_id=sale.waiter_id, status='billing', opened_at=now(), opened_by=user.id,
+                  billing_at=now(), split_from_id=sale.id)
+    assign_number(new)
+    moved = []
+    for item_id, quantity in requested.items():
+        item = items[item_id]
+        if quantity == Decimal(item.quantity):
+            item.sale = new
+            for discount in list(item.discounts):
+                discount.sale = new
+            moved.append({'item_id': item.id, 'quantity': quantity})
+        else:
+            clone = _split_line(item, quantity, new)
+            moved.append({'item_id': item.id, 'new_item_id': clone.id, 'quantity': quantity})
+    recalc(sale)
+    recalc(new)
+    audit.record(sale, user, 'split_out', to_sale_id=new.id, items=moved)
+    audit.record(new, user, 'split_in', from_sale_id=sale.id, items=moved)
+    if not any(i.status != 'cancelled' for i in sale.items):
+        cancel_sale_rows(sale, user, 'Dividida')
+        audit.record(sale, user, 'cancelled', reason='Dividida')
+    db.session.commit()
+    return new
