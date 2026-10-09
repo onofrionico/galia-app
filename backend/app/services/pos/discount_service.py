@@ -4,7 +4,8 @@ from decimal import Decimal
 from app.extensions import db
 from app.models.pos import DiscountTemplate, PosDiscount
 from app.models.pos import ACTIVE_SALE_STATUSES
-from app.services.pos import audit
+from app.services.pos import audit, pricing
+from app.services.pos.closing import close_if_settled
 from app.services.pos.common import load_sale, now, parse_id, recalc, require_module, require_status
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.utils.validation import clean_str, parse_decimal
@@ -40,6 +41,9 @@ def add_discount(user, sale_id, item_id=None, template_id=None, kind=None, value
         if kind not in ('percent', 'amount'):
             raise bad_request('Tipo de descuento inválido')
         value = parse_decimal(value, 'El descuento', minimum=Decimal('0.01'), maximum=MAX_AMOUNT)
+        value = pricing.money(value)
+        if value < Decimal('0.01'):
+            raise bad_request('El descuento no puede ser menor a 0.01')
         if kind == 'percent' and value > MAX_PERCENT:
             raise bad_request('El porcentaje no puede superar 100')
         if not reason:
@@ -52,6 +56,7 @@ def add_discount(user, sale_id, item_id=None, template_id=None, kind=None, value
         raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
     audit.record(sale, user, 'discount_added', item=item, discount_id=discount.id, kind=kind, value=value,
                  amount=discount.amount, reason=reason, template_id=discount.template_id)
+    close_if_settled(sale, user)
     db.session.commit()
     return sale
 
@@ -62,6 +67,7 @@ def cancel_discount(user, discount_id):
         raise not_found('El descuento no existe')
     sale = load_sale(discount.sale_id)
     require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se modifica una venta abierta o en cobro')
+    db.session.refresh(discount)
     if discount.cancelled_at is not None:
         raise PosError('El descuento ya está anulado')
     if discount.template is None or discount.template.restricted:

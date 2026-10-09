@@ -14,6 +14,7 @@ from app.models import ProductVariant, User
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, stock_hooks
+from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_reason, require_status)
 from app.services.pos.errors import PosError, bad_request, not_found
@@ -225,6 +226,7 @@ def cancel_item(user, sale_id, item_id, reason):
         raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
     audit.record(sale, user, 'item_cancelled', item=item, product=item.product_name, quantity=item.quantity,
                  reason=reason)
+    close_if_settled(sale, user)
     db.session.commit()
     return sale
 
