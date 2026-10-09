@@ -34,3 +34,7 @@ def test_suppliers_follows_permissions():
 
 def test_products_follows_suppliers():
     assert _revisions()['b1a2_add_products_and_supplies'] == ['b1a1_add_suppliers']
+
+
+def test_site_config_is_head_of_pos_base_chain():
+    assert _revisions()['b1a3_add_site_config'] == ['b1a2_add_products_and_supplies']

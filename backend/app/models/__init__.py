@@ -28,6 +28,7 @@ from app.models.menu import MenuCategory, MenuItem, MenuItemVariant, MenuTag, Fu
 from app.models.module import Module
 from app.models.role_permission import RolePermission
 from app.models.user_permission import UserPermission
+from app.models.site_config import SiteConfig
 
 __all__ = [
     'User',
@@ -68,5 +69,6 @@ __all__ = [
     'MenuSetting',
     'Module',
     'RolePermission',
-    'UserPermission'
+    'UserPermission',
+    'SiteConfig'
 ]

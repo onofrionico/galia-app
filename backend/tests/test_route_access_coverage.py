@@ -8,6 +8,7 @@ PUBLIC_ENDPOINTS = {
     'health',
     'auth.login',
     'csv_import.status',
+    'config.get_branding_config',
     'csv_import.download_template',
 }
 
