@@ -5,10 +5,6 @@ const menuService = {
     return (await api.get('/menu')).data
   },
 
-  async createCategory(data) {
-    return (await api.post('/menu/categories', data)).data
-  },
-
   async updateCategory(id, data) {
     return (await api.put(`/menu/categories/${id}`, data)).data
   },
@@ -17,8 +13,32 @@ const menuService = {
     return (await api.delete(`/menu/categories/${id}`)).data
   },
 
-  async reorderCategories(ids) {
-    return (await api.put('/menu/categories/reorder', { ids })).data
+  async reorderCategories(groupId, ids) {
+    return (await api.put('/menu/categories/reorder', { group_id: groupId, ids })).data
+  },
+
+  async createGroup(data) {
+    return (await api.post('/menu/groups', data)).data
+  },
+
+  async updateGroup(id, data) {
+    return (await api.put(`/menu/groups/${id}`, data)).data
+  },
+
+  async deleteGroup(id) {
+    return (await api.delete(`/menu/groups/${id}`)).data
+  },
+
+  async reorderGroups(ids) {
+    return (await api.put('/menu/groups/reorder', { ids })).data
+  },
+
+  async mergeItem(targetId, sourceId) {
+    return (await api.post(`/menu/items/${targetId}/merge`, { source_item_id: sourceId })).data
+  },
+
+  async ignoreItem(id) {
+    return (await api.post(`/menu/items/${id}/ignore`)).data
   },
 
   async createItem(data) {
@@ -72,10 +92,6 @@ const menuService = {
 
   async getFudoProducts(params = {}) {
     return (await api.get('/menu/fudo-products', { params })).data
-  },
-
-  async ignoreFudoProduct(fudoId) {
-    return (await api.post(`/menu/fudo-products/${fudoId}/ignore`)).data
   },
 
   async getInbox() {

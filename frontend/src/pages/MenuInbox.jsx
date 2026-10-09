@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Plus, EyeOff, AlertTriangle, Link2 } from 'lucide-react'
+import { ArrowLeft, EyeOff, AlertTriangle, Sparkles } from 'lucide-react'
 import menuService from '../services/menuService'
 import MenuItemModal from '../components/menu/MenuItemModal'
-import { formatPrice, errorMessage } from '../utils/menuFormat'
+import ItemPicker from '../components/menu/ItemPicker'
+import { variantSummary, errorMessage } from '../utils/menuFormat'
 
 const STATUS_TEXT = {
   inactive: 'El producto está desactivado en Fudo',
@@ -11,18 +12,17 @@ const STATUS_TEXT = {
 }
 
 const MenuInbox = () => {
-  const [inbox, setInbox] = useState({ unassigned: [], alerts: [] })
+  const [inbox, setInbox] = useState({ new_items: [], alerts: [] })
   const [menu, setMenu] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [modal, setModal] = useState(null) // { item } | { prefill }
-  const [attaching, setAttaching] = useState(null) // fudo_id que se está agregando a un ítem existente
-  const [targetItemId, setTargetItemId] = useState('')
+  const [modalItem, setModalItem] = useState(null)
+  const [mergingId, setMergingId] = useState(null) // ítem nuevo que se está uniendo a otro
 
   const load = useCallback(async () => {
     try {
       const [inboxData, menuData] = await Promise.all([menuService.getInbox(), menuService.getMenu()])
-      setInbox(inboxData)
+      setInbox({ new_items: inboxData.new_items || [], alerts: inboxData.alerts || [] })
       setMenu(menuData)
       setError('')
     } catch (err) {
@@ -42,34 +42,28 @@ const MenuInbox = () => {
   )
   const itemsById = useMemo(() => Object.fromEntries(allItems.map((i) => [i.id, i])), [allItems])
 
-  const ignore = async (product) => {
+  const run = async (action, fallback) => {
     try {
-      await menuService.ignoreFudoProduct(product.fudo_id)
-      load()
+      await action()
+      setMergingId(null)
+      await load()
     } catch (err) {
-      setError(errorMessage(err, 'Error al ignorar el producto'))
+      setError(errorMessage(err, fallback))
     }
   }
 
-  const attachToItem = async (product) => {
-    const item = itemsById[Number(targetItemId)]
-    if (!item) return
-    const variants = [
-      ...item.variants.map((v) => ({ label: v.label, fudo_product_id: v.fudo_product_id, price: v.price })),
-      { label: product.name, fudo_product_id: product.fudo_id, price: null },
-    ]
-    try {
-      await menuService.updateItem(item.id, { variants })
-      setAttaching(null)
-      setTargetItemId('')
-      load()
-    } catch (err) {
-      setError(errorMessage(err, 'Error al agregar el precio al ítem'))
-    }
+  const show = (item) => run(() => menuService.updateItem(item.id, { is_visible: true }), 'Error al mostrar el ítem')
+  const ignore = (item) => {
+    if (!window.confirm(`¿Ignorar "${item.name}"? Se quita de la carta y no se vuelve a crear al sincronizar.`)) return
+    run(() => menuService.ignoreItem(item.id), 'Error al ignorar el ítem')
+  }
+  const merge = (item, target) => {
+    if (!window.confirm(`¿Unir "${item.name}" dentro de "${target.name}"? Sus precios pasan a ese ítem y este se elimina.`)) return
+    run(() => menuService.mergeItem(target.id, item.id), 'Error al unir los ítems')
   }
 
   const closeAndReload = () => {
-    setModal(null)
+    setModalItem(null)
     load()
   }
 
@@ -83,10 +77,49 @@ const MenuInbox = () => {
         <Link to="/menu" className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
           <ArrowLeft className="h-4 w-4" /> Volver a la carta
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-1">Sin asignar y alertas</h1>
+        <h1 className="text-2xl font-bold mt-1">Nuevos y alertas</h1>
       </div>
 
       {error && <div className="p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>}
+
+      <section className="bg-white rounded-lg border border-gray-200">
+        <h2 className="font-semibold text-gray-900 p-4 border-b border-gray-100 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-rose-600" /> Nuevos por revisar ({inbox.new_items.length})
+        </h2>
+        <ul className="divide-y divide-gray-100">
+          {inbox.new_items.length === 0 && <li className="p-4 text-sm text-gray-500">No hay ítems nuevos por revisar.</li>}
+          {inbox.new_items.map((item) => (
+            <li key={item.id} className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">
+                    {item.name}
+                    {!item.is_visible && <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">oculto</span>}
+                  </div>
+                  <div className="text-sm text-gray-600">{item.category_name} · {variantSummary(item.variants)}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setModalItem(itemsById[item.id] || item)} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                    Editar
+                  </button>
+                  <button type="button" onClick={() => show(item)} className="px-3 py-1.5 text-sm bg-rose-600 text-white rounded hover:bg-rose-700">
+                    Mostrar en la carta
+                  </button>
+                  <button type="button" onClick={() => setMergingId(mergingId === item.id ? null : item.id)} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                    Unir con…
+                  </button>
+                  <button type="button" onClick={() => ignore(item)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 rounded hover:bg-gray-100">
+                    <EyeOff className="h-4 w-4" /> Ignorar
+                  </button>
+                </div>
+              </div>
+              {mergingId === item.id && (
+                <ItemPicker items={allItems} excludeId={item.id} onSelect={(target) => merge(item, target)} onCancel={() => setMergingId(null)} />
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="bg-white rounded-lg border border-gray-200">
         <h2 className="font-semibold text-gray-900 p-4 border-b border-gray-100 flex items-center gap-2">
@@ -95,79 +128,42 @@ const MenuInbox = () => {
         <ul className="divide-y divide-gray-100">
           {inbox.alerts.length === 0 && <li className="p-4 text-sm text-gray-500">Sin alertas.</li>}
           {inbox.alerts.map((alert) => (
-            <li key={alert.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">
-                  {alert.item_name}{alert.label && <span className="text-gray-500"> · {alert.label}</span>}
-                </div>
-                <div className="text-sm text-amber-700">{STATUS_TEXT[alert.fudo_status]}{alert.fudo_name && ` ("${alert.fudo_name}")`}</div>
-              </div>
-              <button type="button" onClick={() => setModal({ item: itemsById[alert.item_id] })} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                Editar ítem
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="bg-white rounded-lg border border-gray-200">
-        <h2 className="font-semibold text-gray-900 p-4 border-b border-gray-100">
-          Productos de Fudo sin asignar ({inbox.unassigned.length})
-        </h2>
-        <ul className="divide-y divide-gray-100">
-          {inbox.unassigned.length === 0 && <li className="p-4 text-sm text-gray-500">Todos los productos de Fudo están en la carta o ignorados.</li>}
-          {inbox.unassigned.map((product) => (
-            <li key={product.fudo_id} className="p-4 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{product.name}</div>
-                  <div className="text-sm text-gray-600">{product.category_name || 'Sin categoría'} · {formatPrice(product.price)}</div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setModal({ prefill: { name: product.name, variants: [{ label: null, fudo_product_id: product.fudo_id, price: product.price }] } })}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-rose-600 text-white rounded hover:bg-rose-700"
-                  >
-                    <Plus className="h-4 w-4" /> Crear ítem
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAttaching(product.fudo_id); setTargetItemId('') }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
-                  >
-                    <Link2 className="h-4 w-4" /> Agregar a un ítem
-                  </button>
-                  <button type="button" onClick={() => ignore(product)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 rounded hover:bg-gray-100">
-                    <EyeOff className="h-4 w-4" /> Ignorar
-                  </button>
-                </div>
-              </div>
-              {attaching === product.fudo_id && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <select value={targetItemId} onChange={(e) => setTargetItemId(e.target.value)} className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm">
-                    <option value="">Elegí el ítem…</option>
-                    {allItems.map((i) => <option key={i.id} value={i.id}>{i.categoryName} · {i.name}</option>)}
-                  </select>
-                  <button type="button" disabled={!targetItemId} onClick={() => attachToItem(product)} className="px-3 py-2 text-sm bg-rose-600 text-white rounded disabled:opacity-50">
-                    Agregar como precio
-                  </button>
-                  <button type="button" onClick={() => setAttaching(null)} className="px-3 py-2 text-sm text-gray-600">Cancelar</button>
-                </div>
+            <li key={`${alert.type}-${alert.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center gap-2">
+              {alert.type === 'category' ? (
+                <>
+                  <div className="flex-1 text-sm text-amber-700">
+                    La categoría <strong>{alert.category_name}</strong> ya no existe en Fudo (quedó oculta).
+                  </div>
+                  <Link to="/menu" className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">Ver en la carta</Link>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">
+                      {alert.item_name}{alert.label && <span className="text-gray-500"> · {alert.label}</span>}
+                    </div>
+                    <div className="text-sm text-amber-700">{STATUS_TEXT[alert.fudo_status]}{alert.fudo_name && ` ("${alert.fudo_name}")`}</div>
+                  </div>
+                  {itemsById[alert.item_id] && (
+                    <button type="button" onClick={() => setModalItem(itemsById[alert.item_id])} className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                      Editar ítem
+                    </button>
+                  )}
+                </>
               )}
             </li>
           ))}
         </ul>
       </section>
 
-      {modal && menu && (
+      {modalItem && menu && (
         <MenuItemModal
-          item={modal.item || null}
-          prefill={modal.prefill}
-          defaultCategoryId={modal.item?.category_id}
+          item={modalItem}
+          allItems={allItems}
+          defaultCategoryId={modalItem.category_id}
           categories={menu.categories}
           tags={menu.tags}
-          onClose={() => setModal(null)}
+          onClose={() => setModalItem(null)}
           onSaved={closeAndReload}
         />
       )}

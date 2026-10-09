@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 
 from app.extensions import db
-from app.models.menu import MenuCategory, MenuItem, MenuItemVariant, MenuTag, MenuSetting
+from app.models.menu import MenuCategory, MenuGroup, MenuItem, MenuItemVariant, MenuTag, MenuSetting
 from app.services.menu_publish_service import build_snapshot, has_unpublished_changes, publish
 
 
@@ -35,12 +35,13 @@ def test_build_snapshot_shape(menu_app):
     _seed()
     snapshot = build_snapshot()
 
-    assert snapshot['version'] == 1
+    assert snapshot['version'] == 2
     assert snapshot['settings'] == {'footer_text': '¡Que disfrutes tu estadía!', 'instagram': ''}
     assert snapshot['tags'] == [{'slug': 'sin-tacc', 'name': 'Sin TACC', 'color': '#7FA34A'}]
-    assert [c['slug'] for c in snapshot['categories']] == ['tortas', 'cafes']
+    categories = snapshot['groups'][0]['categories']
+    assert [c['slug'] for c in categories] == ['tortas', 'cafes']
 
-    tortas, cafes = snapshot['categories']
+    tortas, cafes = categories
     assert tortas['items'][0]['variants'] == [
         {'label': 'Porción', 'price': 11200},
         {'label': 'Entera', 'price': 12600.5},
@@ -106,7 +107,7 @@ def test_hash_does_not_depend_on_public_base_url(menu_app, storage, monkeypatch)
     assert has_unpublished_changes() is False
 
     payload = json.loads(storage.objects['menu.json']['body'].decode('utf-8'))
-    images = [i['image'] for c in payload['categories'] for i in c['items'] if i['image']]
+    images = [i['image'] for g in payload['groups'] for c in g['categories'] for i in c['items'] if i['image']]
     assert images == ['https://a.test/menu/images/latte.webp']
 
 
@@ -116,3 +117,28 @@ def test_publish_warns_when_base_url_empty_with_images(menu_app, storage, monkey
     with caplog.at_level('WARNING'):
         publish(storage)
     assert 'MENU_PUBLIC_BASE_URL' in caplog.text
+
+
+def test_snapshot_without_groups_is_single_untitled_group(menu_app):
+    _seed()
+    snapshot = build_snapshot()
+    assert snapshot['version'] == 2
+    assert [g['slug'] for g in snapshot['groups']] == ['_carta']
+    assert snapshot['groups'][0]['name'] is None
+    assert [c['slug'] for c in snapshot['groups'][0]['categories']] == ['tortas', 'cafes']
+    assert 'categories' not in snapshot
+
+
+def test_snapshot_groups_order_otros_and_empty_groups(menu_app):
+    _seed()
+    dulces = MenuGroup(name='Dulces', slug='dulces', sort_order=0)
+    vacio = MenuGroup(name='Vacío', slug='vacio', sort_order=1)
+    db.session.add_all([dulces, vacio])
+    db.session.flush()
+    MenuCategory.query.filter_by(slug='tortas').one().group_id = dulces.id
+    MenuCategory.query.filter_by(slug='cafes').one().show_title = False
+    db.session.commit()
+
+    groups = build_snapshot()['groups']
+    assert [(g['slug'], g['name']) for g in groups] == [('dulces', 'Dulces'), ('_otros', 'Otros')]
+    assert groups[1]['categories'][0]['show_title'] is False

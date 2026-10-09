@@ -179,7 +179,7 @@ const EmployeeForm = () => {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl md:text-3xl font-bold">
           {isEditMode ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h1>
       </div>

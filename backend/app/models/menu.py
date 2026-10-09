@@ -10,6 +10,24 @@ menu_item_tags = db.Table(
 )
 
 
+class MenuGroup(db.Model):
+    """Sección de presentación de la carta pública (agrupa categorías). No afecta productos."""
+    __tablename__ = 'menu_groups'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(120), nullable=False, unique=True)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Sin passive_deletes: al borrar el grupo SQLAlchemy pone group_id = NULL (también en SQLite).
+    categories = db.relationship('MenuCategory', backref='group')
+
+    def to_dict(self):
+        return {'id': self.id, 'name': self.name, 'slug': self.slug, 'sort_order': self.sort_order}
+
+
 class MenuCategory(db.Model):
     __tablename__ = 'menu_categories'
 
@@ -19,6 +37,10 @@ class MenuCategory(db.Model):
     description = db.Column(db.Text)
     sort_order = db.Column(db.Integer, nullable=False, default=0)
     is_visible = db.Column(db.Boolean, nullable=False, default=True)
+    fudo_category_id = db.Column(db.String(20), unique=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('menu_groups.id', ondelete='SET NULL'), index=True)
+    show_title = db.Column(db.Boolean, nullable=False, default=True)
+    fudo_status = db.Column(db.String(20))  # None | 'missing'
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -37,6 +59,10 @@ class MenuCategory(db.Model):
             'description': self.description,
             'sort_order': self.sort_order,
             'is_visible': self.is_visible,
+            'fudo_category_id': self.fudo_category_id,
+            'group_id': self.group_id,
+            'show_title': self.show_title,
+            'fudo_status': self.fudo_status,
         }
         if include_items:
             data['items'] = [item.to_dict() for item in self.items]
@@ -54,6 +80,7 @@ class MenuItem(db.Model):
     sort_order = db.Column(db.Integer, nullable=False, default=0)
     is_visible = db.Column(db.Boolean, nullable=False, default=True)
     is_featured = db.Column(db.Boolean, nullable=False, default=False)
+    reviewed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -76,6 +103,7 @@ class MenuItem(db.Model):
             'sort_order': self.sort_order,
             'is_visible': self.is_visible,
             'is_featured': self.is_featured,
+            'reviewed': self.reviewed_at is not None,
             'tag_ids': sorted(tag.id for tag in self.tags),
             'variants': [variant.to_dict() for variant in self.variants],
         }
@@ -123,6 +151,7 @@ class FudoProduct(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     category_name = db.Column(db.String(100))
+    fudo_category_id = db.Column(db.String(20))
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     ignored = db.Column(db.Boolean, nullable=False, default=False)
     synced_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -135,6 +164,7 @@ class FudoProduct(db.Model):
             'category_name': self.category_name,
             'is_active': self.is_active,
             'ignored': bool(self.ignored),
+            'fudo_category_id': self.fudo_category_id,
         }
 
 

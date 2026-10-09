@@ -141,7 +141,7 @@ const Profile = () => {
           <User className="text-blue-600" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Perfil</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Mi Perfil</h1>
           <p className="text-sm text-gray-600">{employeeData.full_name}</p>
         </div>
       </div>

@@ -11,3 +11,9 @@ def test_slugify_collapses_separators():
 
 def test_slugify_empty_falls_back():
     assert slugify('¡¡!!') == 'item'
+
+
+def test_unique_slug_is_bounded_for_long_text(menu_app):
+    from app.models.menu import MenuCategory
+    from app.utils.slug import unique_slug
+    assert len(unique_slug(MenuCategory, 'a' * 300)) <= 110

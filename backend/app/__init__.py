@@ -43,7 +43,7 @@ def create_app(config_name='development'):
     bcrypt.init_app(app)
     migrate.init_app(app, db)
     
-    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods, absence_requests, social_security, employee_documents, fudo_sync, menu, permissions, suppliers, product_categories, products, supplies, config as config_routes
+    from app.routes import auth, schedules, sales, expenses, reports, employees, shifts, schedule_summary, notifications, coverage, ml_predictions, ml_dashboard, employee_schedule, job_positions, time_tracking, payroll, csv_import, holidays, store_hours, vacation_periods, absence_requests, social_security, employee_documents, fudo_sync, menu, public_menu, permissions, suppliers, product_categories, products, supplies, config as config_routes
     app.register_blueprint(auth.bp)
     app.register_blueprint(schedules.bp)
     app.register_blueprint(shifts.bp)
@@ -69,6 +69,7 @@ def create_app(config_name='development'):
     app.register_blueprint(employee_documents.employee_documents_bp)
     app.register_blueprint(fudo_sync.bp)
     app.register_blueprint(menu.bp)
+    app.register_blueprint(public_menu.bp)
     app.register_blueprint(permissions.permissions_bp)
     app.register_blueprint(suppliers.bp)
     app.register_blueprint(product_categories.bp)

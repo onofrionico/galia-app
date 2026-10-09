@@ -117,7 +117,7 @@ const HolidaysPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
           <Calendar className="h-8 w-8" />
           Gestión de Feriados
         </h1>

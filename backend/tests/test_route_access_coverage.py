@@ -10,6 +10,9 @@ PUBLIC_ENDPOINTS = {
     'csv_import.status',
     'config.get_branding_config',
     'csv_import.download_template',
+    'public_menu.menu_json',
+    'public_menu.menu_image',
+    'public_menu.menu_asset',
 }
 
 

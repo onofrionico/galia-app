@@ -23,9 +23,9 @@ def test_single_head():
     assert len(heads) == 1, heads
 
 
-def test_pos_base_chain_is_linear_from_menu():
+def test_pos_base_chain_starts_after_menu_groups():
     revisions = _revisions()
-    assert revisions['b1a0_add_permissions_system'] == ['add_menu_tables']
+    assert revisions['b1a0_add_permissions_system'] == ['carta_grupos_fudo']
 
 
 def test_suppliers_follows_permissions():

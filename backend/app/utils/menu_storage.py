@@ -1,6 +1,7 @@
 import os
 
 import boto3
+from botocore.exceptions import ClientError
 
 PREFIX = 'menu/'
 
@@ -41,6 +42,16 @@ class MenuStorage:
             ContentType=content_type,
             CacheControl=cache_control,
         )
+
+    def get(self, rel_key):
+        """Devuelve (bytes, content_type); KeyError si el objeto no existe."""
+        try:
+            obj = self.client.get_object(Bucket=self.bucket, Key=self.full_key(rel_key))
+        except ClientError as exc:
+            if exc.response.get('Error', {}).get('Code') in ('NoSuchKey', '404', 'NotFound', 'NoSuchBucket'):
+                raise KeyError(rel_key) from exc
+            raise
+        return obj['Body'].read(), obj.get('ContentType') or 'application/octet-stream'
 
     def delete(self, rel_key):
         self.client.delete_object(Bucket=self.bucket, Key=self.full_key(rel_key))

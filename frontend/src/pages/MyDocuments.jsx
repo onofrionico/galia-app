@@ -110,7 +110,7 @@ const MyDocuments = () => {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Mis Recibos</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Mis Recibos</h1>
         <p className="text-gray-600">Accede a todos tus documentos laborales en un solo lugar</p>
       </div>
 

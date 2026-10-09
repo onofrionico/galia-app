@@ -1,7 +1,7 @@
 """add permissions system (modules, role_permissions, user_permissions) with seed
 
 Revision ID: b1a0_add_permissions_system
-Revises: add_menu_tables
+Revises: carta_grupos_fudo
 Create Date: 2026-10-08 00:00:00.000000
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision = 'b1a0_add_permissions_system'
-down_revision = 'add_menu_tables'
+down_revision = 'carta_grupos_fudo'
 branch_labels = None
 depends_on = None
 

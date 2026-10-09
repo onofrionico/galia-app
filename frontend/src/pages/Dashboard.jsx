@@ -161,7 +161,7 @@ const Dashboard = () => {
 
   // Main Dashboard with Hero Banner
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       {/* Hero Banner */}
       <div
         className="h-[20vh] w-full flex flex-col items-center justify-center relative"
@@ -183,11 +183,11 @@ const Dashboard = () => {
           {brandingConfig.logo_path ? (
             <img
               src={brandingConfig.logo_path}
-              alt="Galia Logo"
+              alt="Galia"
               className="h-[14vh] object-contain"
             />
           ) : (
-            <h1 className="text-4xl md:text-5xl font-bold text-primary">Galia</h1>
+            <h1 className="text-4xl md:text-5xl text-galia-plum">Galia</h1>
           )}
         </div>
       </div>
@@ -212,7 +212,7 @@ const Dashboard = () => {
             {!isAdmin() ? (
               // Employee Dashboard
               <div className="space-y-4 md:space-y-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Dashboard</h1>
+                <h1 className="text-2xl md:text-3xl font-bold">Mi Dashboard</h1>
 
                 <>
                   {/* Próximo Turno */}
@@ -345,7 +345,7 @@ const Dashboard = () => {
             ) : (
               // Admin Dashboard
               <div className="space-y-4 md:space-y-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+                <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                   <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-200">

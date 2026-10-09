@@ -325,7 +325,7 @@ const Expenses = () => {
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Gastos</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Gastos</h1>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => { resetForm(); setShowFormModal(true); }}

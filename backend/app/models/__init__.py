@@ -24,7 +24,7 @@ from app.models.vacation_period import VacationPeriod
 from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
-from app.models.menu import MenuCategory, MenuItem, MenuItemVariant, MenuTag, FudoProduct, MenuSetting
+from app.models.menu import MenuCategory, MenuItem, MenuItemVariant, MenuTag, FudoProduct, MenuSetting, MenuGroup
 from app.models.module import Module
 from app.models.role_permission import RolePermission
 from app.models.user_permission import UserPermission
@@ -67,6 +67,7 @@ __all__ = [
     'MenuTag',
     'FudoProduct',
     'MenuSetting',
+    'MenuGroup',
     'Module',
     'RolePermission',
     'UserPermission',

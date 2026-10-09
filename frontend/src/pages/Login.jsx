@@ -26,18 +26,18 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8 md:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6 md:space-y-8">
+    <div className="relative overflow-hidden min-h-screen flex items-center justify-center bg-galia-cream py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+      <img src="/brand/flower-lime.png" alt="" aria-hidden="true" className="pointer-events-none absolute -top-16 -left-16 w-56 md:w-80 opacity-90" />
+      <img src="/brand/flower-coral.png" alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-16 -right-16 w-56 md:w-80 opacity-90" />
+      <div className="relative max-w-md w-full space-y-6 md:space-y-8">
         <div>
-          <h2 className="mt-4 md:mt-6 text-center text-2xl md:text-3xl font-extrabold text-gray-900">
-            Galia
-          </h2>
+          <img src="/brand/logo.png" alt="Galia Café" className="mx-auto h-[140px] w-auto" />
           <p className="mt-2 text-center text-xs md:text-sm text-gray-600">
             Sistema de Gestión de Cafetería
           </p>
         </div>
         
-        <form className="mt-6 md:mt-8 space-y-4 md:space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-6 md:mt-8 space-y-4 md:space-y-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-5 md:p-8" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 p-3 md:p-4">
               <p className="text-xs md:text-sm text-red-800">{error}</p>
