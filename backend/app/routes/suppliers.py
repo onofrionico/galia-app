@@ -12,6 +12,13 @@ from dateutil.relativedelta import relativedelta
 bp = Blueprint('suppliers', __name__, url_prefix='/api/v1/suppliers')
 
 
+def _clean(value):
+    """Strip strings; return None for empty or non-string values."""
+    if isinstance(value, str):
+        return value.strip() or None
+    return None
+
+
 @bp.route('', methods=['GET'])
 @token_required
 @module_required('Suppliers')
@@ -60,16 +67,17 @@ def list_suppliers(current_user):
 @module_required('Suppliers')
 def create_supplier(current_user):
     data = request.get_json() or {}
-    if not data.get('name', '').strip():
+    name = _clean(data.get('name'))
+    if not name:
         return jsonify({'error': 'El nombre del proveedor es requerido'}), 400
 
     supplier = Supplier(
-        name=data['name'].strip(),
-        cuit=data.get('cuit', '').strip() or None,
-        email=data.get('email', '').strip() or None,
-        phone=data.get('phone', '').strip() or None,
-        address=data.get('address', '').strip() or None,
-        notes=data.get('notes', '').strip() or None,
+        name=name,
+        cuit=_clean(data.get('cuit')),
+        email=_clean(data.get('email')),
+        phone=_clean(data.get('phone')),
+        address=_clean(data.get('address')),
+        notes=_clean(data.get('notes')),
     )
     db.session.add(supplier)
     try:
@@ -109,13 +117,13 @@ def update_supplier(current_user, supplier_id):
     data = request.get_json() or {}
 
     if 'name' in data:
-        if not data['name'].strip():
+        name = _clean(data['name'])
+        if not name:
             return jsonify({'error': 'El nombre no puede estar vacío'}), 400
-        supplier.name = data['name'].strip()
+        supplier.name = name
     for field in ('cuit', 'email', 'phone', 'address', 'notes'):
         if field in data:
-            val = data[field]
-            setattr(supplier, field, val.strip() if val else None)
+            setattr(supplier, field, _clean(data[field]))
     if 'is_active' in data:
         supplier.is_active = bool(data['is_active'])
 
@@ -143,7 +151,7 @@ def deactivate_supplier(current_user, supplier_id):
 def get_supplier_expenses(current_user, supplier_id):
     Supplier.query.get_or_404(supplier_id)
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
+    per_page = max(1, min(request.args.get('per_page', 50, type=int), 200))
     fecha_desde = request.args.get('fecha_desde')
     fecha_hasta = request.args.get('fecha_hasta')
 
@@ -200,26 +208,27 @@ def get_supplier_analytics(current_user, supplier_id):
     fecha_desde = request.args.get('fecha_desde')
     fecha_hasta = request.args.get('fecha_hasta')
 
-    query = Expense.query.filter(Expense.supplier_id == supplier_id, Expense.cancelado == False)
-
+    date_filters = []
     if fecha_desde:
         try:
-            query = query.filter(Expense.fecha >= datetime.strptime(fecha_desde, '%Y-%m-%d').date())
+            date_filters.append(Expense.fecha >= datetime.strptime(fecha_desde, '%Y-%m-%d').date())
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_desde inválido. Use YYYY-MM-DD'}), 400
     if fecha_hasta:
         try:
-            query = query.filter(Expense.fecha <= datetime.strptime(fecha_hasta, '%Y-%m-%d').date())
+            date_filters.append(Expense.fecha <= datetime.strptime(fecha_hasta, '%Y-%m-%d').date())
         except ValueError:
-            pass
+            return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
 
     total_periodo = float(
         db.session.query(func.sum(Expense.importe))
-        .filter(Expense.supplier_id == supplier_id, Expense.cancelado == False)
+        .filter(Expense.supplier_id == supplier_id, Expense.cancelado == False, *date_filters)
         .scalar() or 0
     )
 
+    # Without an explicit start date, the monthly series covers the last 12 months.
     twelve_months_ago = date.today() - relativedelta(months=12)
+    monthly_start = [] if fecha_desde else [Expense.fecha >= twelve_months_ago]
     if db.engine.dialect.name == 'postgresql':
         month_expr = func.date_trunc('month', Expense.fecha)
     else:
@@ -230,7 +239,8 @@ def get_supplier_analytics(current_user, supplier_id):
     ).filter(
         Expense.supplier_id == supplier_id,
         Expense.cancelado == False,
-        Expense.fecha >= twelve_months_ago
+        *monthly_start,
+        *date_filters
     ).group_by(month_expr).all()
 
     promedio_mensual = (
@@ -243,7 +253,8 @@ def get_supplier_analytics(current_user, supplier_id):
         func.sum(Expense.importe).label('total')
     ).join(Expense, Expense.category_id == ExpenseCategory.id).filter(
         Expense.supplier_id == supplier_id,
-        Expense.cancelado == False
+        Expense.cancelado == False,
+        *date_filters
     ).group_by(ExpenseCategory.name).all()
 
     last_expense = db.session.query(func.max(Expense.fecha)).filter(

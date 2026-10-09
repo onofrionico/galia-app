@@ -6,6 +6,7 @@ from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 from datetime import datetime
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 import csv
 import io
 
@@ -25,7 +26,7 @@ def get_expenses(current_user):
     estado_pago = request.args.get('estado_pago')
     medio_pago = request.args.get('medio_pago')
     
-    query = Expense.query
+    query = Expense.query.options(joinedload(Expense.supplier))
     
     if fecha_desde:
         try:
@@ -203,6 +204,8 @@ def create_expense(current_user):
         return jsonify({'error': 'La categoría es requerida'}), 400
     
     supplier_id = data.get('supplier_id')
+    if supplier_id is not None and (isinstance(supplier_id, bool) or not isinstance(supplier_id, int)):
+        return jsonify({'error': 'supplier_id debe ser un entero'}), 400
     if supplier_id:
         supplier = Supplier.query.get(supplier_id)
         if not supplier or not supplier.is_active:
@@ -276,11 +279,15 @@ def update_expense(current_user, expense_id):
             return jsonify({'error': 'La categoría es requerida'}), 400
     
     if 'supplier_id' in data:
-        if data['supplier_id'] is not None:
-            supplier = Supplier.query.get(data['supplier_id'])
-            if not supplier or not supplier.is_active:
-                return jsonify({'error': 'Proveedor inválido o inactivo'}), 400
-        expense.supplier_id = data['supplier_id']
+        new_supplier_id = data['supplier_id']
+        if new_supplier_id is not None and (isinstance(new_supplier_id, bool) or not isinstance(new_supplier_id, int)):
+            return jsonify({'error': 'supplier_id debe ser un entero'}), 400
+        if new_supplier_id != expense.supplier_id:
+            if new_supplier_id is not None:
+                supplier = Supplier.query.get(new_supplier_id)
+                if not supplier or not supplier.is_active:
+                    return jsonify({'error': 'Proveedor inválido o inactivo'}), 400
+            expense.supplier_id = new_supplier_id
 
     updatable_fields = ['proveedor', 'comentario',
                         'estado_pago', 'importe', 'de_caja', 'caja', 'medio_pago',
