@@ -77,7 +77,7 @@ const MenuInbox = () => {
         <Link to="/menu" className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
           <ArrowLeft className="h-4 w-4" /> Volver a la carta
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-1">Nuevos y alertas</h1>
+        <h1 className="text-2xl font-bold mt-1">Nuevos y alertas</h1>
       </div>
 
       {error && <div className="p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>}

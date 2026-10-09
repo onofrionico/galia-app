@@ -102,7 +102,7 @@ const PayrollClaims = () => {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-2xl md:text-3xl font-bold mb-4">
           Reclamos de Nóminas
         </h1>
 

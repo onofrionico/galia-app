@@ -111,7 +111,7 @@ const Menu = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Carta</h1>
+          <h1 className="text-2xl font-bold">Carta</h1>
           <p className="text-sm text-gray-600">
             {status?.last_published_at
               ? `Última publicación: ${formatDistanceToNow(new Date(status.last_published_at), { addSuffix: true, locale: es })}`

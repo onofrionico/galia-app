@@ -113,7 +113,7 @@ const StoreHours = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Horarios de Local</h1>
+        <h1 className="text-3xl font-bold">Horarios de Local</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"

@@ -91,7 +91,7 @@ const MLDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
+          <h1 className="text-3xl font-bold flex items-center space-x-3">
             <Brain className="h-8 w-8 text-purple-600" />
             <span>Dashboard ML</span>
           </h1>

@@ -91,7 +91,7 @@ const MySchedule = () => {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Horario</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Mi Horario</h1>
         
         <div className="flex gap-2">
           <button

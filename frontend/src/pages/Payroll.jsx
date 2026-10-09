@@ -129,7 +129,7 @@ const Payroll = () => {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Nómina de Sueldos</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Nómina de Sueldos</h1>
           <p className="text-sm md:text-base text-gray-600 mt-1">
             Gestión de sueldos y liquidaciones mensuales
           </p>

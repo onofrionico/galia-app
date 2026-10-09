@@ -143,7 +143,7 @@ const Dashboard = () => {
   if (!isAdmin()) {
     return (
       <div className="space-y-4 md:space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Mi Dashboard</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Mi Dashboard</h1>
 
         {error && (
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 md:p-4 flex items-start gap-3">
@@ -292,7 +292,7 @@ const Dashboard = () => {
   // Dashboard para Administradores
   return (
     <div className="space-y-4 md:space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
       
       {error && (
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 md:p-4 flex items-start gap-3">

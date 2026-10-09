@@ -14,7 +14,7 @@ const Navbar = ({ onMenuClick }) => {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <nav className="bg-galia-cream border-b border-gray-200 sticky top-0 z-50">
       <div className="px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 md:space-x-4">
@@ -24,7 +24,7 @@ const Navbar = ({ onMenuClick }) => {
             >
               <Menu className="h-6 w-6 text-gray-600" />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-primary">Galia</h1>
+            <h1 className="text-xl md:text-2xl text-galia-plum">Galia</h1>
             <span className="hidden sm:inline text-xs md:text-sm text-muted-foreground">Gestión de Cafetería</span>
           </div>
           
