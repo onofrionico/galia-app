@@ -7,7 +7,7 @@ class UserPermission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     module_id = db.Column(db.Integer, db.ForeignKey('modules.id'), nullable=False)
-    is_granted = db.Column(db.Boolean, nullable=False)  # True = grant, False = deny, None = inherit from role
+    is_granted = db.Column(db.Boolean, nullable=False)  # True = grant, False = deny (no row = inherit from role)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

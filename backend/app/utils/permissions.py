@@ -67,14 +67,15 @@ def get_user_modules(user):
     if user.role == 'admin':
         return Module.query.filter_by(is_active=True).all()
 
-    modules = []
-    all_modules = Module.query.filter_by(is_active=True).all()
+    # Load everything once instead of querying per module
+    active_modules = Module.query.filter_by(is_active=True).order_by(Module.id).all()
+    overrides = get_user_permission_overrides(user.id)
+    roles = get_role_permissions(user.role)
 
-    for module in all_modules:
-        if check_module_access(user, module.name):
-            modules.append(module)
-
-    return modules
+    return [
+        m for m in active_modules
+        if overrides.get(m.id, roles.get(m.id, False))
+    ]
 
 
 def get_role_permissions(role):
@@ -108,6 +109,7 @@ def get_user_permission_overrides(user_id):
 def sync_role_permissions(role, module_permissions):
     """
     Sync role permissions for multiple modules.
+    Fully replaces the stored rows for this role.
     module_permissions: {module_id: is_granted, ...}
 
     Args:
@@ -128,7 +130,7 @@ def sync_role_permissions(role, module_permissions):
             perm = RolePermission(
                 role=role,
                 module_id=module_id,
-                is_granted=is_granted
+                is_granted=bool(is_granted)
             )
             db.session.add(perm)
 
@@ -143,6 +145,8 @@ def sync_role_permissions(role, module_permissions):
 def sync_user_permissions(user_id, module_permissions):
     """
     Sync user permission overrides for multiple modules.
+    Fully replaces the stored rows for this user; a None value means
+    'inherit from role' and no row is stored for that module.
 
     Args:
         user_id: User ID
@@ -159,10 +163,12 @@ def sync_user_permissions(user_id, module_permissions):
 
         # Create new permissions
         for module_id, is_granted in module_permissions.items():
+            if is_granted is None:
+                continue
             perm = UserPermission(
                 user_id=user_id,
                 module_id=module_id,
-                is_granted=is_granted
+                is_granted=bool(is_granted)
             )
             db.session.add(perm)
 
