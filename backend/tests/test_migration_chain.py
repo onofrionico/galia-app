@@ -30,3 +30,7 @@ def test_pos_base_chain_is_linear_from_menu():
 
 def test_suppliers_follows_permissions():
     assert _revisions()['b1a1_add_suppliers'] == ['b1a0_add_permissions_system']
+
+
+def test_products_follows_suppliers():
+    assert _revisions()['b1a2_add_products_and_supplies'] == ['b1a1_add_suppliers']
