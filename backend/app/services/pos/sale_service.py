@@ -13,7 +13,7 @@ from app.extensions import db
 from app.models import ProductVariant, User
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosSale, PosSaleItem,
                             PosSaleItemModifier, PosTable, ProductModifierGroup)
-from app.services.pos import audit, pricing
+from app.services.pos import audit, pricing, stock_hooks
 from app.services.pos.common import (MAX_QUANTITY, load_sale, now, parse_id, recalc, require_module,
                                      require_status)
 from app.services.pos.errors import PosError, bad_request, not_found
@@ -145,5 +145,54 @@ def delete_item(user, sale_id, item_id):
                  quantity=item.quantity, modifiers=[m.option_name for m in item.modifiers], note=item.note)
     sale.items.remove(item)
     recalc(sale)
+    db.session.commit()
+    return sale
+
+
+def confirm_pending(sale, user):
+    """Confirma los ítems pendientes como una tanda nueva y descuenta su stock. No hace commit."""
+    pending = [i for i in sale.items if i.status == 'pending']
+    if not pending:
+        return []
+    batch = max((i.batch or 0) for i in sale.items) + 1
+    timestamp = now()
+    for item in pending:
+        item.status = 'confirmed'
+        item.batch = batch
+        item.confirmed_by = user.id
+        item.confirmed_at = timestamp
+    stock_hooks.consume(pending)
+    audit.record(sale, user, 'batch_confirmed', batch=batch, item_ids=[i.id for i in pending])
+    return pending
+
+
+def confirm_batch(user, sale_id):
+    sale = load_sale(sale_id)
+    require_status(sale, ('open',), 'Solo se confirman pedidos de una venta abierta')
+    if not confirm_pending(sale, user):
+        raise PosError('No hay ítems nuevos para confirmar')
+    db.session.commit()
+    return sale
+
+
+def request_bill(user, sale_id):
+    sale = load_sale(sale_id)
+    require_status(sale, ('open',), 'La venta no está abierta')
+    if any(i.status == 'pending' for i in sale.items):
+        raise PosError('Confirmá o borrá los ítems pendientes antes de pedir la cuenta')
+    if not any(i.status == 'confirmed' for i in sale.items):
+        raise PosError('La venta no tiene ítems confirmados')
+    sale.status = 'billing'
+    sale.billing_at = now()
+    audit.record(sale, user, 'bill_requested', total=sale.total)
+    db.session.commit()
+    return sale
+
+
+def reopen(user, sale_id):
+    sale = load_sale(sale_id)
+    require_status(sale, ('billing',), 'Solo se reabre una venta en cobro')
+    sale.status = 'open'
+    audit.record(sale, user, 'reopened')
     db.session.commit()
     return sale
