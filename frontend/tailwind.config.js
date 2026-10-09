@@ -18,6 +18,22 @@ export default {
     },
     extend: {
       colors: {
+        blue: {
+          50: "#FAF3F6", 100: "#F2E4EB", 200: "#E0C4D2", 300: "#C08DA6", 400: "#9C5C7C",
+          500: "#7A4060", 600: "#5C2E46", 700: "#4A2539", 800: "#3B1E2E", 900: "#2C1622", 950: "#1E0F17",
+        },
+        gray: {
+          50: "#FAFAF9", 100: "#F5F5F4", 200: "#E7E5E4", 300: "#D6D3D1", 400: "#A8A29E",
+          500: "#78716C", 600: "#57534E", 700: "#44403C", 800: "#292524", 900: "#1C1917", 950: "#0C0A09",
+        },
+        galia: {
+          cream: "#F5F1EA",
+          plum: "#5C2E46",
+          "plum-dark": "#43203A",
+          "plum-light": "#8A5A72",
+          lime: "#C5D94A",
+          coral: "#E0866A",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -51,6 +67,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+      },
+      fontFamily: {
+        sans: ['"DM Sans"', "system-ui", "sans-serif"],
+        display: ["Anton", "Impact", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
