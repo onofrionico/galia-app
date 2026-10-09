@@ -11,7 +11,7 @@ Aplicar al panel admin (`frontend/`) la identidad visual de la carta pública (`
 |---|---|
 | Alcance | Tema global vía Tailwind (no pantalla por pantalla) |
 | Sidebar | Bordó oscuro, texto crema, logo arriba, ítem activo con flor lima |
-| Colores semánticos | Rojo/verde/ámbar/amarillo/violeta se mantienen |
+| Colores semánticos | Rojo/verde/ámbar/amarillo se mantienen; violeta pasa a coral y rosa a bordó |
 | Títulos | Anton sólo en `h1` de cada pantalla; resto DM Sans |
 
 ## 1. Paleta (frontend/tailwind.config.js → theme.extend.colors)
