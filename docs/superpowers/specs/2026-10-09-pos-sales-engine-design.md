@@ -99,7 +99,7 @@ Montos en `Numeric(12,2)` (o `(10,2)` para precios), calculados con `Decimal`. C
 
 ### Descuentos
 
-- Solo en ventas `open`/`billing`.
+- Solo en ventas `open`/`billing`. Los descuentos de ítem solo se aplican a ítems **confirmados** (un pendiente se puede borrar sin dejar descuentos huérfanos).
 - **Plantilla no restringida:** permitida para quien carga ventas (`POS` o `Camarero`).
 - **Plantilla restringida o descuento libre:** requiere `Descuentos`. El descuento libre exige motivo.
 - **Cálculo:**
@@ -134,14 +134,14 @@ Solo ventas de salón `open`/`billing`, hacia una mesa activa sin ventas abierta
 ### Stock
 
 - **Al confirmar:** se descuenta, por cada ítem, la variante (producto sin receta con `track_stock`) o la receta × cantidad, más `supply_quantity × quantity` de cada modificador con insumo.
-- **Al anular un ítem confirmado:** se devuelve lo mismo, a partir de las copias guardadas en el ítem y en sus modificadores.
+- **Al anular un ítem confirmado:** se devuelve lo mismo. Los insumos de los modificadores salen de las copias guardadas en el ítem; la receta del producto es la vigente al momento de anular (no se copia la receta en cada venta).
 - **Sin bloqueo:** `stock_service` gana el modo `allow_negative=True` (lo usa el POS); el modo actual que valida sigue siendo el default.
 - **Concurrencia:** las filas de variantes e insumos se bloquean con `with_for_update()`, ordenadas por id.
 
 ### Proyección a `sales`
 
 - **Al cerrar** se crea la fila:
-  - `source='galia'`, `external_id=NULL`, `fecha` = fecha de apertura en hora Argentina, `creacion` = `opened_at`, `cerrada` = `closed_at`, `estado='Cerrada'`.
+  - `source='galia'`, `external_id=NULL`, `creacion` = `opened_at`, `cerrada` = `closed_at` (ambos en UTC, igual que el sync de Fudo), `fecha` = `closed_at.date()` (mismo criterio que `fudo_sync`, para que los reportes traten igual ambas fuentes), `estado='Cerrada'`.
   - `cliente` = `customer_name`, `mesa` = nombre o número de la mesa, `sala` = nombre del salón, `personas`, `camarero` = nombre del empleado del mozo (o su email).
   - `medio_pago` = el nombre del único medio usado, o `'Mixto'`.
   - `total`, `fiscal=False`, `tipo_venta` = `'Local'` (salón) o `'Mostrador'`, `comentario`, `origen='Galia POS'`, `id_origen` = `pos_sales.id`.
@@ -228,6 +228,7 @@ Cada acción sobre una venta devuelve la venta completa recalculada. El frontend
 - Cada acción sobre una venta abre una transacción y toma la venta con `SELECT … FOR UPDATE`. Abrir en una mesa bloquea la fila de la mesa para que no haya dos aperturas simultáneas.
 - Errores de negocio: `PosError` → 409 (estado inválido o conflicto) o 400 (datos inválidos), con mensaje en castellano. 404 si no existe. Errores inesperados: 500 con mensaje genérico y `logger.exception`.
 - Idempotencia de pagos con `client_request_id`. Con un id repetido de otra venta devuelve 409.
+- Numeración: `UNIQUE(business_date, number)` en `pos_sales`. Si dos ventas se abren en el mismo instante y chocan, la segunda recibe 409 ("probá de nuevo"); la UI puede reintentar sola.
 
 ## Migración
 
