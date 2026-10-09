@@ -71,3 +71,50 @@ def test_sales_source_defaults_to_fudo(app):
     db.session.commit()
     assert sale.source == 'fudo'
     assert sale.to_dict()['source'] == 'fudo'
+
+
+def test_sale_aggregate_relationships(app):
+    from datetime import date, datetime
+    from app.models import ProductVariant, User
+    from app.models.pos import PosDiscount, PosPayment, PosSale, PosSaleEvent, PosSaleItem, PosSaleItemModifier
+
+    user = User(email='u@test.com', role='admin', is_active=True)
+    user.set_password('secret123')
+    cat = ProductCategory(name='Cafés')
+    db.session.add_all([user, cat])
+    db.session.flush()
+    product = Product(name='Cortado', category_id=cat.id)
+    db.session.add(product)
+    db.session.flush()
+    variant = ProductVariant(product_id=product.id, name='Taza', price=2000, stock_quantity=0, min_stock=0)
+    group = ModifierGroup(name='Leche', min_select=0, max_select=1)
+    method = PaymentMethod(name='Efectivo', kind='cash')
+    db.session.add_all([variant, group, method])
+    db.session.flush()
+    option = ModifierOption(group_id=group.id, name='Almendras', price_delta=300)
+    db.session.add(option)
+    db.session.flush()
+
+    sale = PosSale(business_date=date.today(), number=1, sale_type='counter', status='open',
+                   opened_at=datetime.utcnow(), opened_by=user.id)
+    item = PosSaleItem(product_variant_id=variant.id, product_name='Cortado', variant_name='Taza',
+                       unit_price=2000, quantity=1, modifiers_total=300, line_total=2300,
+                       created_by=user.id, created_at=datetime.utcnow())
+    item.modifiers.append(PosSaleItemModifier(option_id=option.id, group_name='Leche', option_name='Almendras',
+                                              price_delta=300))
+    sale.items.append(item)
+    db.session.add(sale)
+    db.session.flush()
+    sale.discounts.append(PosDiscount(item=item, kind='amount', value=100, amount=100, created_by=user.id,
+                                      created_at=datetime.utcnow()))
+    sale.payments.append(PosPayment(payment_method_id=method.id, method_name='Efectivo', amount=2200,
+                                    created_by=user.id, created_at=datetime.utcnow()))
+    db.session.add(PosSaleEvent(sale_id=sale.id, user_id=user.id, event_type='opened', payload={'x': 1},
+                                created_at=datetime.utcnow()))
+    db.session.commit()
+
+    assert item.status == 'pending'
+    assert sale.items[0].modifiers[0].option_name == 'Almendras'
+    assert sale.discounts[0].item is item and item.discounts[0].is_active
+    assert sale.payments[0].is_active
+    assert PosSaleEvent.query.one().payload == {'x': 1}

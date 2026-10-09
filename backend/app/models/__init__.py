@@ -30,7 +30,8 @@ from app.models.role_permission import RolePermission
 from app.models.user_permission import UserPermission
 from app.models.site_config import SiteConfig
 from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, ProductModifierGroup,
-                            PaymentMethod, DiscountTemplate)
+                            PaymentMethod, DiscountTemplate, PosPayment, PosDiscount, PosSale,
+                            PosSaleItem, PosSaleItemModifier, PosSaleEvent)
 
 __all__ = [
     'User',
@@ -81,4 +82,10 @@ __all__ = [
     'ProductModifierGroup',
     'PaymentMethod',
     'DiscountTemplate',
+    'PosPayment',
+    'PosDiscount',
+    'PosSale',
+    'PosSaleItem',
+    'PosSaleItemModifier',
+    'PosSaleEvent',
 ]
