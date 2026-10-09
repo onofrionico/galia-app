@@ -103,7 +103,7 @@ def test_partial_upload_keeps_existing_banner(client):
     assert second.status_code == 200
     data = second.get_json()
     assert data['banner_background_path'] == first['banner_background_path']
-    assert data['logo_path'] != first['logo_path']
+    assert data['logo_path'] == first['logo_path']  # keys are content-hashed: same image, same key
     assert SiteConfig.query.count() == 1
 
 
