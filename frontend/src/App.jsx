@@ -34,6 +34,8 @@ import Menu from './pages/Menu'
 import MenuInbox from './pages/MenuInbox'
 import { RoleProtectedRoute } from './components/RoleProtectedRoute'
 import Permissions from './pages/Permissions'
+import Suppliers from './pages/Suppliers'
+import SupplierDetail from './pages/SupplierDetail'
 
 function App() {
   return (
@@ -73,7 +75,9 @@ function App() {
             <Route path="/vacation-periods" element={<RoleProtectedRoute moduleName="Schedules"><VacationPeriods /></RoleProtectedRoute>} />
             <Route path="/menu" element={<RoleProtectedRoute moduleName="Menu"><Menu /></RoleProtectedRoute>} />
             <Route path="/menu/inbox" element={<RoleProtectedRoute moduleName="Menu"><MenuInbox /></RoleProtectedRoute>} />
-            <Route path="/permissions" element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
+            <Route path="/suppliers" element={<RoleProtectedRoute moduleName="Suppliers"><Suppliers /></RoleProtectedRoute>} />
+            <Route path="/suppliers/:id" element={<RoleProtectedRoute moduleName="Suppliers"><SupplierDetail /></RoleProtectedRoute>} />
+            <Route path="/permissions"element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
