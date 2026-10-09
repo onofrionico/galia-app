@@ -29,6 +29,8 @@ from app.models.module import Module
 from app.models.role_permission import RolePermission
 from app.models.user_permission import UserPermission
 from app.models.site_config import SiteConfig
+from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, ProductModifierGroup,
+                            PaymentMethod, DiscountTemplate)
 
 __all__ = [
     'User',
@@ -71,5 +73,12 @@ __all__ = [
     'Module',
     'RolePermission',
     'UserPermission',
-    'SiteConfig'
+    'SiteConfig',
+    'Salon',
+    'PosTable',
+    'ModifierGroup',
+    'ModifierOption',
+    'ProductModifierGroup',
+    'PaymentMethod',
+    'DiscountTemplate',
 ]

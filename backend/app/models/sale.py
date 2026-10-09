@@ -28,6 +28,7 @@ class Sale(db.Model):
     comentario = db.Column(db.Text, nullable=True)
     origen = db.Column(db.String(100), nullable=True)
     id_origen = db.Column(db.String(100), nullable=True)
+    source = db.Column(db.String(20), nullable=False, default='fudo', server_default='fudo')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     __table_args__ = (
@@ -58,6 +59,7 @@ class Sale(db.Model):
             'comentario': self.comentario,
             'origen': self.origen,
             'id_origen': self.id_origen,
+            'source': self.source,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
