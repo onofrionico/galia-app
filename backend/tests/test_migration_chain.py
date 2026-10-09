@@ -26,3 +26,7 @@ def test_single_head():
 def test_pos_base_chain_is_linear_from_menu():
     revisions = _revisions()
     assert revisions['b1a0_add_permissions_system'] == ['add_menu_tables']
+
+
+def test_suppliers_follows_permissions():
+    assert _revisions()['b1a1_add_suppliers'] == ['b1a0_add_permissions_system']
