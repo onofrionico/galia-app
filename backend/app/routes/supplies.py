@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.supply import Supply, SupplyPrice
 from app.utils.jwt_utils import token_required
-from app.utils.decorators import module_required, authenticated_only
+from app.utils.decorators import module_required
 from datetime import date
 from decimal import Decimal
 from app.utils.validation import clean_str, json_object, parse_decimal

@@ -29,7 +29,7 @@ const Expenses = () => {
   });
   const [suppliers, setSuppliers] = useState([]);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
-  const [editingSupplierId, setEditingSupplierId] = useState(null);
+  const [editingProveedor, setEditingProveedor] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 50,
@@ -229,7 +229,7 @@ const Expenses = () => {
       numero_comprobante: ''
     });
     setEditingId(null);
-    setEditingSupplierId(null);
+    setEditingProveedor('');
   };
 
   const handleFormChange = (field, value) => {
@@ -252,8 +252,8 @@ const Expenses = () => {
       const resolvedSupplierId = match ? match.id : null;
 
       if (editingId) {
-        // Solo enviar supplier_id si cambió respecto del gasto cargado (y si pudimos cargar proveedores).
-        if (suppliersLoaded && resolvedSupplierId !== editingSupplierId) {
+        // Solo enviar supplier_id si cambió el texto del proveedor respecto del gasto cargado.
+        if (suppliersLoaded && typed !== editingProveedor) {
           payload.supplier_id = resolvedSupplierId;
         }
         await api.put(`/expenses/${editingId}`, payload);
@@ -292,7 +292,7 @@ const Expenses = () => {
       numero_comprobante: expense.numero_comprobante || ''
     });
     setEditingId(expense.id);
-    setEditingSupplierId(expense.supplier_id ?? null);
+    setEditingProveedor((expense.proveedor || '').trim().toLowerCase());
     setShowFormModal(true);
   };
 
