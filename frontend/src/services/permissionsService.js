@@ -17,7 +17,7 @@ const permissionsService = {
 
   async getUserPermissions(userId) {
     const response = await api.get(`/permissions/user/${userId}`)
-    return response.data.permissions || []
+    return { permissions: response.data.permissions || [], role: response.data.role || null }
   },
 
   async updateUserPermissions(userId, permissions) {

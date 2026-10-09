@@ -7,7 +7,8 @@ const AuthContext = createContext(null)
 const loadModules = async () => {
   try {
     return await permissionsService.getMyModules()
-  } catch {
+  } catch (error) {
+    console.error('Error cargando módulos del usuario', error)
     return []
   }
 }
@@ -27,8 +28,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const userData = await authService.getCurrentUser()
-        setUser(userData)
-        setUserModules(await loadModules())
+        if (userData) {
+          setUser(userData)
+          setUserModules(await loadModules())
+        } else {
+          setUser(null)
+          setUserModules([])
+        }
       } catch (error) {
         setUser(null)
         setUserModules([])

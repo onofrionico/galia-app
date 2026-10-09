@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { PermissionMatrix } from '@/components/configuration/PermissionMatrix'
 import permissionsService from '@/services/permissionsService'
 import employeeService from '@/services/employeeService'
@@ -9,21 +8,20 @@ const ROLES = ['employee']
 const ROLE_LABELS = { employee: 'Empleado', admin: 'Administrador' }
 
 export default function Permissions() {
-  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('roles')
   const [selectedRole, setSelectedRole] = useState('employee')
   const [selectedUser, setSelectedUser] = useState(null)
   const [users, setUsers] = useState([])
   const [rolePermissions, setRolePermissions] = useState([])
   const [userPermissions, setUserPermissions] = useState([])
+  const [selectedUserRole, setSelectedUserRole] = useState(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') return
     fetchUsers()
-  }, [user])
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'roles' && selectedRole) {
@@ -32,8 +30,14 @@ export default function Permissions() {
   }, [selectedRole, activeTab])
 
   useEffect(() => {
+    setUserPermissions([])
+    setSelectedUserRole(null)
     if (activeTab === 'users' && selectedUser) {
-      fetchUserPermissions(selectedUser.id)
+      let ignore = false
+      fetchUserPermissions(selectedUser.id, () => ignore)
+      return () => {
+        ignore = true
+      }
     }
   }, [selectedUser, activeTab])
 
@@ -44,7 +48,7 @@ export default function Permissions() {
       setUsers(
         (data.employees || [])
           .filter(e => e.user_id)
-          .map(e => ({ id: e.user_id, name: e.full_name || e.email, email: e.email, role: 'employee' }))
+          .map(e => ({ id: e.user_id, name: e.full_name || e.email, email: e.email }))
       )
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al cargar los usuarios' })
@@ -62,14 +66,18 @@ export default function Permissions() {
     }
   }
 
-  const fetchUserPermissions = async (userId) => {
+  const fetchUserPermissions = async (userId, isStale = () => false) => {
     setLoading(true)
     try {
-      setUserPermissions(await permissionsService.getUserPermissions(userId))
+      const data = await permissionsService.getUserPermissions(userId)
+      if (isStale()) return
+      setUserPermissions(data.permissions)
+      setSelectedUserRole(data.role)
     } catch (error) {
+      if (isStale()) return
       setMessage({ type: 'error', text: 'Error al cargar los permisos del usuario' })
     } finally {
-      setLoading(false)
+      if (!isStale()) setLoading(false)
     }
   }
 
@@ -119,19 +127,8 @@ export default function Permissions() {
     }
   }
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Acceso Denegado</h2>
-          <p className="mt-2 text-gray-600">Solo los administradores pueden acceder a esta página.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Administrador de Permisos</h1>
@@ -225,15 +222,15 @@ export default function Permissions() {
                   <select
                     value={selectedUser?.id || ''}
                     onChange={(e) => {
-                      const user = users.find(u => u.id === parseInt(e.target.value))
-                      setSelectedUser(user)
+                      const selected = users.find(u => u.id === parseInt(e.target.value))
+                      setSelectedUser(selected || null)
                     }}
                     className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Seleccionar un usuario...</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name}
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
                       </option>
                     ))}
                   </select>
@@ -243,7 +240,7 @@ export default function Permissions() {
                   <>
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-sm text-blue-800">
-                        <strong>Rol del usuario:</strong> {ROLE_LABELS[selectedUser.role] || 'No asignado'}
+                        <strong>Rol del usuario:</strong> {ROLE_LABELS[selectedUserRole] || selectedUserRole || 'No asignado'}
                       </p>
                     </div>
 

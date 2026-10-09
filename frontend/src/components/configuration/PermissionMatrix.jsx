@@ -1,8 +1,4 @@
-import { useState } from 'react'
-
 export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, mode = 'role' }) => {
-  const [sortBy, setSortBy] = useState('name')
-
   const handleToggle = (moduleId) => {
     const updated = permissions.map(perm => {
       if (perm.module_id === moduleId) {
@@ -22,14 +18,9 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
     onPermissionsChange(updated)
   }
 
-  const sortedPermissions = [...permissions].sort((a, b) => {
-    if (sortBy === 'name') {
-      return a.module_name.localeCompare(b.module_name)
-    } else if (sortBy === 'category') {
-      return (a.display_name || '').localeCompare(b.display_name || '')
-    }
-    return 0
-  })
+  const sortedPermissions = [...permissions].sort((a, b) =>
+    (a.display_name || a.module_name || '').localeCompare(b.display_name || b.module_name || '')
+  )
 
   const allGranted = permissions.every(p => p.is_granted)
   const grantedCount = permissions.filter(p => p.is_granted).length
@@ -45,14 +36,6 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
             </p>
           </div>
           <div className="flex gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:border-gray-400"
-            >
-              <option value="name">Ordenar por nombre</option>
-              <option value="category">Ordenar por categoría</option>
-            </select>
             <button
               onClick={handleToggleAll}
               disabled={isLoading}
@@ -80,9 +63,6 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Módulo
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Descripción
-              </th>
               {mode === 'user' && (
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rol
@@ -99,6 +79,7 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
                     type="checkbox"
+                    aria-label={`Acceso a ${perm.display_name || perm.module_name}`}
                     checked={perm.is_granted || false}
                     onChange={() => handleToggle(perm.module_id)}
                     disabled={isLoading}
@@ -106,16 +87,10 @@ export const PermissionMatrix = ({ permissions, onPermissionsChange, isLoading, 
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{perm.icon || '📦'}</span>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{perm.module_name}</div>
-                      <div className="text-xs text-gray-500">{perm.display_name}</div>
-                    </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{perm.display_name || perm.module_name}</div>
+                    <div className="text-xs text-gray-500">{perm.module_name}</div>
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <p className="text-sm text-gray-600">{perm.description || '-'}</p>
                 </td>
                 {mode === 'user' && (
                   <td className="px-6 py-4 whitespace-nowrap">
