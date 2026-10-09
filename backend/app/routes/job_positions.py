@@ -3,13 +3,14 @@ from datetime import datetime
 from app.extensions import db
 from app.models.job_position import JobPosition
 from app.models.employee import Employee
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 
 bp = Blueprint('job_positions', __name__, url_prefix='/api/v1/job-positions')
 
 @bp.route('', methods=['GET'])
 @token_required
+@authenticated_only
 def get_job_positions(current_user):
     is_active = request.args.get('is_active', '')
     contract_type = request.args.get('contract_type', '')
@@ -28,13 +29,14 @@ def get_job_positions(current_user):
 
 @bp.route('/<int:position_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     return jsonify(position.to_dict(include_employees=False)), 200
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Employees')
 def create_job_position(current_user):
     data = request.get_json()
     
@@ -73,7 +75,7 @@ def create_job_position(current_user):
 
 @bp.route('/<int:position_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Employees')
 def update_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     data = request.get_json()
@@ -117,7 +119,7 @@ def update_job_position(current_user, position_id):
 
 @bp.route('/<int:position_id>/deactivate', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def deactivate_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     
@@ -146,7 +148,7 @@ def deactivate_job_position(current_user, position_id):
 
 @bp.route('/<int:position_id>/activate', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def activate_job_position(current_user, position_id):
     position = JobPosition.query.get_or_404(position_id)
     

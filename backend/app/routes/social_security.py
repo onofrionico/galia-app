@@ -5,23 +5,16 @@ from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee import Employee
 from app.models.user import User
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import module_required, authenticated_only
 from app.services.document_service import document_service, DocumentService
 from datetime import datetime
 from io import BytesIO
 
 social_security_bp = Blueprint('social_security', __name__, url_prefix='/api/v1/social-security')
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(current_user, *args, **kwargs):
-        if current_user.role != 'admin':
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-        return f(current_user, *args, **kwargs)
-    return decorated
-
 @social_security_bp.route('/upload', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Employees')
 def upload_document(current_user):
     employee_id = request.form.get('employee_id', type=int)
     document_type = request.form.get('document_type')
@@ -60,6 +53,7 @@ def upload_document(current_user):
 
 @social_security_bp.route('/employee/<int:employee_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_employee_documents(current_user, employee_id):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -86,6 +80,7 @@ def get_employee_documents(current_user, employee_id):
 
 @social_security_bp.route('/download/<int:document_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def download_document(current_user, document_id):
     document = document_service.get_document_by_id(document_id)
     
@@ -112,6 +107,7 @@ def download_document(current_user, document_id):
 
 @social_security_bp.route('/download-url/<int:document_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_download_url(current_user, document_id):
     document = document_service.get_document_by_id(document_id)
     
@@ -138,7 +134,7 @@ def get_download_url(current_user, document_id):
 
 @social_security_bp.route('/<int:document_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Employees')
 def delete_document(current_user, document_id):
     success, error = document_service.delete_document(document_id)
     
@@ -149,6 +145,7 @@ def delete_document(current_user, document_id):
 
 @social_security_bp.route('/<int:document_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_document_detail(current_user, document_id):
     document = document_service.get_document_by_id(document_id)
     
@@ -165,6 +162,7 @@ def get_document_detail(current_user, document_id):
 
 @social_security_bp.route('/types', methods=['GET'])
 @token_required
+@authenticated_only
 def get_document_types(current_user):
     return jsonify({
         'document_types': [
@@ -175,7 +173,7 @@ def get_document_types(current_user):
 
 @social_security_bp.route('/all', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Employees')
 def get_all_documents(current_user):
     employee_id = request.args.get('employee_id', type=int)
     document_type = request.args.get('document_type')

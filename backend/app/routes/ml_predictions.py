@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.ml.staffing_predictor import StaffingPredictor
 from app.models.staffing_metrics import StaffingPrediction
 from datetime import datetime, timedelta
@@ -10,7 +10,7 @@ bp = Blueprint('ml_predictions', __name__, url_prefix='/api/v1/ml')
 
 @bp.route('/train', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def train_model(current_user):
     """
     Train the ML model with historical data.
@@ -35,7 +35,7 @@ def train_model(current_user):
 
 @bp.route('/predict', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def generate_predictions(current_user):
     """
     Generate predictions for a date range.
@@ -75,6 +75,7 @@ def generate_predictions(current_user):
 
 @bp.route('/recommendations', methods=['GET'])
 @token_required
+@authenticated_only
 def get_recommendations(current_user):
     """
     Get staffing recommendations for a date range.
@@ -119,6 +120,7 @@ def get_recommendations(current_user):
 
 @bp.route('/recommendations/summary', methods=['GET'])
 @token_required
+@authenticated_only
 def get_recommendations_summary(current_user):
     """
     Get summary of recommendations for a date range.
@@ -189,7 +191,7 @@ def get_recommendations_summary(current_user):
 
 @bp.route('/model/status', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_model_status(current_user):
     """
     Get status of the ML model.

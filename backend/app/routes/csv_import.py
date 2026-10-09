@@ -7,7 +7,7 @@ from app.models.user import User
 from app.models.employee import Employee
 from app.models.time_tracking import TimeTracking
 from app.models.work_block import WorkBlock
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 
 csv_import_bp = Blueprint('csv_import', __name__, url_prefix='/api/v1/csv-import')
@@ -39,7 +39,7 @@ def download_template():
 
 @csv_import_bp.route('/time-tracking', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def import_time_tracking(current_user):
     """Import time tracking data from CSV file"""
     if 'file' not in request.files:

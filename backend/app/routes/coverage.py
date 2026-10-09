@@ -5,11 +5,13 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, time
 from collections import defaultdict
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import authenticated_only
 
 bp = Blueprint('coverage', __name__, url_prefix='/api/v1/coverage')
 
 @bp.route('/hourly', methods=['GET'])
 @token_required
+@authenticated_only
 def get_hourly_coverage(current_user):
     """Get hourly coverage for a date range"""
     start_date = request.args.get('start_date')
@@ -68,6 +70,7 @@ def get_hourly_coverage(current_user):
 
 @bp.route('/summary', methods=['GET'])
 @token_required
+@authenticated_only
 def get_coverage_summary(current_user):
     """Get coverage summary statistics for a date range"""
     start_date = request.args.get('start_date')

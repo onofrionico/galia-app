@@ -3,20 +3,14 @@ from functools import wraps
 from app.extensions import db
 from app.models.ml_tracking import Holiday
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import module_required, authenticated_only
 from datetime import datetime
 
 holidays_bp = Blueprint('holidays', __name__, url_prefix='/api/v1/holidays')
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(current_user, *args, **kwargs):
-        if not current_user.is_admin:
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-        return f(current_user, *args, **kwargs)
-    return decorated
-
 @holidays_bp.route('/', methods=['GET'])
 @token_required
+@authenticated_only
 def get_holidays(current_user):
     """
     Obtiene la lista de feriados.
@@ -38,7 +32,7 @@ def get_holidays(current_user):
 
 @holidays_bp.route('/', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_holiday(current_user):
     """
     Crea un nuevo feriado.
@@ -78,6 +72,7 @@ def create_holiday(current_user):
 
 @holidays_bp.route('/<int:holiday_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_holiday(current_user, holiday_id):
     """Obtiene un feriado específico por ID"""
     holiday = Holiday.query.get_or_404(holiday_id)
@@ -85,7 +80,7 @@ def get_holiday(current_user, holiday_id):
 
 @holidays_bp.route('/<int:holiday_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_holiday(current_user, holiday_id):
     """
     Actualiza un feriado existente.
@@ -120,7 +115,7 @@ def update_holiday(current_user, holiday_id):
 
 @holidays_bp.route('/<int:holiday_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_holiday(current_user, holiday_id):
     """Elimina un feriado"""
     holiday = Holiday.query.get_or_404(holiday_id)
@@ -132,6 +127,7 @@ def delete_holiday(current_user, holiday_id):
 
 @holidays_bp.route('/check/<date_str>', methods=['GET'])
 @token_required
+@authenticated_only
 def check_holiday(current_user, date_str):
     """
     Verifica si una fecha específica es feriado.

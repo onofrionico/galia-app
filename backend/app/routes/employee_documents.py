@@ -21,6 +21,7 @@ def employee_required(f):
         if not hasattr(current_user, 'employee') or not current_user.employee:
             return jsonify({'error': 'Usuario no tiene un empleado asociado'}), 403
         return f(current_user, *args, **kwargs)
+    decorated._access_control = 'custom'
     return decorated
 
 @employee_documents_bp.route('/my-documents', methods=['GET'])
