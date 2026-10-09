@@ -13,6 +13,9 @@ from pos_helpers import make_catalog, make_floor, make_user
 
 PG_URL = os.getenv('POS_PG_TEST_URL')
 pytestmark = pytest.mark.skipif(not PG_URL, reason='POS_PG_TEST_URL no configurada')
+if PG_URL and 'test' not in PG_URL.rsplit('/', 1)[-1]:
+    pytestmark = pytest.mark.skip(
+        reason='POS_PG_TEST_URL tiene que apuntar a una base de test (el nombre debe contener "test")')
 
 
 class PgTestConfig(Config):

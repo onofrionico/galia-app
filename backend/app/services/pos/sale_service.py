@@ -13,7 +13,7 @@ from app.extensions import db
 from app.models import ProductVariant, User
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
-from app.services.pos import audit, pricing, stock_hooks
+from app.services.pos import audit, pricing, projection, stock_hooks
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_reason, require_status)
@@ -194,6 +194,7 @@ def reopen(user, sale_id):
     sale = load_sale(sale_id)
     require_status(sale, ('billing',), 'Solo se reabre una venta en cobro')
     sale.status = 'open'
+    sale.billing_at = None
     audit.record(sale, user, 'reopened')
     db.session.commit()
     return sale
@@ -252,9 +253,14 @@ def cancel_sale_rows(sale, user, reason):
 def cancel_sale(user, sale_id, reason):
     reason = require_reason(reason)
     sale = load_sale(sale_id)
-    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se anula una venta abierta o en cobro')
+    require_status(sale, tuple(ACTIVE_SALE_STATUSES) + ('closed',),
+                   'Solo se anula una venta abierta, en cobro o cerrada sin pagos')
     if active_payments(sale):
         raise PosError('La venta tiene pagos; anulalos antes de anular la venta')
+    if sale.status == 'closed':
+        projection.unproject(sale)
+        sale.closed_at = None
+        sale.closed_by = None
     cancel_sale_rows(sale, user, reason)
     audit.record(sale, user, 'cancelled', reason=reason)
     db.session.commit()

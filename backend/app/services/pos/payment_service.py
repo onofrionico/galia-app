@@ -21,6 +21,8 @@ def _existing_payment(client_request_id, sale_id):
 
 
 def add_payment(user, sale_id, payment_method_id, amount, tendered=None, client_request_id=None):
+    if client_request_id is not None and not isinstance(client_request_id, str):
+        raise bad_request('El identificador del pago es inválido')
     request_id = clean_str(client_request_id, 64)
     if request_id is not None and _existing_payment(request_id, sale_id) is not None:
         sale = load_sale(sale_id)

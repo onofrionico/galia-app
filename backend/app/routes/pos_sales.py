@@ -2,7 +2,7 @@
 import logging
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
 from app.models.pos import SALE_STATUSES, SALE_TYPES, PosSale, PosSaleEvent
@@ -38,6 +38,9 @@ def _respond(action):
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'Otra operación modificó la venta al mismo tiempo, probá de nuevo'}), 409
+    except DataError:
+        db.session.rollback()
+        return jsonify({'error': 'Algún valor es demasiado grande'}), 400
     except Exception:
         db.session.rollback()
         logger.exception('Error inesperado en el POS')

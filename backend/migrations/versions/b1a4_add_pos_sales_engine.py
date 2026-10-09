@@ -301,6 +301,7 @@ def upgrade():
 
 
 def downgrade():
+    """Revierte el motor POS. Elimina las filas de `sales` proyectadas por el POS (source = 'galia')."""
     bind = op.get_bind()
     names_param = sa.bindparam('names', expanding=True)
     names = {'names': [m[0] for m in POS_MODULES]}
@@ -310,6 +311,8 @@ def downgrade():
                          '(SELECT id FROM modules WHERE name IN :names)').bindparams(names_param), names)
     bind.execute(sa.text('DELETE FROM modules WHERE name IN :names').bindparams(names_param), names)
 
+    # Las ventas proyectadas desde el POS pierden su origen: se eliminan junto con pos_sales.
+    bind.execute(sa.text("DELETE FROM sales WHERE source = 'galia'"))
     with op.batch_alter_table('sales') as batch:
         batch.drop_column('source')
 

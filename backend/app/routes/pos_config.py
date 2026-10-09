@@ -3,13 +3,14 @@ import logging
 from decimal import Decimal
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
 from app.models import Product, Supply
 from app.models.pos import (ACTIVE_SALE_STATUSES, DISCOUNT_KINDS, DISCOUNT_SCOPES, PAYMENT_KINDS, DiscountTemplate,
                             ModifierGroup, ModifierOption, PaymentMethod, PosSale, PosTable, ProductModifierGroup,
                             Salon)
+from app.services.pos.pricing import money
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.utils.decorators import admin_required, module_required
 from app.utils.jwt_utils import token_required
@@ -32,6 +33,9 @@ def _run(action, status=200):
     except IntegrityError:
         db.session.rollback()
         return jsonify({'error': 'Ya existe un registro con esos datos'}), 409
+    except DataError:
+        db.session.rollback()
+        return jsonify({'error': 'Algún valor es demasiado grande'}), 400
     except Exception:
         db.session.rollback()
         logger.exception('Error inesperado en la configuración del POS')
@@ -190,7 +194,8 @@ def _apply_options(group, options):
             option = ModifierOption(group=group)
             db.session.add(option)
         option.name = _name(data, 100)
-        option.price_delta = parse_decimal(data.get('price_delta', 0), 'El recargo', maximum=Decimal('100000000'))
+        option.price_delta = money(parse_decimal(data.get('price_delta', 0), 'El recargo',
+                                                 maximum=Decimal('100000000')))
         option.position = position
         option.is_active = True
         supply_id = data.get('supply_id')
@@ -345,8 +350,11 @@ def _apply_template(template, data, creating):
             raise bad_request('Alcance inválido')
         template.scope = data['scope']
     if creating or 'value' in data:
-        template.value = parse_decimal(data.get('value'), 'El valor', minimum=Decimal('0.01'),
-                                       maximum=Decimal('100000000'))
+        value = money(parse_decimal(data.get('value'), 'El valor', minimum=Decimal('0.01'),
+                                    maximum=Decimal('100000000')))
+        if value < Decimal('0.01'):
+            raise bad_request('El valor es inválido')
+        template.value = value
     if template.kind == 'percent' and Decimal(template.value) > 100:
         raise bad_request('El porcentaje no puede superar 100')
     if 'restricted' in data:
