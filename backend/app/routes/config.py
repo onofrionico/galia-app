@@ -24,7 +24,7 @@ BRANDING_FIELDS = {
 @config_bp.route('/config/branding', methods=['GET'])
 def get_branding_config():
     """Configuración de branding (pública: la usa la pantalla de login)."""
-    config = SiteConfig.query.first()
+    config = SiteConfig.query.order_by(SiteConfig.id).first()
     if not config:
         return jsonify({'logo_path': None, 'banner_background_path': None}), 200
     return jsonify(config.to_dict()), 200
@@ -58,7 +58,7 @@ def post_branding_config(current_user):
         logger.exception('Error subiendo imágenes de branding')
         return jsonify({'error': 'No se pudo subir la imagen, probá de nuevo'}), 502
 
-    config = SiteConfig.query.first()
+    config = SiteConfig.query.order_by(SiteConfig.id).first()
     if not config:
         config = SiteConfig()
         db.session.add(config)
