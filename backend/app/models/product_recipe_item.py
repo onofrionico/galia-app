@@ -4,8 +4,8 @@ class ProductRecipeItem(db.Model):
     __tablename__ = 'product_recipe_items'
 
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    supply_id = db.Column(db.Integer, db.ForeignKey('supplies.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    supply_id = db.Column(db.Integer, db.ForeignKey('supplies.id'), nullable=False, index=True)
     quantity = db.Column(db.Numeric(10, 4), nullable=False)
     unit = db.Column(db.String(50), nullable=False)
 

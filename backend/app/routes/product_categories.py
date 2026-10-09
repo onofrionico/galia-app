@@ -3,6 +3,7 @@ from app.extensions import db
 from app.models.product_category import ProductCategory
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
+from app.utils.validation import clean_str, json_object
 from sqlalchemy.exc import IntegrityError
 
 bp = Blueprint('product_categories', __name__, url_prefix='/api/v1/product-categories')
@@ -26,17 +27,21 @@ def list_categories(current_user):
 @token_required
 @module_required('Products')
 def create_category(current_user):
-    data = request.get_json() or {}
+    data = json_object()
+    if data is None:
+        return jsonify({'error': 'El cuerpo de la petición debe ser un objeto JSON'}), 400
 
-    if not data.get('name', '').strip():
+    try:
+        name = clean_str(data.get('name'), 100)
+        description = clean_str(data.get('description'))
+        color = clean_str(data.get('color'), 20)
+        icon = clean_str(data.get('icon'), 10)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    if not name:
         return jsonify({'error': 'El nombre de la categoría es requerido'}), 400
 
-    category = ProductCategory(
-        name=data['name'].strip(),
-        description=data.get('description', '').strip() or None,
-        color=data.get('color', '').strip() or None,
-        icon=data.get('icon', '').strip() or None,
-    )
+    category = ProductCategory(name=name, description=description, color=color, icon=icon)
 
     db.session.add(category)
     try:
@@ -61,17 +66,25 @@ def get_category(current_user, category_id):
 @module_required('Products')
 def update_category(current_user, category_id):
     category = ProductCategory.query.get_or_404(category_id)
-    data = request.get_json() or {}
+    data = json_object()
+    if data is None:
+        return jsonify({'error': 'El cuerpo de la petición debe ser un objeto JSON'}), 400
 
-    if 'name' in data:
-        if not data['name'].strip():
-            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
-        category.name = data['name'].strip()
-
-    for field in ('description', 'color', 'icon'):
-        if field in data:
-            val = data[field]
-            setattr(category, field, val.strip() or None)
+    limits = {'description': None, 'color': 20, 'icon': 10}
+    try:
+        updates = {}
+        if 'name' in data:
+            name = clean_str(data['name'], 100)
+            if not name:
+                return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+            updates['name'] = name
+        for field, max_len in limits.items():
+            if field in data:
+                updates[field] = clean_str(data[field], max_len)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    for field, value in updates.items():
+        setattr(category, field, value)
 
     if 'is_active' in data:
         category.is_active = bool(data['is_active'])

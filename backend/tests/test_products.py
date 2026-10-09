@@ -612,3 +612,130 @@ def test_employee_cannot_create_product(client, app, category):
                            headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 403
 
+
+# --- validación de entrada ---
+
+def _auth(client):
+    return {'Authorization': f'Bearer {get_auth_token(client, "admin@test.com", "admin123")}'}
+
+
+def _product(client, headers, category, **extra):
+    response = client.post('/api/v1/products', json={'name': 'Café', 'category_id': category, **extra},
+                           headers=headers)
+    assert response.status_code == 201, response.get_json()
+    return response.get_json()['id']
+
+
+def _variant(client, headers, product_id):
+    response = client.post(f'/api/v1/products/{product_id}/variants',
+                           json={'name': 'Taza', 'price': 10}, headers=headers)
+    assert response.status_code == 201, response.get_json()
+    return response.get_json()['id']
+
+
+@pytest.mark.parametrize('price', ['abc', None, True, 'NaN', 'Infinity', -1, 100000000])
+def test_create_variant_rejects_bad_price(client, admin_user, category, price):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    response = client.post(f'/api/v1/products/{product_id}/variants',
+                           json={'name': 'Taza', 'price': price}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_create_variant_accepts_zero_price(client, admin_user, category):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    response = client.post(f'/api/v1/products/{product_id}/variants',
+                           json={'name': 'Cortesía', 'price': 0}, headers=headers)
+    assert response.status_code == 201
+    assert float(response.get_json()['price']) == 0
+
+
+@pytest.mark.parametrize('field,value', [('stock_quantity', -1), ('stock_quantity', 'x'),
+                                         ('min_stock', 10000000), ('price', 'NaN')])
+def test_update_variant_rejects_bad_numbers(client, admin_user, category, field, value):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    variant_id = _variant(client, headers, product_id)
+    response = client.put(f'/api/v1/products/{product_id}/variants/{variant_id}',
+                          json={field: value}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_adjust_stock_rejects_bad_value(client, admin_user, category):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    variant_id = _variant(client, headers, product_id)
+    for bad in ('abc', -5, None, 'Infinity'):
+        response = client.put(f'/api/v1/products/{product_id}/variants/{variant_id}/stock',
+                              json={'stock_quantity': bad}, headers=headers)
+        assert response.status_code == 400
+
+
+def test_create_product_rejects_bad_text(client, admin_user, category):
+    headers = _auth(client)
+    for payload in ({'name': 123}, {'name': '   '}, {'name': 'x' * 201},
+                    {'name': 'ok', 'image_url': 'u' * 501}):
+        response = client.post('/api/v1/products', json={**payload, 'category_id': category}, headers=headers)
+        assert response.status_code == 400, payload
+
+
+def test_non_object_json_body_is_400(client, admin_user, category):
+    headers = _auth(client)
+    response = client.post('/api/v1/products', json=[1, 2], headers=headers)
+    assert response.status_code == 400
+
+
+def test_update_product_rejects_non_string_name(client, admin_user, category):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    response = client.put(f'/api/v1/products/{product_id}', json={'name': 5}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_recipe_validates_whole_payload_before_replacing(client, admin_user, category, supply):
+    headers = _auth(client)
+    product_id = _product(client, headers, category, has_recipe=True)
+    ok = client.put(f'/api/v1/products/{product_id}/recipe',
+                    json={'items': [{'supply_id': supply, 'quantity': 0.5}]}, headers=headers)
+    assert ok.status_code == 200
+    assert ok.get_json()['recipe'][0]['unit'] == 'kg'  # unit por defecto = unidad del insumo
+    bad_payloads = [
+        {'items': 'x'},
+        {'items': ['x']},
+        {'items': [{'supply_id': supply, 'quantity': 0}]},
+        {'items': [{'supply_id': supply, 'quantity': -1}]},
+        {'items': [{'supply_id': supply, 'quantity': 'abc'}]},
+        {'items': [{'supply_id': 'a', 'quantity': 1}]},
+        {'items': [{'supply_id': True, 'quantity': 1}]},
+        {'items': [{'quantity': 1}]},
+        {'items': [{'supply_id': supply, 'quantity': 1}, {'supply_id': supply, 'quantity': 2}]},
+        {'items': [{'supply_id': 9999, 'quantity': 1}]},
+    ]
+    for payload in bad_payloads:
+        response = client.put(f'/api/v1/products/{product_id}/recipe', json=payload, headers=headers)
+        assert response.status_code in (400, 404), payload
+        assert response.status_code == 400, payload
+    # La receta original no se tocó
+    recipe = client.get(f'/api/v1/products/{product_id}/recipe', headers=headers).get_json()['recipe']
+    assert len(recipe) == 1 and recipe[0]['quantity'] == 0.5
+
+
+def test_recipe_rejects_inactive_supply(client, app, admin_user, category, supply):
+    headers = _auth(client)
+    with app.app_context():
+        db.session.get(Supply, supply).is_active = False
+        db.session.commit()
+    product_id = _product(client, headers, category, has_recipe=True)
+    response = client.put(f'/api/v1/products/{product_id}/recipe',
+                          json={'items': [{'supply_id': supply, 'quantity': 1}]}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_list_products_caps_per_page(client, admin_user, category):
+    headers = _auth(client)
+    response = client.get('/api/v1/products?per_page=100000', headers=headers)
+    assert response.get_json()['per_page'] == 200
+    response = client.get('/api/v1/products?per_page=0', headers=headers)
+    assert response.get_json()['per_page'] == 1
+

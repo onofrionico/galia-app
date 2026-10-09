@@ -5,8 +5,16 @@ from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
 from datetime import date
 from decimal import Decimal
+from app.utils.validation import clean_str, json_object, parse_decimal
+
+MAX_STOCK = Decimal('10000000')   # Numeric(10, 3)
+MAX_PRICE = Decimal('100000000')  # Numeric(10, 2)
 
 bp = Blueprint('supplies', __name__, url_prefix='/api/v1/supplies')
+
+
+def _bad_body():
+    return jsonify({'error': 'El cuerpo de la petición debe ser un objeto JSON'}), 400
 
 
 @bp.route('', methods=['GET'])
@@ -17,7 +25,7 @@ def list_supplies(current_user):
     include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
     search = request.args.get('search', '').strip()
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
+    per_page = max(1, min(request.args.get('per_page', 50, type=int), 200))
 
     query = Supply.query
     if not include_inactive:
@@ -46,23 +54,27 @@ def list_supplies(current_user):
 @module_required('Stock')
 def create_supply(current_user):
     """Create a new supply"""
-    data = request.get_json() or {}
+    data = json_object()
+    if data is None:
+        return _bad_body()
 
-    if not data.get('name', '').strip():
-        return jsonify({'error': 'El nombre del insumo es requerido'}), 400
-    if not data.get('unit', '').strip():
-        return jsonify({'error': 'La unidad es requerida'}), 400
+    try:
+        name = clean_str(data.get('name'), 200)
+        unit = clean_str(data.get('unit'), 50)
+        if not name:
+            return jsonify({'error': 'El nombre del insumo es requerido'}), 400
+        if not unit:
+            return jsonify({'error': 'La unidad es requerida'}), 400
+        stock = parse_decimal(data.get('stock_quantity', 0), 'stock_quantity', maximum=MAX_STOCK)
+        min_stock = parse_decimal(data.get('min_stock', 0), 'min_stock', maximum=MAX_STOCK)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
-    existing = Supply.query.filter_by(name=data['name'].strip()).first()
+    existing = Supply.query.filter_by(name=name).first()
     if existing:
         return jsonify({'error': 'Ya existe un insumo con este nombre'}), 409
 
-    supply = Supply(
-        name=data['name'].strip(),
-        unit=data['unit'].strip(),
-        stock_quantity=Decimal(str(data.get('stock_quantity', 0))),
-        min_stock=Decimal(str(data.get('min_stock', 0))),
-    )
+    supply = Supply(name=name, unit=unit, stock_quantity=stock, min_stock=min_stock)
 
     db.session.add(supply)
     db.session.commit()
@@ -89,20 +101,33 @@ def get_supply(current_user, supply_id):
 def update_supply(current_user, supply_id):
     """Update supply"""
     supply = Supply.query.get_or_404(supply_id)
-    data = request.get_json() or {}
+    data = json_object()
+    if data is None:
+        return _bad_body()
 
-    if 'name' in data and data['name'].strip():
-        existing = Supply.query.filter(Supply.id != supply_id, Supply.name == data['name'].strip()).first()
-        if existing:
-            return jsonify({'error': 'Ya existe un insumo con este nombre'}), 409
-        supply.name = data['name'].strip()
+    try:
+        updates = {}
+        if 'name' in data:
+            name = clean_str(data['name'], 200)
+            if not name:
+                return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+            if Supply.query.filter(Supply.id != supply_id, Supply.name == name).first():
+                return jsonify({'error': 'Ya existe un insumo con este nombre'}), 409
+            updates['name'] = name
+        if 'unit' in data:
+            unit = clean_str(data['unit'], 50)
+            if not unit:
+                return jsonify({'error': 'La unidad no puede estar vacía'}), 400
+            updates['unit'] = unit
+        if 'stock_quantity' in data:
+            updates['stock_quantity'] = parse_decimal(data['stock_quantity'], 'stock_quantity', maximum=MAX_STOCK)
+        if 'min_stock' in data:
+            updates['min_stock'] = parse_decimal(data['min_stock'], 'min_stock', maximum=MAX_STOCK)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
-    if 'unit' in data:
-        supply.unit = data['unit'].strip()
-    if 'stock_quantity' in data:
-        supply.stock_quantity = Decimal(str(data['stock_quantity']))
-    if 'min_stock' in data:
-        supply.min_stock = Decimal(str(data['min_stock']))
+    for field, value in updates.items():
+        setattr(supply, field, value)
     if 'is_active' in data:
         supply.is_active = bool(data['is_active'])
 
@@ -127,17 +152,31 @@ def delete_supply(current_user, supply_id):
 def add_supply_price(current_user, supply_id):
     """Record a price for a supply from a supplier"""
     supply = Supply.query.get_or_404(supply_id)
-    data = request.get_json() or {}
+    data = json_object()
+    if data is None:
+        return _bad_body()
 
-    if not data.get('price'):
+    if 'price' not in data:
         return jsonify({'error': 'El precio es requerido'}), 400
+    try:
+        price = parse_decimal(data['price'], 'El precio', maximum=MAX_PRICE)
+        recorded_at = date.today()
+        if data.get('recorded_at'):
+            try:
+                recorded_at = date.fromisoformat(data['recorded_at'])
+            except (TypeError, ValueError):
+                raise ValueError('recorded_at debe tener formato YYYY-MM-DD')
+        supplier = clean_str(data.get('supplier'), 200)
+        notes = clean_str(data.get('notes'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
     price_record = SupplyPrice(
         supply_id=supply_id,
-        price=Decimal(str(data['price'])),
-        recorded_at=date.fromisoformat(data['recorded_at']) if data.get('recorded_at') else date.today(),
-        supplier=data.get('supplier', '').strip() or None,
-        notes=data.get('notes', '').strip() or None,
+        price=price,
+        recorded_at=recorded_at,
+        supplier=supplier,
+        notes=notes,
         created_by=current_user.id
     )
 

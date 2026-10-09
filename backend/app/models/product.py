@@ -7,7 +7,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    category_id = db.Column(db.Integer, db.ForeignKey('product_categories.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('product_categories.id'), nullable=False, index=True)
     image_url = db.Column(db.String(500), nullable=True)
     has_recipe = db.Column(db.Boolean, default=False, nullable=False)
     track_stock = db.Column(db.Boolean, default=False, nullable=False)

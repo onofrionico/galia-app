@@ -49,6 +49,20 @@ def test_create_category(client, admin_user):
     assert data['is_active'] == True
 
 
+def test_category_rejects_bad_text(client, admin_user):
+    token = get_auth_token(client, 'admin@test.com', 'admin123')
+    headers = {'Authorization': f'Bearer {token}'}
+    for payload in ({'name': 5}, {'name': 'x' * 101}, {'name': 'ok', 'color': 'c' * 21},
+                    {'name': 'ok', 'icon': 'i' * 11}):
+        assert client.post('/api/v1/product-categories', json=payload, headers=headers).status_code == 400, payload
+    assert client.post('/api/v1/product-categories', json=['x'], headers=headers).status_code == 400
+    created = client.post('/api/v1/product-categories', json={'name': 'Ok'}, headers=headers).get_json()
+    response = client.put(f"/api/v1/product-categories/{created['id']}", json={'name': 7}, headers=headers)
+    assert response.status_code == 400
+    response = client.put(f"/api/v1/product-categories/{created['id']}", json={'color': 'c' * 21}, headers=headers)
+    assert response.status_code == 400
+
+
 def test_create_category_missing_name(client, admin_user):
     token = get_auth_token(client, 'admin@test.com', 'admin123')
     response = client.post(

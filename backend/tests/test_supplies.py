@@ -39,6 +39,44 @@ def test_admin_creates_and_lists_supply(client):
     assert 'Harina' in str(listed.get_json())
 
 
+def test_supply_rejects_bad_input(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    for payload in ({'name': 'A', 'unit': 'kg', 'stock_quantity': 'abc'},
+                    {'name': 'A', 'unit': 'kg', 'stock_quantity': -1},
+                    {'name': 'A', 'unit': 'kg', 'min_stock': 'NaN'},
+                    {'name': 'A', 'unit': 'kg', 'stock_quantity': 10000000},
+                    {'name': 5, 'unit': 'kg'},
+                    {'name': 'A', 'unit': 'u' * 51},
+                    {'name': 'x' * 201, 'unit': 'kg'},
+                    {'name': 'A'}):
+        response = client.post('/api/v1/supplies', headers=headers, json=payload)
+        assert response.status_code == 400, payload
+    assert client.post('/api/v1/supplies', headers=headers, json=[1]).status_code == 400
+
+
+def test_update_supply_rejects_bad_numbers(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    created = client.post('/api/v1/supplies', headers=headers, json={'name': 'Harina', 'unit': 'kg'}).get_json()
+    for payload in ({'stock_quantity': 'abc'}, {'min_stock': -2}, {'unit': 7}, {'name': 3}):
+        response = client.put(f"/api/v1/supplies/{created['id']}", headers=headers, json=payload)
+        assert response.status_code == 400, payload
+
+
+def test_add_supply_price_validation(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    created = client.post('/api/v1/supplies', headers=headers, json={'name': 'Harina', 'unit': 'kg'}).get_json()
+    url = f"/api/v1/supplies/{created['id']}/prices"
+    for payload in ({'price': 'abc'}, {'price': -1}, {'price': 5, 'recorded_at': 'ayer'},
+                    {'price': 5, 'supplier': 's' * 500}):
+        assert client.post(url, headers=headers, json=payload).status_code == 400, payload
+    assert client.post(url, headers=headers, json={'price': 5}).status_code == 201
+
+
+def test_list_supplies_caps_per_page(client):
+    headers = _headers(client, 'a@test.com', 'admin')
+    assert client.get('/api/v1/supplies?per_page=99999', headers=headers).get_json()['per_page'] == 200
+
+
 def test_employee_cannot_create_supply(client):
     headers = _headers(client, 'e@test.com', 'employee')
     response = client.post('/api/v1/supplies', headers=headers, json={'name': 'Harina', 'unit': 'kg'})
