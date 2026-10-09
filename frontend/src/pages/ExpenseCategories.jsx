@@ -112,7 +112,7 @@ const ExpenseCategories = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Categorías de Gastos</h1>
+            <h1 className="text-2xl font-bold">Categorías de Gastos</h1>
             <p className="text-gray-600 mt-1">Gestiona las categorías para clasificar tus gastos</p>
           </div>
           <button

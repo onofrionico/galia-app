@@ -139,7 +139,7 @@ const TimeTracking = () => {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Carga de Horarios</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Carga de Horarios</h1>
         <div className="text-xl md:text-2xl font-mono text-gray-600 bg-gray-100 px-3 py-2 rounded-lg w-fit">
           {currentTime.toLocaleTimeString('es-AR')}
         </div>

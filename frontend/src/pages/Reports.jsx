@@ -260,7 +260,7 @@ const Reports = () => {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard de Reportes</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Reportes</h1>
             {dashboard?.period && (
               <p className="text-sm text-gray-500 mt-1">
                 {new Date(dashboard.period.start_date).toLocaleDateString('es-AR')} - {new Date(dashboard.period.end_date).toLocaleDateString('es-AR')}

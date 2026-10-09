@@ -129,7 +129,7 @@ const MyAbsenceRequests = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Mis Solicitudes de Ausencia</h1>
+        <h1 className="text-3xl font-bold">Mis Solicitudes de Ausencia</h1>
         <button
           onClick={() => setShowModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"

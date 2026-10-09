@@ -132,7 +132,7 @@ const AbsenceRequestsAdmin = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Solicitudes de Ausencia</h1>
+          <h1 className="text-3xl font-bold">Solicitudes de Ausencia</h1>
           {pendingCount > 0 && (
             <p className="text-sm text-gray-600 mt-1">
               {pendingCount} solicitud{pendingCount !== 1 ? 'es' : ''} pendiente{pendingCount !== 1 ? 's' : ''}

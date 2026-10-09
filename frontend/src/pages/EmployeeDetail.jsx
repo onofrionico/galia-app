@@ -105,7 +105,7 @@ const EmployeeDetail = () => {
           >
             <ArrowLeft size={18} />
           </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Detalle del Empleado</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Detalle del Empleado</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button

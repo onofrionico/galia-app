@@ -77,7 +77,7 @@ const ScheduleCalendarView = ({ schedule, scheduleData, employees }) => {
 
       {/* Título para impresión */}
       <div className="hidden print:block mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold">
           Grilla de Horarios
         </h1>
         <p className="text-gray-600">

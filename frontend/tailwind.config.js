@@ -1,4 +1,9 @@
 /** @type {import('tailwindcss').Config} */
+const plum = {
+  50: "#FAF3F6", 100: "#F2E4EB", 200: "#E0C4D2", 300: "#C08DA6", 400: "#9C5C7C",
+  500: "#7A4060", 600: "#5C2E46", 700: "#4A2539", 800: "#3B1E2E", 900: "#2C1622", 950: "#1E0F17",
+}
+
 export default {
   darkMode: ["class"],
   content: [
@@ -18,9 +23,11 @@ export default {
     },
     extend: {
       colors: {
-        blue: {
-          50: "#FAF3F6", 100: "#F2E4EB", 200: "#E0C4D2", 300: "#C08DA6", 400: "#9C5C7C",
-          500: "#7A4060", 600: "#5C2E46", 700: "#4A2539", 800: "#3B1E2E", 900: "#2C1622", 950: "#1E0F17",
+        blue: plum,
+        rose: plum,
+        purple: {
+          50: "#FDF4F1", 100: "#FBE6DF", 200: "#F6CBBD", 300: "#EEA992", 400: "#E0866A",
+          500: "#D06A4C", 600: "#B6553A", 700: "#934430", 800: "#74372A", 900: "#5C2E25", 950: "#33160F",
         },
         gray: {
           50: "#FAFAF9", 100: "#F5F5F4", 200: "#E7E5E4", 300: "#D6D3D1", 400: "#A8A29E",

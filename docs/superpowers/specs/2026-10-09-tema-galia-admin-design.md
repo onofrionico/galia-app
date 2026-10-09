@@ -18,6 +18,8 @@ Aplicar al panel admin (`frontend/`) la identidad visual de la carta pública (`
 - `blue` se redefine como escala bordó (el código usa ~500 clases `*-blue-*` para acciones/primario):
   `50 #FAF3F6, 100 #F2E4EB, 200 #E0C4D2, 300 #C08DA6, 400 #9C5C7C, 500 #7A4060, 600 #5C2E46, 700 #4A2539, 800 #3B1E2E, 900 #2C1622, 950 #1E0F17`.
 - `gray` se redefine como neutro cálido (paleta *stone* de Tailwind): `50 #FAFAF9, 100 #F5F5F4, 200 #E7E5E4, 300 #D6D3D1, 400 #A8A29E, 500 #78716C, 600 #57534E, 700 #44403C, 800 #292524, 900 #1C1917, 950 #0C0A09`.
+- `purple` se redefine como escala coral (el código usa `*-purple-*` para acentos): `50 #FDF4F1, 100 #FBE6DF, 200 #F6CBBD, 300 #EEA992, 400 #E0866A, 500 #D06A4C, 600 #B6553A, 700 #934430, 800 #74372A, 900 #5C2E25, 950 #33160F`.
+- `rose` se redefine con la misma escala bordó que `blue` (const compartida `plum`), de modo que los botones rose del admin de Carta (p. ej. "Publicar") quedan en bordó.
 - Nuevos `galia`: `cream #F5F1EA`, `plum #5C2E46`, `plum-dark #43203A`, `plum-light #8A5A72`, `lime #C5D94A`, `coral #E0866A`.
 - `fontFamily`: `sans: ['"DM Sans"', 'system-ui', 'sans-serif']`, `display: ['Anton', 'Impact', 'sans-serif']`.
 
@@ -32,6 +34,7 @@ Estilos base: `body` con `font-sans bg-background text-foreground`; `h1` con `fo
 ## 4. Marco
 - **Sidebar** (`components/layout/Sidebar.jsx`): fondo `bg-galia-plum-dark`/`galia-plum`, texto crema; logo (`/brand/logo.png` en versión clara: aplicar `brightness-0 invert` o fondo crema redondeado detrás) arriba; ítem activo `bg-white/10` + ícono de flor lima (`/brand/flower-lime.png`, 14px); hover `bg-white/5`. Encabezados de grupo: Personal = coral, Finanzas = lima, Análisis = crema, Carta = rosa (`blue-200`), aplicados como color de texto/acento sobre el fondo oscuro (reemplaza `activeClass`/`headerClass` actuales).
 - **Navbar** (`components/layout/Navbar.jsx`): fondo crema `bg-galia-cream`, borde inferior `border-gray-200`; "Galia" en `font-display` bordó.
+- **Fondo de contenido** (`components/layout/Layout.jsx`): crema `bg-galia-cream` en lugar de `bg-gray-50`; las tarjetas permanecen blancas. Los `<h1>` de página no fijan color de texto y heredan el bordó global.
 - **Login** (`pages/Login.jsx`): fondo crema, logo grande centrado, flores lima (arriba-izq) y coral (abajo-der) decorativas `aria-hidden`, botón bordó.
 
 ## 5. Verificación
