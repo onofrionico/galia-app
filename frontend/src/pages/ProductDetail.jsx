@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Save, X, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import productsService from '../services/productsService'
 import productCategoriesService from '../services/productCategoriesService'
+import EditableNumberInput from '../components/EditableNumberInput'
 
 const ProductDetail = () => {
   const { id } = useParams()
@@ -45,10 +46,14 @@ const ProductDetail = () => {
 
   useEffect(() => {
     fetchCategories()
+  }, [])
+
+  useEffect(() => {
     if (!isNew) {
+      setLoading(true)
       fetchProduct()
     }
-  }, [])
+  }, [id])
 
   const fetchCategories = async () => {
     try {
@@ -94,7 +99,7 @@ const ProductDetail = () => {
     try {
       if (isNew) {
         const newProduct = await productsService.createProduct(formData)
-        navigate(`/products/${newProduct.id}`)
+        navigate(`/products/${newProduct.id}`, { replace: true })
       } else {
         await productsService.updateProduct(id, formData)
         fetchProduct()
@@ -120,7 +125,7 @@ const ProductDetail = () => {
         stock_quantity: parseFloat(newVariantForm.stock_quantity || 0),
         min_stock: parseFloat(newVariantForm.min_stock || 0),
       })
-      setVariants([...variants, newVariant])
+      setVariants((prev) => [...prev, newVariant])
       setNewVariantForm({ name: '', price: '', stock_quantity: '', min_stock: '' })
       setError('')
     } catch (error) {
@@ -132,7 +137,7 @@ const ProductDetail = () => {
     if (window.confirm('¿Desactivar esta variante?')) {
       try {
         await productsService.deleteVariant(id || product.id, variantId)
-        setVariants(variants.filter((v) => v.id !== variantId))
+        setVariants((prev) => prev.filter((v) => v.id !== variantId))
         setError('')
       } catch (error) {
         setError(error.response?.data?.error || 'Error al desactivar variante')
@@ -140,18 +145,29 @@ const ProductDetail = () => {
     }
   }
 
-  const handleUpdateVariant = async (variantId, field, value) => {
+  const handleUpdateVariant = async (variantId, field, raw) => {
+    const num = Number(raw)
+    if (raw === '' || !Number.isFinite(num) || num < 0) {
+      setError('Ingresá un número válido mayor o igual a 0')
+      return false
+    }
     try {
-      const variant = variants.find((v) => v.id === variantId)
-      const updated = { ...variant, [field]: value }
-      await productsService.updateVariant(id || product.id, variantId, updated)
-      setVariants(
-        variants.map((v) => (v.id === variantId ? { ...v, [field]: value } : v))
+      const updated = await productsService.updateVariant(id || product.id, variantId, {
+        [field]: num,
+      })
+      setVariants((prev) =>
+        prev.map((v) => (v.id === variantId ? { ...v, ...updated } : v))
       )
+      setError('')
+      return true
     } catch (error) {
       setError(error.response?.data?.error || 'Error al actualizar variante')
+      return false
     }
   }
+
+  const toRecipePayload = (items) =>
+    items.map((i) => ({ supply_id: i.supply_id, quantity: i.quantity, unit: i.unit }))
 
   const handleAddRecipeItem = async () => {
     if (!newRecipeForm.supply_id || !newRecipeForm.quantity) {
@@ -161,15 +177,15 @@ const ProductDetail = () => {
 
     try {
       const items = [
-        ...recipe,
+        ...toRecipePayload(recipe),
         {
           supply_id: parseInt(newRecipeForm.supply_id, 10),
           quantity: parseFloat(newRecipeForm.quantity),
           unit: newRecipeForm.unit,
         },
       ]
-      await productsService.saveRecipe(id || product.id, items)
-      setRecipe(items)
+      const res = await productsService.saveRecipe(id || product.id, items)
+      setRecipe(res.recipe || [])
       setNewRecipeForm({ supply_id: '', quantity: '', unit: '' })
       setError('')
     } catch (error) {
@@ -179,9 +195,9 @@ const ProductDetail = () => {
 
   const handleDeleteRecipeItem = async (index) => {
     try {
-      const items = recipe.filter((_, i) => i !== index)
-      await productsService.saveRecipe(id || product.id, items)
-      setRecipe(items)
+      const items = toRecipePayload(recipe.filter((_, i) => i !== index))
+      const res = await productsService.saveRecipe(id || product.id, items)
+      setRecipe(res.recipe || [])
     } catch (error) {
       setError(error.response?.data?.error || 'Error al eliminar de receta')
     }
@@ -434,49 +450,26 @@ const ProductDetail = () => {
                     <tr key={variant.id} className="border-b">
                       <td className="px-4 py-2">{variant.name}</td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
+                        <EditableNumberInput
                           value={variant.price}
-                          onChange={(e) =>
-                            handleUpdateVariant(
-                              variant.id,
-                              'price',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'price', raw)}
                           className="w-20 border rounded px-2 py-1"
                           step="0.01"
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
+                        <EditableNumberInput
                           value={variant.stock_quantity}
-                          onChange={(e) =>
-                            handleUpdateVariant(
-                              variant.id,
-                              'stock_quantity',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'stock_quantity', raw)}
                           className="w-20 border rounded px-2 py-1"
-                          step="0.1"
                           disabled={formData.has_recipe}
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
+                        <EditableNumberInput
                           value={variant.min_stock}
-                          onChange={(e) =>
-                            handleUpdateVariant(
-                              variant.id,
-                              'min_stock',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'min_stock', raw)}
                           className="w-20 border rounded px-2 py-1"
-                          step="0.1"
                           disabled={formData.has_recipe}
                         />
                       </td>

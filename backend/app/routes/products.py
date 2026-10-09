@@ -350,7 +350,7 @@ def get_low_stock(current_user):
 
 @bp.route('/<int:product_id>/variants/<int:variant_id>/stock', methods=['PUT'])
 @token_required
-@module_required('Products')
+@module_required('Stock')
 def adjust_stock(current_user, product_id, variant_id):
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
     data = json_object()

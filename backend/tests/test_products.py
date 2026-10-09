@@ -739,3 +739,50 @@ def test_list_products_caps_per_page(client, admin_user, category):
     response = client.get('/api/v1/products?per_page=0', headers=headers)
     assert response.get_json()['per_page'] == 1
 
+
+def _employee_token(client, with_stock):
+    from app.models.module import Module
+    from app.models.role_permission import RolePermission
+    user = User(email='emp@test.com', role='employee', is_active=True)
+    user.set_password('emp12345')
+    db.session.add(user)
+    if with_stock:
+        module = Module(name='Stock', display_name='Stock', is_active=True)
+        db.session.add(module)
+        db.session.flush()
+        db.session.add(RolePermission(role='employee', module_id=module.id, is_granted=True))
+    db.session.commit()
+    return get_auth_token(client, 'emp@test.com', 'emp12345')
+
+
+def _make_variant(app, category):
+    p = Product(name='Medialuna', category_id=category)
+    db.session.add(p)
+    db.session.flush()
+    v = ProductVariant(product_id=p.id, name='Unidad', price=1, stock_quantity=5)
+    db.session.add(v)
+    db.session.commit()
+    return p.id, v.id
+
+
+def test_adjust_stock_allowed_with_stock_module_only(client, app, category):
+    pid, vid = _make_variant(app, category)
+    token = _employee_token(client, with_stock=True)
+    response = client.put(
+        f'/api/v1/products/{pid}/variants/{vid}/stock',
+        json={'stock_quantity': 9},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 200
+    assert float(json.loads(response.data)['stock_quantity']) == 9
+
+
+def test_adjust_stock_forbidden_without_grants(client, app, category):
+    pid, vid = _make_variant(app, category)
+    token = _employee_token(client, with_stock=False)
+    response = client.put(
+        f'/api/v1/products/{pid}/variants/{vid}/stock',
+        json={'stock_quantity': 9},
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    assert response.status_code == 403

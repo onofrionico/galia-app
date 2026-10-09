@@ -1,22 +1,35 @@
 import { useState, useEffect } from 'react'
 import { AlertCircle } from 'lucide-react'
 import productsService from '../services/productsService'
+import EditableNumberInput from '../components/EditableNumberInput'
 
 const Stock = () => {
   const [variants, setVariants] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [updatingId, setUpdatingId] = useState(null)
 
   useEffect(() => {
-    fetchLowStock()
+    fetchInventory()
   }, [])
 
-  const fetchLowStock = async () => {
+  const fetchInventory = async () => {
     setLoading(true)
     try {
-      const response = await productsService.getLowStock()
-      setVariants(response.variants || [])
+      const all = []
+      let page = 1
+      let pages = 1
+      do {
+        const response = await productsService.getProducts({ per_page: 200, page })
+        for (const product of response.products || []) {
+          if (product.has_recipe) continue
+          for (const variant of product.variants || []) {
+            all.push({ ...variant, product_id: product.id, product_name: product.name })
+          }
+        }
+        pages = response.pages || 1
+        page += 1
+      } while (page <= pages)
+      setVariants(all)
       setError('')
     } catch (err) {
       setError('Error al cargar el inventario')
@@ -26,22 +39,24 @@ const Stock = () => {
     }
   }
 
-  const handleStockChange = async (variantId, productId, newQuantity) => {
-    setUpdatingId(variantId)
+  const handleStockChange = async (variantId, productId, raw) => {
+    const num = Number(raw)
+    if (raw === '' || !Number.isFinite(num) || num < 0) {
+      setError('Ingresá un número válido mayor o igual a 0')
+      return false
+    }
     try {
-      await productsService.adjustStock(productId, variantId, newQuantity)
-      setVariants(
-        variants.map((v) =>
-          v.id === variantId
-            ? { ...v, stock_quantity: newQuantity }
-            : v
+      const updated = await productsService.adjustStock(productId, variantId, num)
+      setVariants((prev) =>
+        prev.map((v) =>
+          v.id === variantId ? { ...v, stock_quantity: updated.stock_quantity } : v
         )
       )
       setError('')
+      return true
     } catch (err) {
       setError(err.response?.data?.error || 'Error al actualizar stock')
-    } finally {
-      setUpdatingId(null)
+      return false
     }
   }
 
@@ -129,23 +144,16 @@ const Stock = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <input
-                            type="number"
+                          <EditableNumberInput
                             value={variant.stock_quantity}
-                            onChange={(e) =>
-                              handleStockChange(
-                                variant.id,
-                                variant.product_id,
-                                parseFloat(e.target.value) || 0
-                              )
+                            onCommit={(raw) =>
+                              handleStockChange(variant.id, variant.product_id, raw)
                             }
-                            disabled={updatingId === variant.id}
                             className={`w-20 border rounded px-2 py-1 text-right text-sm ${
                               isLow
                                 ? 'border-red-300 bg-red-100 text-red-900'
                                 : 'border-gray-300'
                             }`}
-                            step="0.1"
                           />
                         </td>
                         <td className="px-4 py-3 text-right text-sm">

@@ -49,7 +49,7 @@ const BrandingConfig = () => {
 
   const handleSave = async () => {
     if (!logoFile && !backgroundFile) {
-      setMessage({ type: 'warning', text: 'Select at least one file to upload' })
+      setMessage({ type: 'warning', text: 'Seleccioná al menos un archivo para subir' })
       return
     }
 
@@ -63,16 +63,16 @@ const BrandingConfig = () => {
       setBackgroundFile(null)
       setLogoPreview(null)
       setBackgroundPreview(null)
-      setMessage({ type: 'success', text: 'Branding configuration updated successfully!' })
+      setMessage({ type: 'success', text: '¡Configuración de branding actualizada!' })
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update configuration' })
+      setMessage({ type: 'error', text: error.response?.data?.error || 'No se pudo actualizar la configuración' })
     } finally {
       setSaving(false)
     }
   }
 
   if (loading) {
-    return <div className="p-6 text-center">Loading...</div>
+    return <div className="p-6 text-center">Cargando...</div>
   }
 
   return (
@@ -111,7 +111,7 @@ const BrandingConfig = () => {
               <p className="text-sm text-blue-800 font-medium">Logo Actual:</p>
               <img
                 src={currentConfig.logo_path}
-                alt="Current Logo"
+                alt="Logo actual"
                 className="h-24 mt-2 object-contain"
               />
             </div>
@@ -119,7 +119,7 @@ const BrandingConfig = () => {
 
           <label className="flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 p-6 rounded-lg transition">
             <Upload className="h-8 w-8 text-gray-400 mb-2" />
-            <span className="text-gray-600 font-medium">Click to upload logo</span>
+            <span className="text-gray-600 font-medium">Hacé clic para subir el logo</span>
             <span className="text-sm text-gray-500 mt-1">JPG, PNG, WebP (máx. 10 MB)</span>
             <input
               type="file"
@@ -131,10 +131,10 @@ const BrandingConfig = () => {
 
           {logoPreview && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 font-medium mb-2">Preview:</p>
+              <p className="text-sm text-gray-600 font-medium mb-2">Vista previa:</p>
               <img
                 src={logoPreview}
-                alt="Logo Preview"
+                alt="Vista previa del logo"
                 className="h-24 object-contain"
               />
             </div>
@@ -150,7 +150,7 @@ const BrandingConfig = () => {
               <p className="text-sm text-blue-800 font-medium">Fondo Actual:</p>
               <img
                 src={currentConfig.banner_background_path}
-                alt="Current Background"
+                alt="Fondo actual"
                 className="h-24 mt-2 object-cover w-full rounded"
               />
             </div>
@@ -158,7 +158,7 @@ const BrandingConfig = () => {
 
           <label className="flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 p-6 rounded-lg transition">
             <Upload className="h-8 w-8 text-gray-400 mb-2" />
-            <span className="text-gray-600 font-medium">Click to upload background</span>
+            <span className="text-gray-600 font-medium">Hacé clic para subir el fondo</span>
             <span className="text-sm text-gray-500 mt-1">JPG, PNG, WebP (máx. 10 MB, opcional)</span>
             <input
               type="file"
@@ -170,10 +170,10 @@ const BrandingConfig = () => {
 
           {backgroundPreview && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 font-medium mb-2">Preview:</p>
+              <p className="text-sm text-gray-600 font-medium mb-2">Vista previa:</p>
               <img
                 src={backgroundPreview}
-                alt="Background Preview"
+                alt="Vista previa del fondo"
                 className="h-24 object-cover w-full rounded"
               />
             </div>
