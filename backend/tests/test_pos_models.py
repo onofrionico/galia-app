@@ -118,3 +118,40 @@ def test_sale_aggregate_relationships(app):
     assert sale.discounts[0].item is item and item.discounts[0].is_active
     assert sale.payments[0].is_active
     assert PosSaleEvent.query.one().payload == {'x': 1}
+
+
+def test_deleting_item_does_not_null_discount_item_id(app):
+    from datetime import date, datetime
+    from app.models import ProductVariant, User
+    from app.models.pos import PosDiscount, PosSale, PosSaleItem
+
+    user = User(email='u2@test.com', role='admin', is_active=True)
+    user.set_password('secret123')
+    cat = ProductCategory(name='Cafés')
+    db.session.add_all([user, cat])
+    db.session.flush()
+    product = Product(name='Cortado', category_id=cat.id)
+    db.session.add(product)
+    db.session.flush()
+    variant = ProductVariant(product_id=product.id, name='Taza', price=2000, stock_quantity=0, min_stock=0)
+    db.session.add(variant)
+    db.session.flush()
+    sale = PosSale(business_date=date.today(), number=1, sale_type='counter', status='open',
+                   opened_at=datetime.utcnow(), opened_by=user.id)
+    item = PosSaleItem(product_variant_id=variant.id, product_name='Cortado', variant_name='Taza',
+                       unit_price=2000, quantity=1, modifiers_total=0, line_total=2000,
+                       created_by=user.id, created_at=datetime.utcnow())
+    sale.items.append(item)
+    db.session.add(sale)
+    db.session.flush()
+    discount = PosDiscount(sale=sale, item=item, kind='amount', value=100, amount=100, created_by=user.id,
+                           created_at=datetime.utcnow())
+    db.session.add(discount)
+    db.session.flush()
+    discount_id, item_id = discount.id, item.id
+
+    sale.items.remove(item)
+    db.session.flush()
+    db.session.expire_all()
+
+    assert db.session.get(PosDiscount, discount_id).item_id == item_id

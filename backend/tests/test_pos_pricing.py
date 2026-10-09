@@ -8,6 +8,11 @@ def test_money_rounds_half_up():
     assert money(D('10.004')) == D('10.00')
 
 
+def test_floats_use_their_decimal_representation():
+    assert money(2.675) == D('2.68')
+    assert line_total(1.5, 1000.1, 0) == D('1500.15')
+
+
 def test_line_total_includes_modifiers():
     assert line_total(D('2'), D('2000'), D('300')) == D('4600.00')
     assert line_total(D('1.5'), D('1000'), D('0')) == D('1500.00')

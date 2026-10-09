@@ -77,7 +77,8 @@ class PosSaleItem(db.Model):
     sale = db.relationship('PosSale', back_populates='items')
     modifiers = db.relationship('PosSaleItemModifier', back_populates='item', order_by='PosSaleItemModifier.id',
                                 cascade='all, delete-orphan')
-    discounts = db.relationship('PosDiscount', back_populates='item', order_by='PosDiscount.id')
+    discounts = db.relationship('PosDiscount', back_populates='item', order_by='PosDiscount.id',
+                               passive_deletes='all')
 
 
 class PosSaleItemModifier(db.Model):

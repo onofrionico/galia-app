@@ -1,5 +1,5 @@
 from collections import defaultdict
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.extensions import db
 from app.models.product_variant import ProductVariant
@@ -8,6 +8,7 @@ from app.models.supply import Supply
 from app.utils.validation import parse_decimal
 
 MAX_SALE_QUANTITY = Decimal('1000000')
+STOCK_STEP = Decimal('0.001')
 
 
 def deduct_stock_for_sale(sale_items):
@@ -69,7 +70,9 @@ def stock_requirements(variant_quantities, extra_supplies=None):
             variants[variant_id] += quantity
     for supply_id, quantity in (extra_supplies or {}).items():
         supplies[supply_id] += quantity
-    return dict(variants), dict(supplies)
+    # Las columnas de stock son Numeric(10,3): cuantizar mantiene simétricos descuento y devolución.
+    return ({k: v.quantize(STOCK_STEP, rounding=ROUND_HALF_UP) for k, v in variants.items()},
+            {k: v.quantize(STOCK_STEP, rounding=ROUND_HALF_UP) for k, v in supplies.items()})
 
 
 def move_stock(variants, supplies, sign, allow_negative=False):
@@ -81,6 +84,8 @@ def move_stock(variants, supplies, sign, allow_negative=False):
     """
     if sign not in (-1, 1):
         raise ValueError('sign debe ser -1 o 1')
+    if any(q < 0 for q in (*variants.values(), *supplies.values())):
+        raise ValueError('Las cantidades de stock no pueden ser negativas')
     locked_variants = (
         ProductVariant.query.filter(ProductVariant.id.in_(list(variants)))
         .order_by(ProductVariant.id).with_for_update().populate_existing().all()

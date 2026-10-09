@@ -48,6 +48,24 @@ def test_requirements_split_variants_and_supplies(app):
     assert supplies == {cafe.id: Decimal('0.2')}
 
 
+def test_move_stock_rejects_negative_quantities(app):
+    cafe, v_simple, _u, _r = _setup()
+    with pytest.raises(ValueError, match='negativas'):
+        move_stock({v_simple.id: Decimal('-1')}, {}, sign=-1)
+    with pytest.raises(ValueError, match='negativas'):
+        move_stock({}, {cafe.id: Decimal('-0.5')}, sign=1)
+
+
+def test_requirements_quantize_to_three_decimals(app):
+    cafe, _s, _u, v_recipe = _setup()
+    recipe_item = ProductRecipeItem.query.one()
+    recipe_item.quantity = Decimal('0.0333')
+    db.session.commit()
+    _variants, supplies = stock_requirements({v_recipe.id: Decimal('3')})
+    assert supplies == {cafe.id: Decimal('0.100')}
+    assert supplies[cafe.id].as_tuple().exponent == -3
+
+
 def test_unknown_variant_raises(app):
     with pytest.raises(ValueError, match='no encontrado'):
         stock_requirements({999: Decimal('1')})

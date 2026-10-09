@@ -6,24 +6,33 @@ CENT = Decimal('0.01')
 ZERO = Decimal('0.00')
 
 
+def to_decimal(value):
+    """Decimal exacto: los float pasan por str para no arrastrar error binario."""
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, float):
+        return Decimal(str(value))
+    return Decimal(value)
+
+
 def money(value):
-    return Decimal(value).quantize(CENT, rounding=ROUND_HALF_UP)
+    return to_decimal(value).quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 def line_total(quantity, unit_price, modifiers_total):
-    return money(Decimal(quantity) * (Decimal(unit_price) + Decimal(modifiers_total)))
+    return money(to_decimal(quantity) * (to_decimal(unit_price) + to_decimal(modifiers_total)))
 
 
 def discount_amount(kind, value, base, cap):
     """Monto de un descuento: porcentaje sobre `base` o monto fijo, nunca mayor que `cap`."""
-    cap = money(max(Decimal(cap), ZERO))
-    raw = Decimal(base) * Decimal(value) / Decimal(100) if kind == 'percent' else Decimal(value)
+    cap = money(max(to_decimal(cap), ZERO))
+    raw = to_decimal(base) * to_decimal(value) / Decimal(100) if kind == 'percent' else to_decimal(value)
     return min(money(max(raw, ZERO)), cap)
 
 
 def split_value(value, part, whole):
     """Parte proporcional de un monto fijo al dividir `part` de `whole` unidades."""
-    return money(Decimal(value) * Decimal(part) / Decimal(whole))
+    return money(to_decimal(value) * to_decimal(part) / to_decimal(whole))
 
 
 @dataclass(frozen=True)
