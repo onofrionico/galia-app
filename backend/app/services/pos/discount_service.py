@@ -44,9 +44,9 @@ def add_discount(user, sale_id, item_id=None, template_id=None, kind=None, value
             raise bad_request('El porcentaje no puede superar 100')
         if not reason:
             raise bad_request('Indicá el motivo del descuento')
-    discount = PosDiscount(item=item, template_id=template.id if template else None, kind=kind, value=value,
-                           amount=Decimal('0'), reason=reason, created_by=user.id, created_at=now())
-    sale.discounts.append(discount)
+    discount = PosDiscount(sale=sale, item=item, template_id=template.id if template else None, kind=kind,
+                           value=value, amount=Decimal('0'), reason=reason, created_by=user.id, created_at=now())
+    db.session.add(discount)
     recalc(sale)
     if sale.total < sale.paid_total:
         raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
