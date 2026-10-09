@@ -3,6 +3,7 @@ import pytest
 from app import create_app
 from app.extensions import db
 from app.models.user import User
+from app.models import Module, RolePermission
 
 
 @pytest.fixture
@@ -81,3 +82,23 @@ def test_employee_cannot_create_supply(client):
     headers = _headers(client, 'e@test.com', 'employee')
     response = client.post('/api/v1/supplies', headers=headers, json={'name': 'Harina', 'unit': 'kg'})
     assert response.status_code == 403
+
+
+def test_employee_without_stock_cannot_read_supplies(client):
+    headers = _headers(client, 'e@test.com', 'employee')
+    assert client.get('/api/v1/supplies', headers=headers).status_code == 403
+    assert client.get('/api/v1/supplies/1', headers=headers).status_code == 403
+
+
+def test_employee_with_stock_can_read_supplies(client):
+    admin = _headers(client, 'a@test.com', 'admin')
+    created = client.post('/api/v1/supplies', headers=admin, json={'name': 'Harina', 'unit': 'kg'}).get_json()
+    module = Module(name='Stock', display_name='Stock', is_active=True)
+    db.session.add(module)
+    db.session.commit()
+    db.session.add(RolePermission(role='employee', module_id=module.id, is_granted=True))
+    db.session.commit()
+    headers = _headers(client, 'e@test.com', 'employee')
+    assert client.get('/api/v1/supplies', headers=headers).status_code == 200
+    supply_id = created.get('id') or created.get('supply', {}).get('id')
+    assert client.get(f'/api/v1/supplies/{supply_id}', headers=headers).status_code == 200

@@ -184,7 +184,7 @@ Cada decorador de acceso marca su wrapper con el atributo `_access_control` (`'a
 3. `flask db upgrade` desde base vacía hasta head, y `flask db downgrade` hasta `add_menu_tables`.
 4. Prueba manual en navegador:
    - admin: ve todos los módulos; crea proveedor, categoría, producto con receta; ajusta stock; cambia logo.
-   - employee: ve sólo Mi Nómina y Mi Horario; los endpoints nuevos responden 403.
+   - employee: ve sólo Mi Nómina y Mi Horario; proveedores, insumos y todos los endpoints de escritura responden 403. Las lecturas de productos y categorías quedan abiertas a cualquier usuario autenticado a propósito (el futuro POS necesita el catálogo).
 
 ## Entrega
 

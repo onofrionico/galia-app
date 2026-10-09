@@ -19,7 +19,7 @@ def _bad_body():
 
 @bp.route('', methods=['GET'])
 @token_required
-@authenticated_only
+@module_required('Stock')
 def list_supplies(current_user):
     """Get all supplies with optional filtering"""
     include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
@@ -83,7 +83,7 @@ def create_supply(current_user):
 
 @bp.route('/<int:supply_id>', methods=['GET'])
 @token_required
-@authenticated_only
+@module_required('Stock')
 def get_supply(current_user, supply_id):
     """Get supply details with price history"""
     supply = Supply.query.get_or_404(supply_id)
