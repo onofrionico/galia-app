@@ -37,6 +37,7 @@ import Permissions from './pages/Permissions'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import ProductCategories from './pages/ProductCategories'
+import ModifierGroups from './pages/ModifierGroups'
 import Supplies from './pages/Supplies'
 import Stock from './pages/Stock'
 import BrandingConfig from './pages/admin/BrandingConfig'
@@ -97,6 +98,7 @@ function App() {
             <Route path="/suppliers/:id" element={<RoleProtectedRoute moduleName="Suppliers"><SupplierDetail /></RoleProtectedRoute>} />
             <Route path="/products" element={<RoleProtectedRoute moduleName="Products"><Products /></RoleProtectedRoute>} />
             <Route path="/products/:id" element={<RoleProtectedRoute moduleName="Products"><ProductDetail /></RoleProtectedRoute>} />
+            <Route path="/products/modifiers" element={<RoleProtectedRoute moduleName="Products"><ModifierGroups /></RoleProtectedRoute>} />
             <Route path="/product-categories" element={<RoleProtectedRoute moduleName="Products"><ProductCategories /></RoleProtectedRoute>} />
             <Route path="/supplies" element={<RoleProtectedRoute moduleName="Stock"><Supplies /></RoleProtectedRoute>} />
             <Route path="/stock" element={<RoleProtectedRoute moduleName="Stock"><Stock /></RoleProtectedRoute>} />

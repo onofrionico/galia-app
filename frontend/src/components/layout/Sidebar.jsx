@@ -85,7 +85,8 @@ const navGroups = [
     accentText: 'text-amber-200',
     accentBorder: 'border-amber-200',
     items: [
-      { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products' },
+      { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products', end: true },
+      { to: '/products/modifiers', icon: Tag, label: 'Modificadores', subItem: true, module: 'Products' },
       { to: '/product-categories', icon: Tag, label: 'Categorías', subItem: true, module: 'Products' },
       { to: '/supplies', icon: Package, label: 'Insumos', module: 'Stock' },
       { to: '/stock', icon: Package, label: 'Stock', module: 'Stock' },
@@ -179,6 +180,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <NavLink
         key={item.to}
         to={item.to}
+        end={item.end}
         onClick={onClose}
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
@@ -265,6 +267,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             <NavLink
                               key={item.to}
                               to={item.to}
+                              end={item.end}
                               onClick={onClose}
                               className={({ isActive }) =>
                                 `flex items-center gap-3 rounded-md transition-colors ${
