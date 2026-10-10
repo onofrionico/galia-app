@@ -6,13 +6,14 @@ from app.models.user import User
 from app.models.job_position import JobPosition
 from app.models.employee_job_history import EmployeeJobHistory
 from app.models.shift import Shift
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 
 bp = Blueprint('employees', __name__, url_prefix='/api/v1/employees')
 
 @bp.route('', methods=['GET'])
 @token_required
+@authenticated_only
 def get_employees(current_user):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()
@@ -75,6 +76,7 @@ def get_employees(current_user):
 
 @bp.route('/<int:employee_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_employee(current_user, employee_id):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()
@@ -89,7 +91,7 @@ def get_employee(current_user, employee_id):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Employees')
 def create_employee(current_user):
     try:
         print(f"[CREATE EMPLOYEE] Iniciando creación de empleado por usuario: {current_user.email}")
@@ -189,6 +191,7 @@ def create_employee(current_user):
 
 @bp.route('/me', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_profile(current_user):
     if not current_user.employee:
         return jsonify({'error': 'No se encontró perfil de empleado'}), 404
@@ -198,6 +201,7 @@ def get_my_profile(current_user):
 
 @bp.route('/me', methods=['PUT'])
 @token_required
+@authenticated_only
 def update_my_profile(current_user):
     if not current_user.employee:
         return jsonify({'error': 'No se encontró perfil de empleado'}), 404
@@ -268,6 +272,7 @@ def update_my_profile(current_user):
 
 @bp.route('/<int:employee_id>', methods=['PUT'])
 @token_required
+@authenticated_only
 def update_employee(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     
@@ -376,7 +381,7 @@ def update_employee(current_user, employee_id):
 
 @bp.route('/<int:employee_id>/deactivate', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def deactivate_employee(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     
@@ -402,7 +407,7 @@ def deactivate_employee(current_user, employee_id):
 
 @bp.route('/<int:employee_id>/change-status', methods=['PATCH'])
 @token_required
-@admin_required
+@module_required('Employees')
 def change_employee_status(current_user, employee_id):
     employee = Employee.query.get_or_404(employee_id)
     data = request.get_json()
@@ -438,6 +443,7 @@ def change_employee_status(current_user, employee_id):
 
 @bp.route('/<int:employee_id>/job-history', methods=['GET'])
 @token_required
+@authenticated_only
 def get_employee_job_history(current_user, employee_id):
     if current_user.role != 'admin':
         employee = Employee.query.filter_by(user_id=current_user.id).first()

@@ -12,6 +12,12 @@ bp = Blueprint('public_menu', __name__, url_prefix='/api/public')
 logger = logging.getLogger(__name__)
 
 IMAGE_NAME = re.compile(r'^[0-9a-f]{16}\.webp$')
+# Imágenes de productos y branding: viven en el mismo storage, fuera de `images/`
+# (que el publish de la carta limpia). Sus URLs las arma `public_url`.
+ASSET_NAMES = {
+    'products': IMAGE_NAME,
+    'branding': re.compile(r'^(logo|banner)-[0-9a-f]{16}\.webp$'),
+}
 
 
 @bp.after_request
@@ -37,12 +43,24 @@ def menu_json():
 def menu_image(name):
     if not IMAGE_NAME.fullmatch(name):
         return jsonify({'error': 'Imagen no encontrada'}), 404
+    return _serve_webp(f'images/{name}')
+
+
+@bp.route('/menu/<folder>/<name>', methods=['GET'])
+def menu_asset(folder, name):
+    pattern = ASSET_NAMES.get(folder)
+    if pattern is None or not pattern.fullmatch(name):
+        return jsonify({'error': 'Imagen no encontrada'}), 404
+    return _serve_webp(f'{folder}/{name}')
+
+
+def _serve_webp(key):
     try:
-        body, _ = get_menu_storage().get(f'images/{name}')
+        body, _ = get_menu_storage().get(key)
     except KeyError:
         return jsonify({'error': 'Imagen no encontrada'}), 404
     except Exception:
-        logger.exception('No se pudo leer la imagen de la carta %s', name)
+        logger.exception('No se pudo leer la imagen %s', key)
         return jsonify({'error': 'No se pudo obtener la imagen'}), 502
     return Response(body, status=200, headers={
         'Content-Type': 'image/webp',

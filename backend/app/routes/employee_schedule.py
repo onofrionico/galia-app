@@ -3,11 +3,13 @@ from app.services.employee_schedule_service import EmployeeScheduleService
 from app.models.employee import Employee
 from datetime import datetime
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import authenticated_only
 
 bp = Blueprint('employee_schedule', __name__, url_prefix='/api/v1/employee/schedule')
 
 @bp.route('/my-schedule/weekly', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_weekly_schedule(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -28,6 +30,7 @@ def get_my_weekly_schedule(current_user):
 
 @bp.route('/my-schedule/monthly', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_monthly_schedule(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -46,6 +49,7 @@ def get_my_monthly_schedule(current_user):
 
 @bp.route('/my-schedule/upcoming', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_upcoming_shifts(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -63,6 +67,7 @@ def get_my_upcoming_shifts(current_user):
 
 @bp.route('/my-schedule/current-week', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_current_week(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -75,6 +80,7 @@ def get_my_current_week(current_user):
 
 @bp.route('/my-schedule/next-week', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_next_week(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     
@@ -87,6 +93,7 @@ def get_my_next_week(current_user):
 
 @bp.route('/my-schedule/summary', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_schedule_summary(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     

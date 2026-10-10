@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required
 from app.services.schedule_service import ScheduleService
 from app.utils.jwt_utils import token_required
 
@@ -7,7 +7,7 @@ bp = Blueprint('schedule_summary', __name__, url_prefix='/api/v1/schedules')
 
 @bp.route('/<int:schedule_id>/summary', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def get_schedule_summary(current_user, schedule_id):
     """Get summary of hours and costs for a schedule"""
     cost_summary = ScheduleService.calculate_schedule_cost(schedule_id)
@@ -20,7 +20,7 @@ def get_schedule_summary(current_user, schedule_id):
 
 @bp.route('/<int:schedule_id>/publish', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def publish_schedule(current_user, schedule_id):
     """Publish a schedule"""
     schedule = ScheduleService.publish_schedule(schedule_id)

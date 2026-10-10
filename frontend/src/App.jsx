@@ -32,6 +32,16 @@ import AdminTimeTracking from './pages/AdminTimeTracking'
 import MyDocuments from './pages/MyDocuments'
 import Menu from './pages/Menu'
 import MenuInbox from './pages/MenuInbox'
+import { RoleProtectedRoute } from './components/RoleProtectedRoute'
+import Permissions from './pages/Permissions'
+import Products from './pages/Products'
+import ProductDetail from './pages/ProductDetail'
+import ProductCategories from './pages/ProductCategories'
+import Supplies from './pages/Supplies'
+import Stock from './pages/Stock'
+import BrandingConfig from './pages/admin/BrandingConfig'
+import Suppliers from './pages/Suppliers'
+import SupplierDetail from './pages/SupplierDetail'
 
 function App() {
   return (
@@ -43,34 +53,43 @@ function App() {
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/schedules" element={<Schedules />} />
+            <Route path="/schedules" element={<RoleProtectedRoute moduleName="Schedules"><Schedules /></RoleProtectedRoute>} />
             <Route path="/my-schedule" element={<MySchedule />} />
             <Route path="/time-tracking" element={<TimeTracking />} />
-            <Route path="/admin-time-tracking" element={<AdminTimeTracking />} />
-            <Route path="/import-time-tracking" element={<ImportTimeTracking />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/expense-categories" element={<ExpenseCategories />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/employees/new" element={<EmployeeForm />} />
-            <Route path="/employees/:id" element={<EmployeeDetail />} />
-            <Route path="/employees/:id/edit" element={<EmployeeForm />} />
-            <Route path="/job-positions" element={<JobPositions />} />
-            <Route path="/ml-dashboard" element={<MLDashboard />} />
-            <Route path="/payroll" element={<Payroll />} />
-            <Route path="/payroll/:id" element={<PayrollDetail />} />
-            <Route path="/payroll-claims" element={<PayrollClaims />} />
+            <Route path="/admin-time-tracking" element={<RoleProtectedRoute moduleName="Schedules"><AdminTimeTracking /></RoleProtectedRoute>} />
+            <Route path="/import-time-tracking" element={<RoleProtectedRoute moduleName="Schedules"><ImportTimeTracking /></RoleProtectedRoute>} />
+            <Route path="/sales" element={<RoleProtectedRoute moduleName="Sales"><Sales /></RoleProtectedRoute>} />
+            <Route path="/expenses" element={<RoleProtectedRoute moduleName="Expenses"><Expenses /></RoleProtectedRoute>} />
+            <Route path="/expense-categories" element={<RoleProtectedRoute moduleName="Expenses"><ExpenseCategories /></RoleProtectedRoute>} />
+            <Route path="/reports" element={<RoleProtectedRoute moduleName="Reports"><Reports /></RoleProtectedRoute>} />
+            <Route path="/employees" element={<RoleProtectedRoute moduleName="Employees"><Employees /></RoleProtectedRoute>} />
+            <Route path="/employees/new" element={<RoleProtectedRoute moduleName="Employees"><EmployeeForm /></RoleProtectedRoute>} />
+            <Route path="/employees/:id" element={<RoleProtectedRoute moduleName="Employees"><EmployeeDetail /></RoleProtectedRoute>} />
+            <Route path="/employees/:id/edit" element={<RoleProtectedRoute moduleName="Employees"><EmployeeForm /></RoleProtectedRoute>} />
+            <Route path="/job-positions" element={<RoleProtectedRoute moduleName="Employees"><JobPositions /></RoleProtectedRoute>} />
+            <Route path="/ml-dashboard" element={<RoleProtectedRoute moduleName="Reports"><MLDashboard /></RoleProtectedRoute>} />
+            <Route path="/payroll" element={<RoleProtectedRoute moduleName="Payroll"><Payroll /></RoleProtectedRoute>} />
+            <Route path="/payroll/:id" element={<RoleProtectedRoute moduleName="Payroll"><PayrollDetail /></RoleProtectedRoute>} />
+            <Route path="/payroll-claims" element={<RoleProtectedRoute moduleName="Payroll"><PayrollClaims /></RoleProtectedRoute>} />
             <Route path="/my-payrolls" element={<MyPayrolls />} />
             <Route path="/my-payrolls/:id" element={<MyPayrollDetail />} />
             <Route path="/my-documents" element={<MyDocuments />} />
             <Route path="/my-absence-requests" element={<MyAbsenceRequests />} />
-            <Route path="/absence-requests" element={<AbsenceRequestsAdmin />} />
-            <Route path="/holidays" element={<HolidaysPage />} />
-            <Route path="/store-hours" element={<StoreHours />} />
-            <Route path="/vacation-periods" element={<VacationPeriods />} />
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/menu/inbox" element={<MenuInbox />} />
+            <Route path="/absence-requests" element={<RoleProtectedRoute adminOnly><AbsenceRequestsAdmin /></RoleProtectedRoute>} />
+            <Route path="/holidays" element={<RoleProtectedRoute moduleName="Schedules"><HolidaysPage /></RoleProtectedRoute>} />
+            <Route path="/store-hours" element={<RoleProtectedRoute moduleName="Schedules"><StoreHours /></RoleProtectedRoute>} />
+            <Route path="/vacation-periods" element={<RoleProtectedRoute moduleName="Schedules"><VacationPeriods /></RoleProtectedRoute>} />
+            <Route path="/menu" element={<RoleProtectedRoute moduleName="Menu"><Menu /></RoleProtectedRoute>} />
+            <Route path="/menu/inbox" element={<RoleProtectedRoute moduleName="Menu"><MenuInbox /></RoleProtectedRoute>} />
+            <Route path="/suppliers" element={<RoleProtectedRoute moduleName="Suppliers"><Suppliers /></RoleProtectedRoute>} />
+            <Route path="/suppliers/:id" element={<RoleProtectedRoute moduleName="Suppliers"><SupplierDetail /></RoleProtectedRoute>} />
+            <Route path="/products" element={<RoleProtectedRoute moduleName="Products"><Products /></RoleProtectedRoute>} />
+            <Route path="/products/:id" element={<RoleProtectedRoute moduleName="Products"><ProductDetail /></RoleProtectedRoute>} />
+            <Route path="/product-categories" element={<RoleProtectedRoute moduleName="Products"><ProductCategories /></RoleProtectedRoute>} />
+            <Route path="/supplies" element={<RoleProtectedRoute moduleName="Stock"><Supplies /></RoleProtectedRoute>} />
+            <Route path="/stock" element={<RoleProtectedRoute moduleName="Stock"><Stock /></RoleProtectedRoute>} />
+            <Route path="/permissions" element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
+            <Route path="/admin/branding" element={<RoleProtectedRoute adminOnly><BrandingConfig /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

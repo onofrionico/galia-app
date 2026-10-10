@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.vacation_period import VacationPeriod
 from app.models.employee import Employee
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 from datetime import datetime
 
@@ -10,6 +10,7 @@ bp = Blueprint('vacation_periods', __name__, url_prefix='/api/v1/vacation-period
 
 @bp.route('', methods=['GET'])
 @token_required
+@authenticated_only
 def get_vacation_periods(current_user):
     """Obtener períodos de vacaciones"""
     employee_id = request.args.get('employee_id', type=int)
@@ -50,7 +51,7 @@ def get_vacation_periods(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_vacation_period(current_user):
     """Crear período de vacaciones"""
     data = request.get_json()
@@ -90,7 +91,7 @@ def create_vacation_period(current_user):
 
 @bp.route('/<int:period_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_vacation_period(current_user, period_id):
     """Actualizar período de vacaciones"""
     period = VacationPeriod.query.get_or_404(period_id)
@@ -126,7 +127,7 @@ def update_vacation_period(current_user, period_id):
 
 @bp.route('/<int:period_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_vacation_period(current_user, period_id):
     """Eliminar período de vacaciones"""
     period = VacationPeriod.query.get_or_404(period_id)
@@ -138,6 +139,7 @@ def delete_vacation_period(current_user, period_id):
 
 @bp.route('/check-availability/<int:employee_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def check_employee_availability(current_user, employee_id):
     """Verificar si un empleado está disponible en un rango de fechas"""
     start_date = request.args.get('start_date')

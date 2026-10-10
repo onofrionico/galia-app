@@ -5,6 +5,7 @@ import {
   CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet, Tag
 } from 'lucide-react';
 import api from '../services/api';
+import suppliersService from '@/services/suppliersService';
 import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
 import MoneyFormat from '../components/MoneyFormat';
 
@@ -26,6 +27,9 @@ const Expenses = () => {
     estados_pago: [],
     medios_pago: []
   });
+  const [suppliers, setSuppliers] = useState([]);
+  const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [editingProveedor, setEditingProveedor] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 50,
@@ -109,6 +113,16 @@ const Expenses = () => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const data = await suppliersService.getSuppliers({ include_inactive: false });
+      setSuppliers((data.suppliers || []).filter(s => s.name).map(s => ({ id: s.id, name: s.name })));
+      setSuppliersLoaded(true);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
     fetchStats();
@@ -116,6 +130,7 @@ const Expenses = () => {
 
   useEffect(() => {
     fetchFilterOptions();
+    fetchSuppliers();
   }, []);
 
   const handleFilterChange = (field, value) => {
@@ -214,6 +229,7 @@ const Expenses = () => {
       numero_comprobante: ''
     });
     setEditingId(null);
+    setEditingProveedor('');
   };
 
   const handleFormChange = (field, value) => {
@@ -230,9 +246,19 @@ const Expenses = () => {
         importe: parseFloat(formData.importe) || 0
       };
       
+      // Resolver supplier_id por nombre exacto (sin distinguir mayúsculas) contra proveedores activos.
+      const typed = (formData.proveedor || '').trim().toLowerCase();
+      const match = typed ? suppliers.find(s => s.name.trim().toLowerCase() === typed) : null;
+      const resolvedSupplierId = match ? match.id : null;
+
       if (editingId) {
+        // Solo enviar supplier_id si cambió el texto del proveedor respecto del gasto cargado.
+        if (suppliersLoaded && typed !== editingProveedor) {
+          payload.supplier_id = resolvedSupplierId;
+        }
         await api.put(`/expenses/${editingId}`, payload);
       } else {
+        payload.supplier_id = resolvedSupplierId;
         await api.post('/expenses', payload);
       }
       
@@ -266,6 +292,7 @@ const Expenses = () => {
       numero_comprobante: expense.numero_comprobante || ''
     });
     setEditingId(expense.id);
+    setEditingProveedor((expense.proveedor || '').trim().toLowerCase());
     setShowFormModal(true);
   };
 
@@ -736,11 +763,17 @@ const Expenses = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
                     <input
                       type="text"
+                      list="suppliers-list"
                       value={formData.proveedor}
                       onChange={(e) => handleFormChange('proveedor', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Nombre del proveedor"
+                      placeholder="Escriba o seleccione un proveedor"
                     />
+                    <datalist id="suppliers-list">
+                      {[...new Set([...suppliers.map((s) => s.name), ...(filterOptions.proveedores || [])])].map((prov) => (
+                        <option key={prov} value={prov} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>

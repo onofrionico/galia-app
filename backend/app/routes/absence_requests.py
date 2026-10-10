@@ -6,6 +6,7 @@ from app.models.employee import Employee
 from app.models.user import User
 from app.models.shift import Shift
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import authenticated_only
 from app.utils.s3_utils import s3_service
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -26,10 +27,12 @@ def admin_or_supervisor_required(f):
         if current_user.role not in ['admin', 'supervisor']:
             return jsonify({'error': 'Se requieren permisos de administrador o supervisor'}), 403
         return f(current_user, *args, **kwargs)
+    decorated._access_control = 'custom'
     return decorated
 
 @absence_bp.route('/', methods=['POST'])
 @token_required
+@authenticated_only
 def create_absence_request(current_user):
     try:
         employee = Employee.query.filter_by(user_id=current_user.id).first()
@@ -114,6 +117,7 @@ def create_absence_request(current_user):
 
 @absence_bp.route('/my-requests', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_absence_requests(current_user):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     if not employee:
@@ -132,6 +136,7 @@ def get_my_absence_requests(current_user):
 
 @absence_bp.route('/my-requests/<int:request_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_my_absence_request_detail(current_user, request_id):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     if not employee:
@@ -146,6 +151,7 @@ def get_my_absence_request_detail(current_user, request_id):
 
 @absence_bp.route('/my-requests/<int:request_id>', methods=['DELETE'])
 @token_required
+@authenticated_only
 def delete_my_absence_request(current_user, request_id):
     employee = Employee.query.filter_by(user_id=current_user.id).first()
     if not employee:
@@ -271,6 +277,7 @@ def reject_absence_request(current_user, request_id):
 
 @absence_bp.route('/<int:request_id>/attachment', methods=['GET'])
 @token_required
+@authenticated_only
 def download_attachment(current_user, request_id):
     absence_request = AbsenceRequest.query.get_or_404(request_id)
     

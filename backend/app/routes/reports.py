@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from sqlalchemy import func, and_, or_, extract, cast, text
 from sqlalchemy import Date as SQLDate
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 from app.extensions import db
 from app.models.sale import Sale
@@ -61,7 +61,7 @@ def get_period_dates(period_type, reference_date=None):
 
 @bp.route('/dashboard', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_dashboard(current_user):
     """Obtener métricas principales del dashboard
     
@@ -471,7 +471,7 @@ def get_goals_progress(sales_data, expenses_data, payroll_data, total_ingresos):
 
 @bp.route('/goals', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_goals(current_user):
     """Listar todas las metas activas"""
     goals = ReportGoal.get_active_goals()
@@ -480,7 +480,7 @@ def get_goals(current_user):
 
 @bp.route('/goals', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def create_goal(current_user):
     """Crear una nueva meta"""
     data = request.get_json()
@@ -521,7 +521,7 @@ def create_goal(current_user):
 
 @bp.route('/goals/<int:goal_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Reports')
 def update_goal(current_user, goal_id):
     """Actualizar una meta existente"""
     goal = ReportGoal.query.get_or_404(goal_id)
@@ -546,7 +546,7 @@ def update_goal(current_user, goal_id):
 
 @bp.route('/goals/<int:goal_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Reports')
 def delete_goal(current_user, goal_id):
     """Desactivar una meta"""
     goal = ReportGoal.query.get_or_404(goal_id)
@@ -560,7 +560,7 @@ def delete_goal(current_user, goal_id):
 
 @bp.route('/sales', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def sales_report(current_user):
     """Reporte detallado de ventas con filtros"""
     start_date = parse_date(request.args.get('start_date'))
@@ -642,7 +642,7 @@ def sales_report(current_user):
 
 @bp.route('/sales/by-employee', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def sales_by_employee(current_user):
     """Ventas agrupadas por empleado/camarero"""
     start_date = parse_date(request.args.get('start_date'))
@@ -682,7 +682,7 @@ def sales_by_employee(current_user):
 
 @bp.route('/sales/evolution', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def sales_evolution(current_user):
     """Evolución de ventas por día"""
     start_date = parse_date(request.args.get('start_date'))
@@ -718,7 +718,7 @@ def sales_evolution(current_user):
 
 @bp.route('/expenses/report', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def expenses_report(current_user):
     """Reporte detallado de gastos"""
     from app.models.expense import ExpenseCategory
@@ -801,7 +801,7 @@ def expenses_report(current_user):
 
 @bp.route('/expenses/evolution', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def expenses_evolution(current_user):
     """Evolución de gastos por día"""
     start_date = parse_date(request.args.get('start_date'))
@@ -839,7 +839,7 @@ def expenses_evolution(current_user):
 
 @bp.route('/balance', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def balance_report(current_user):
     """Balance/Estado de resultados"""
     start_date = parse_date(request.args.get('start_date'))
@@ -902,7 +902,7 @@ def balance_report(current_user):
 
 @bp.route('/productivity', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def productivity_report(current_user):
     """Métricas de productividad laboral"""
     start_date = parse_date(request.args.get('start_date'))
@@ -946,7 +946,7 @@ def productivity_report(current_user):
 
 @bp.route('/expense-categories', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_expense_categories(current_user):
     """Listar categorías de gastos"""
     categories = ExpenseCategory.query.filter_by(is_active=True).all()
@@ -955,7 +955,7 @@ def get_expense_categories(current_user):
 
 @bp.route('/expense-categories', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def create_expense_category(current_user):
     """Crear categoría de gasto"""
     data = request.get_json()
@@ -980,7 +980,7 @@ def create_expense_category(current_user):
 
 @bp.route('/expense-categories/<int:category_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Reports')
 def update_expense_category(current_user, category_id):
     """Actualizar categoría de gasto"""
     category = ExpenseCategory.query.get_or_404(category_id)
@@ -1223,7 +1223,7 @@ def get_labor_by_hour(start_date, end_date, employee_rates, holiday_dates):
 
 @bp.route('/time-analysis', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def time_analysis(current_user):
     """Análisis de ventas y costo laboral por día de semana y hora."""
     start_date = parse_date(request.args.get('start_date'))

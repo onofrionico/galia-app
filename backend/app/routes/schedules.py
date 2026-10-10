@@ -3,7 +3,7 @@ from app.extensions import db
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.employee import Employee
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -12,13 +12,14 @@ bp = Blueprint('schedules', __name__, url_prefix='/api/v1/schedules')
 
 @bp.route('', methods=['GET'])
 @token_required
+@authenticated_only
 def get_schedules(current_user):
     schedules = Schedule.query.order_by(Schedule.start_date.desc()).all()
     return jsonify([schedule.to_dict() for schedule in schedules]), 200
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_schedule(current_user):
     from app.services.schedule_service import ScheduleService
     from app.utils.validators import validate_date_range
@@ -47,13 +48,14 @@ def create_schedule(current_user):
 
 @bp.route('/<int:schedule_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     return jsonify(schedule.to_dict(include_shifts=True)), 200
 
 @bp.route('/<int:schedule_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_schedule(current_user, schedule_id):
     from app.services.schedule_service import ScheduleService
     from datetime import datetime
@@ -90,7 +92,7 @@ def update_schedule(current_user, schedule_id):
 
 @bp.route('/<int:schedule_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     
@@ -107,6 +109,7 @@ def delete_schedule(current_user, schedule_id):
 
 @bp.route('/coverage', methods=['GET'])
 @token_required
+@authenticated_only
 def get_daily_coverage(current_user):
     """Get daily coverage with employee details for a date range"""
     start_date = request.args.get('start_date')

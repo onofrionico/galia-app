@@ -10,7 +10,7 @@ from app.models.menu import FudoProduct, MenuCategory, MenuGroup, MenuItem, Menu
 from app.services import menu_publish_service, menu_sync_service
 from app.services.menu_sync_service import assign_fudo_category
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required
 from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
 from app.utils.menu_storage import get_menu_storage
@@ -96,7 +96,7 @@ def _parse_price(value):
 
 @bp.route('', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Menu')
 def get_menu(current_user):
     categories = MenuCategory.query.order_by(MenuCategory.sort_order, MenuCategory.id).all()
     return jsonify({
@@ -111,7 +111,7 @@ def get_menu(current_user):
 
 @bp.route('/groups', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def create_group(current_user):
     name, error = _required_text((request.get_json() or {}).get('name'), 100)
     if error:
@@ -124,7 +124,7 @@ def create_group(current_user):
 
 @bp.route('/groups/reorder', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def reorder_groups(current_user):
     if not _apply_order(MenuGroup, (request.get_json() or {}).get('ids')):
         return _error('La lista de grupos no es válida')
@@ -133,7 +133,7 @@ def reorder_groups(current_user):
 
 @bp.route('/groups/<int:group_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def update_group(current_user, group_id):
     group = db.get_or_404(MenuGroup, group_id)
     name, error = _required_text((request.get_json() or {}).get('name'), 100)
@@ -147,7 +147,7 @@ def update_group(current_user, group_id):
 
 @bp.route('/groups/<int:group_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Menu')
 def delete_group(current_user, group_id):
     group = db.get_or_404(MenuGroup, group_id)
     start = _next_order(MenuCategory.sort_order, MenuCategory.group_id.is_(None))
@@ -163,7 +163,7 @@ def delete_group(current_user, group_id):
 
 @bp.route('/categories/reorder', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def reorder_categories(current_user):
     data = request.get_json() or {}
     group_id = data.get('group_id')
@@ -177,7 +177,7 @@ def reorder_categories(current_user):
 
 @bp.route('/categories/<int:category_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def update_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
     data = request.get_json() or {}
@@ -216,7 +216,7 @@ def update_category(current_user, category_id):
 
 @bp.route('/categories/<int:category_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Menu')
 def delete_category(current_user, category_id):
     category = db.get_or_404(MenuCategory, category_id)
     if category.fudo_category_id:
@@ -230,7 +230,7 @@ def delete_category(current_user, category_id):
 
 @bp.route('/categories/<int:category_id>/items/reorder', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def reorder_items(current_user, category_id):
     db.get_or_404(MenuCategory, category_id)
     ids = (request.get_json() or {}).get('ids')
@@ -339,7 +339,7 @@ def _apply_item_payload(item, data, sync_category=True):
 
 @bp.route('/items', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def create_item(current_user):
     data = request.get_json() or {}
     if 'variants' not in data:
@@ -369,7 +369,7 @@ def create_item(current_user):
 
 @bp.route('/items/<int:item_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def update_item(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
     error = _apply_item_payload(item, request.get_json() or {})
@@ -383,7 +383,7 @@ def update_item(current_user, item_id):
 
 @bp.route('/items/<int:item_id>/merge', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def merge_item(current_user, item_id):
     target = db.get_or_404(MenuItem, item_id)
     source_id = (request.get_json() or {}).get('source_item_id')
@@ -409,7 +409,7 @@ def merge_item(current_user, item_id):
 
 @bp.route('/items/<int:item_id>/ignore', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def ignore_item(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
     for variant in item.variants:
@@ -423,7 +423,7 @@ def ignore_item(current_user, item_id):
 
 @bp.route('/items/<int:item_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Menu')
 def delete_item(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
     db.session.delete(item)
@@ -450,7 +450,7 @@ def _apply_tag_payload(tag, data):
 
 @bp.route('/tags', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def create_tag(current_user):
     data = request.get_json() or {}
     tag = MenuTag(color='#5C2E46')
@@ -464,7 +464,7 @@ def create_tag(current_user):
 
 @bp.route('/tags/<int:tag_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def update_tag(current_user, tag_id):
     tag = db.get_or_404(MenuTag, tag_id)
     error = _apply_tag_payload(tag, request.get_json() or {})
@@ -477,7 +477,7 @@ def update_tag(current_user, tag_id):
 
 @bp.route('/tags/<int:tag_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Menu')
 def delete_tag(current_user, tag_id):
     tag = db.get_or_404(MenuTag, tag_id)
     db.session.delete(tag)
@@ -506,14 +506,14 @@ def _settings():
 
 @bp.route('/settings', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Menu')
 def get_settings(current_user):
     return jsonify(_settings()), 200
 
 
 @bp.route('/settings', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Menu')
 def update_settings(current_user):
     data = request.get_json() or {}
     values = {}
@@ -541,7 +541,7 @@ def update_settings(current_user):
 
 @bp.route('/items/<int:item_id>/image', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def upload_item_image(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
     if request.content_length is not None and request.content_length > MAX_UPLOAD_BYTES + UPLOAD_OVERHEAD_BYTES:
@@ -566,7 +566,7 @@ def upload_item_image(current_user, item_id):
 
 @bp.route('/items/<int:item_id>/image', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Menu')
 def delete_item_image(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
     item.image_key = None  # el archivo se borra de S3 al publicar si nadie lo usa
@@ -578,7 +578,7 @@ def delete_item_image(current_user, item_id):
 
 @bp.route('/fudo-products', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Menu')
 def list_fudo_products(current_user):
     products = FudoProduct.query.filter_by(is_active=True).order_by(FudoProduct.name).all()
     query = (request.args.get('q') or '').strip().lower()
@@ -590,7 +590,7 @@ def list_fudo_products(current_user):
 
 @bp.route('/inbox', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Menu')
 def get_inbox(current_user):
     alerts = []
     for variant in menu_sync_service.alert_variants():
@@ -607,7 +607,7 @@ def get_inbox(current_user):
 
 @bp.route('/sync', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def sync_fudo(current_user):
     try:
         stats = menu_sync_service.sync_fudo_products(FudoClient())
@@ -620,7 +620,7 @@ def sync_fudo(current_user):
 
 @bp.route('/publish', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Menu')
 def publish_menu(current_user):
     try:
         result = menu_publish_service.publish(get_menu_storage())

@@ -13,10 +13,10 @@ class InvalidImageError(ValueError):
     pass
 
 
-def process_image(data):
-    """Valida la imagen, la redimensiona a 800px de lado máximo y la convierte a WebP.
+def process_image(data, max_side=MAX_SIDE, key_prefix='images/'):
+    """Valida la imagen, la redimensiona a `max_side` px de lado máximo y la convierte a WebP.
 
-    Devuelve (bytes_webp, clave_relativa) donde la clave es `images/<hash>.webp`.
+    Devuelve (bytes_webp, clave_relativa) donde la clave es `<key_prefix><hash>.webp`.
     """
     if len(data) > MAX_UPLOAD_BYTES:
         raise InvalidImageError('La imagen supera los 10 MB')
@@ -39,9 +39,9 @@ def process_image(data):
     if image.mode not in ('RGB', 'RGBA'):
         has_alpha = 'A' in image.getbands() or 'transparency' in image.info
         image = image.convert('RGBA' if has_alpha else 'RGB')
-    image.thumbnail((MAX_SIDE, MAX_SIDE))
+    image.thumbnail((max_side, max_side))
 
     output = io.BytesIO()
     image.save(output, format='WEBP', quality=82, method=6)
     body = output.getvalue()
-    return body, f'images/{hashlib.sha256(body).hexdigest()[:16]}.webp'
+    return body, f'{key_prefix}{hashlib.sha256(body).hexdigest()[:16]}.webp'

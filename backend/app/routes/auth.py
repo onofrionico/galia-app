@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from app.extensions import db
 from app.models.user import User
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import authenticated_only
 
 bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -36,10 +37,12 @@ def login():
 
 @bp.route('/logout', methods=['POST'])
 @token_required
+@authenticated_only
 def logout(current_user):
     return jsonify({'message': 'Logout exitoso'}), 200
 
 @bp.route('/me', methods=['GET'])
 @token_required
+@authenticated_only
 def get_current_user(current_user):
     return jsonify({'user': current_user.to_dict()}), 200

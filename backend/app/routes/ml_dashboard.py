@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.services.ml_accuracy_service import MLAccuracyService
 from app.services.holiday_service import HolidayService
 from app.services.alert_service import AlertService
@@ -11,7 +11,7 @@ bp = Blueprint('ml_dashboard', __name__, url_prefix='/api/v1/ml/dashboard')
 
 @bp.route('/accuracy', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_accuracy_metrics(current_user):
     """Get overall accuracy metrics"""
     days = request.args.get('days', 30, type=int)
@@ -22,7 +22,7 @@ def get_accuracy_metrics(current_user):
 
 @bp.route('/accuracy/by-hour', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_accuracy_by_hour(current_user):
     """Get accuracy metrics grouped by hour"""
     result = MLAccuracyService.get_accuracy_by_hour()
@@ -30,7 +30,7 @@ def get_accuracy_by_hour(current_user):
 
 @bp.route('/accuracy/by-day', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_accuracy_by_day(current_user):
     """Get accuracy metrics grouped by day of week"""
     result = MLAccuracyService.get_accuracy_by_day_of_week()
@@ -38,7 +38,7 @@ def get_accuracy_by_day(current_user):
 
 @bp.route('/accuracy/update', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def update_accuracy(current_user):
     """Update accuracy for a specific date"""
     data = request.get_json()
@@ -57,7 +57,7 @@ def update_accuracy(current_user):
 
 @bp.route('/retrain-check', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def check_retrain_needed(current_user):
     """Check if model should be retrained"""
     result = MLAccuracyService.should_retrain_model()
@@ -65,7 +65,7 @@ def check_retrain_needed(current_user):
 
 @bp.route('/model-versions', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_model_versions(current_user):
     """Get all model versions"""
     versions = MLModelVersion.query.order_by(
@@ -79,6 +79,7 @@ def get_model_versions(current_user):
 
 @bp.route('/alerts', methods=['GET'])
 @token_required
+@authenticated_only
 def get_alerts(current_user):
     """Get prediction alerts"""
     schedule_id = request.args.get('schedule_id', type=int)
@@ -93,7 +94,7 @@ def get_alerts(current_user):
 
 @bp.route('/alerts/<int:alert_id>/acknowledge', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def acknowledge_alert(current_user, alert_id):
     """Acknowledge an alert"""
     result = AlertService.acknowledge_alert(alert_id, current_user.id)
@@ -105,7 +106,7 @@ def acknowledge_alert(current_user, alert_id):
 
 @bp.route('/alerts/<int:alert_id>/resolve', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def resolve_alert(current_user, alert_id):
     """Resolve an alert"""
     result = AlertService.resolve_alert(alert_id)
@@ -117,6 +118,7 @@ def resolve_alert(current_user, alert_id):
 
 @bp.route('/alerts/summary', methods=['GET'])
 @token_required
+@authenticated_only
 def get_alert_summary(current_user):
     """Get alert summary by severity"""
     result = AlertService.get_alert_summary()
@@ -124,7 +126,7 @@ def get_alert_summary(current_user):
 
 @bp.route('/alerts/check-schedule/<int:schedule_id>', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def check_schedule_alerts(current_user, schedule_id):
     """Check a schedule for prediction discrepancies"""
     result = AlertService.check_schedule_predictions(schedule_id)
@@ -136,6 +138,7 @@ def check_schedule_alerts(current_user, schedule_id):
 
 @bp.route('/holidays', methods=['GET'])
 @token_required
+@authenticated_only
 def get_holidays(current_user):
     """Get all holidays"""
     year = request.args.get('year', type=int)
@@ -144,7 +147,7 @@ def get_holidays(current_user):
 
 @bp.route('/holidays/initialize', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def initialize_holidays(current_user):
     """Initialize Argentina holidays"""
     result = HolidayService.initialize_holidays()
@@ -152,7 +155,7 @@ def initialize_holidays(current_user):
 
 @bp.route('/holidays', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Reports')
 def add_special_event(current_user):
     """Add a special event"""
     data = request.get_json()
@@ -174,7 +177,7 @@ def add_special_event(current_user):
 
 @bp.route('/holidays/<int:holiday_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Reports')
 def delete_holiday(current_user, holiday_id):
     """Delete a holiday"""
     result = HolidayService.delete_holiday(holiday_id)
@@ -186,7 +189,7 @@ def delete_holiday(current_user, holiday_id):
 
 @bp.route('/stats', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Reports')
 def get_dashboard_stats(current_user):
     """Get overall dashboard statistics"""
     # Get active model version

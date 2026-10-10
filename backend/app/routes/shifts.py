@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.shift import Shift
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.services.schedule_service import ScheduleService
 from datetime import datetime, time
 from app.utils.jwt_utils import token_required
@@ -10,7 +10,7 @@ bp = Blueprint('shifts', __name__, url_prefix='/api/v1/shifts')
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_shift(current_user):
     data = request.get_json()
     
@@ -54,7 +54,7 @@ def create_shift(current_user):
 
 @bp.route('/<int:shift_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_shift(current_user, shift_id):
     data = request.get_json()
     
@@ -113,7 +113,7 @@ def update_shift(current_user, shift_id):
 
 @bp.route('/<int:shift_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_shift(current_user, shift_id):
     success = ScheduleService.delete_shift(shift_id, changed_by_user_id=current_user.id)
     
@@ -124,6 +124,7 @@ def delete_shift(current_user, shift_id):
 
 @bp.route('/employee/<int:employee_id>', methods=['GET'])
 @token_required
+@authenticated_only
 def get_employee_shifts(current_user, employee_id):
     if current_user.role != 'admin' and current_user.employee.id != employee_id:
         return jsonify({'error': 'No autorizado'}), 403

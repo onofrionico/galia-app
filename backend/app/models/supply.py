@@ -8,8 +8,10 @@ class Supply(db.Model):
     name = db.Column(db.String(200), nullable=False, unique=True)
     unit = db.Column(db.String(50), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    stock_quantity = db.Column(db.Numeric(10, 3), nullable=False, default=0)
+    min_stock = db.Column(db.Numeric(10, 3), nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     prices = db.relationship('SupplyPrice', backref='supply', lazy='dynamic', cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -18,6 +20,8 @@ class Supply(db.Model):
             'name': self.name,
             'unit': self.unit,
             'is_active': self.is_active,
+            'stock_quantity': float(self.stock_quantity),
+            'min_stock': float(self.min_stock),
             'created_at': self.created_at.isoformat()
         }
 

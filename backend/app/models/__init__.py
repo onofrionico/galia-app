@@ -6,8 +6,13 @@ from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.time_tracking import TimeTracking
 from app.models.sale import Sale
+from app.models.supplier import Supplier
 from app.models.expense import Expense, ExpenseCategory
 from app.models.supply import Supply, SupplyPrice
+from app.models.product_category import ProductCategory
+from app.models.product import Product
+from app.models.product_variant import ProductVariant
+from app.models.product_recipe_item import ProductRecipeItem
 from app.models.payroll import Payroll
 from app.models.payroll_claim import PayrollClaim
 from app.models.notification import Notification, ScheduleChangeLog
@@ -20,6 +25,10 @@ from app.models.absence_request import AbsenceRequest
 from app.models.social_security_document import SocialSecurityDocument
 from app.models.employee_document import EmployeeDocument
 from app.models.menu import MenuCategory, MenuItem, MenuItemVariant, MenuTag, FudoProduct, MenuSetting, MenuGroup
+from app.models.module import Module
+from app.models.role_permission import RolePermission
+from app.models.user_permission import UserPermission
+from app.models.site_config import SiteConfig
 
 __all__ = [
     'User',
@@ -30,10 +39,15 @@ __all__ = [
     'Shift',
     'TimeTracking',
     'Sale',
+    'Supplier',
     'Expense',
     'ExpenseCategory',
     'Supply',
     'SupplyPrice',
+    'ProductCategory',
+    'Product',
+    'ProductVariant',
+    'ProductRecipeItem',
     'Payroll',
     'PayrollClaim',
     'Notification',
@@ -53,5 +67,9 @@ __all__ = [
     'MenuTag',
     'FudoProduct',
     'MenuSetting',
-    'MenuGroup'
+    'MenuGroup',
+    'Module',
+    'RolePermission',
+    'UserPermission',
+    'SiteConfig'
 ]

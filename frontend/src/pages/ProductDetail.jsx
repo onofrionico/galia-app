@@ -1,0 +1,702 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Save, X, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import productsService from '../services/productsService'
+import suppliesService from '../services/suppliesService'
+import productCategoriesService from '../services/productCategoriesService'
+import EditableNumberInput from '../components/EditableNumberInput'
+
+const ProductDetail = () => {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const isNew = id === undefined || id === 'new'
+
+  const [product, setProduct] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(!isNew)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('info')
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category_id: '',
+    image_url: '',
+    has_recipe: false,
+    track_stock: false,
+  })
+
+  const [variants, setVariants] = useState([])
+  const [recipe, setRecipe] = useState([])
+  const [newVariantForm, setNewVariantForm] = useState({
+    name: '',
+    price: '',
+    stock_quantity: '',
+    min_stock: '',
+  })
+  const [newRecipeForm, setNewRecipeForm] = useState({
+    supply_id: '',
+    quantity: '',
+    unit: '',
+  })
+
+  const [imageFile, setImageFile] = useState(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const [supplies, setSupplies] = useState([])
+  const [suppliesForbidden, setSuppliesForbidden] = useState(false)
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    if (!isNew) {
+      setLoading(true)
+      fetchProduct()
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (isNew) return
+    let ignore = false
+    const loadSupplies = async () => {
+      try {
+        const all = []
+        let page = 1
+        let pages = 1
+        do {
+          const res = await suppliesService.getSupplies({ per_page: 200, page })
+          all.push(...(res.supplies || []))
+          pages = res.pages || 1
+          page += 1
+        } while (page <= pages)
+        if (!ignore) {
+          setSupplies(all)
+          setSuppliesForbidden(false)
+        }
+      } catch (err) {
+        if (ignore) return
+        if (err.response?.status === 403) setSuppliesForbidden(true)
+        else console.error('Error loading supplies:', err)
+      }
+    }
+    loadSupplies()
+    return () => {
+      ignore = true
+    }
+  }, [id])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await productCategoriesService.getCategories({
+        include_inactive: false,
+      })
+      setCategories(response.categories || [])
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchProduct = async () => {
+    try {
+      const response = await productsService.getProduct(id)
+      setProduct(response)
+      setFormData({
+        name: response.name,
+        description: response.description || '',
+        category_id: response.category_id,
+        image_url: response.image_url || '',
+        has_recipe: response.has_recipe,
+        track_stock: response.track_stock || false,
+      })
+      setVariants(response.variants || [])
+      setRecipe(response.recipe || [])
+      setError('')
+    } catch (error) {
+      console.error('Error fetching product:', error)
+      setError('Error al cargar el producto')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveProduct = async () => {
+    if (!formData.name.trim() || !formData.category_id) {
+      setError('Nombre y categoría son requeridos')
+      return
+    }
+
+    setSaving(true)
+    try {
+      if (isNew) {
+        const newProduct = await productsService.createProduct(formData)
+        navigate(`/products/${newProduct.id}`, { replace: true })
+      } else {
+        await productsService.updateProduct(id, formData)
+        fetchProduct()
+      }
+      setError('')
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAddVariant = async () => {
+    if (!newVariantForm.name.trim() || !newVariantForm.price) {
+      setError('Nombre y precio son requeridos')
+      return
+    }
+
+    try {
+      const newVariant = await productsService.createVariant(id || product.id, {
+        name: newVariantForm.name,
+        price: parseFloat(newVariantForm.price),
+        stock_quantity: parseFloat(newVariantForm.stock_quantity || 0),
+        min_stock: parseFloat(newVariantForm.min_stock || 0),
+      })
+      setVariants((prev) => [...prev, newVariant])
+      setNewVariantForm({ name: '', price: '', stock_quantity: '', min_stock: '' })
+      setError('')
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al crear variante')
+    }
+  }
+
+  const handleDeleteVariant = async (variantId) => {
+    if (window.confirm('¿Desactivar esta variante?')) {
+      try {
+        await productsService.deleteVariant(id || product.id, variantId)
+        setVariants((prev) => prev.filter((v) => v.id !== variantId))
+        setError('')
+      } catch (error) {
+        setError(error.response?.data?.error || 'Error al desactivar variante')
+      }
+    }
+  }
+
+  const handleUpdateVariant = async (variantId, field, raw) => {
+    const num = Number(raw)
+    if (raw === '' || !Number.isFinite(num) || num < 0) {
+      setError('Ingresá un número válido mayor o igual a 0')
+      return false
+    }
+    try {
+      const updated = await productsService.updateVariant(id || product.id, variantId, {
+        [field]: num,
+      })
+      setVariants((prev) =>
+        prev.map((v) => (v.id === variantId ? { ...v, ...updated } : v))
+      )
+      setError('')
+      return true
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al actualizar variante')
+      return false
+    }
+  }
+
+  const toRecipePayload = (items) =>
+    items.map((i) => ({ supply_id: i.supply_id, quantity: i.quantity, unit: i.unit }))
+
+  const handleAddRecipeItem = async () => {
+    if (!newRecipeForm.supply_id || !newRecipeForm.quantity) {
+      setError('Insumo y cantidad son requeridos')
+      return
+    }
+
+    try {
+      const items = [
+        ...toRecipePayload(recipe),
+        {
+          supply_id: parseInt(newRecipeForm.supply_id, 10),
+          quantity: parseFloat(newRecipeForm.quantity),
+          unit: newRecipeForm.unit,
+        },
+      ]
+      const res = await productsService.saveRecipe(id || product.id, items)
+      setRecipe(res.recipe || [])
+      setNewRecipeForm({ supply_id: '', quantity: '', unit: '' })
+      setError('')
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al agregar a receta')
+    }
+  }
+
+  const handleDeleteRecipeItem = async (index) => {
+    try {
+      const items = toRecipePayload(recipe.filter((_, i) => i !== index))
+      const res = await productsService.saveRecipe(id || product.id, items)
+      setRecipe(res.recipe || [])
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al eliminar de receta')
+    }
+  }
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setImageError('Formato inválido. Solo se permiten: JPEG, PNG, WebP')
+      return
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      setImageError('Archivo muy grande. Máximo 10MB')
+      return
+    }
+
+    setImageFile(file)
+    setImageError('')
+    setImageUploading(true)
+
+    try {
+      const uploadedUrl = await productsService.uploadProductImage(file)
+      setFormData({ ...formData, image_url: uploadedUrl })
+      setImageError('')
+    } catch (err) {
+      setImageError(err.response?.data?.error || 'Error al subir imagen')
+      setImageFile(null)
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  const handleDeleteImage = () => {
+    setFormData({ ...formData, image_url: '' })
+    setImageFile(null)
+    setImageError('')
+  }
+
+  if (loading) {
+    return <div className="p-4">Cargando...</div>
+  }
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/products')}
+          className="p-2 hover:bg-gray-100 rounded"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-3xl font-bold">
+          {isNew ? 'Nuevo Producto' : product?.name}
+        </h1>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="border-b flex">
+          {['info', 'variantes', 'receta', 'historial'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-medium ${
+                activeTab === tab
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {tab === 'info' && 'Información'}
+              {tab === 'variantes' && 'Variantes'}
+              {tab === 'receta' && 'Receta'}
+              {tab === 'historial' && 'Historial'}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6">
+          {activeTab === 'info' && (
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Descripción</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows="3"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Categoría *</label>
+                <select
+                  value={formData.category_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category_id: e.target.value === '' ? '' : parseInt(e.target.value, 10) })
+                  }
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3">Imagen del Producto</label>
+
+                {imageError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded mb-3">
+                    {imageError}
+                  </div>
+                )}
+
+                {formData.image_url && (
+                  <div className="mb-4">
+                    <img
+                      src={formData.image_url}
+                      alt="preview"
+                      className="h-32 w-32 object-cover rounded border border-gray-300"
+                    />
+                    <button
+                      onClick={handleDeleteImage}
+                      type="button"
+                      className="mt-2 text-red-600 text-sm hover:text-red-700 font-medium"
+                    >
+                      Eliminar imagen
+                    </button>
+                  </div>
+                )}
+
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageUpload}
+                    disabled={imageUploading}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 font-medium">
+                    {imageUploading ? 'Subiendo...' : 'Selecciona una imagen'}
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mt-2">
+                  Formatos: JPEG, PNG, WebP • Máximo 10MB
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="has_recipe"
+                  checked={formData.has_recipe}
+                  onChange={(e) =>
+                    setFormData({ ...formData, has_recipe: e.target.checked })
+                  }
+                  className="w-4 h-4"
+                />
+                <label htmlFor="has_recipe" className="font-medium">
+                  Este producto tiene receta (compuesto de insumos)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="track_stock"
+                  checked={formData.track_stock}
+                  onChange={(e) =>
+                    setFormData({ ...formData, track_stock: e.target.checked })
+                  }
+                  className="w-4 h-4"
+                />
+                <label htmlFor="track_stock" className="font-medium">
+                  Control de stock
+                </label>
+                <span className="text-xs text-gray-500">
+                  (si está activo, verifica disponibilidad antes de agregar a una orden)
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleSaveProduct}
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                >
+                  <Save size={18} />
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => navigate('/products')}
+                  className="px-4 py-2 border rounded hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'variantes' && product && (
+            <div>
+              <table className="w-full mb-6 border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left px-4 py-2 text-sm font-medium">Nombre</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium">Precio</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium">
+                      Stock
+                    </th>
+                    <th className="text-left px-4 py-2 text-sm font-medium">
+                      Min Stock
+                    </th>
+                    <th className="text-left px-4 py-2 text-sm font-medium">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((variant) => (
+                    <tr key={variant.id} className="border-b">
+                      <td className="px-4 py-2">{variant.name}</td>
+                      <td className="px-4 py-2">
+                        <EditableNumberInput
+                          value={variant.price}
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'price', raw)}
+                          className="w-20 border rounded px-2 py-1"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <EditableNumberInput
+                          value={variant.stock_quantity}
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'stock_quantity', raw)}
+                          className="w-20 border rounded px-2 py-1"
+                          disabled={formData.has_recipe}
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <EditableNumberInput
+                          value={variant.min_stock}
+                          onCommit={(raw) => handleUpdateVariant(variant.id, 'min_stock', raw)}
+                          className="w-20 border rounded px-2 py-1"
+                          disabled={formData.has_recipe}
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => handleDeleteVariant(variant.id)}
+                          className="text-red-600 hover:bg-red-50 p-1 rounded"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="border-t pt-4">
+                <h3 className="font-medium mb-3">Agregar Variante</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nombre (Chico, Mediano...)"
+                    value={newVariantForm.name}
+                    onChange={(e) =>
+                      setNewVariantForm({ ...newVariantForm, name: e.target.value })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Precio"
+                    value={newVariantForm.price}
+                    onChange={(e) =>
+                      setNewVariantForm({ ...newVariantForm, price: e.target.value })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                    step="0.01"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Stock"
+                    value={newVariantForm.stock_quantity}
+                    onChange={(e) =>
+                      setNewVariantForm({
+                        ...newVariantForm,
+                        stock_quantity: e.target.value,
+                      })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                    disabled={formData.has_recipe}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Min Stock"
+                    value={newVariantForm.min_stock}
+                    onChange={(e) =>
+                      setNewVariantForm({
+                        ...newVariantForm,
+                        min_stock: e.target.value,
+                      })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                    disabled={formData.has_recipe}
+                  />
+                </div>
+                <button
+                  onClick={handleAddVariant}
+                  className="mt-3 flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
+                >
+                  <Plus size={16} /> Agregar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'receta' && product?.has_recipe && product && (
+            <div>
+              {recipe.length > 0 && (
+                <table className="w-full mb-6 border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="text-left px-4 py-2 text-sm font-medium">
+                        Insumo
+                      </th>
+                      <th className="text-left px-4 py-2 text-sm font-medium">
+                        Cantidad
+                      </th>
+                      <th className="text-left px-4 py-2 text-sm font-medium">
+                        Unidad
+                      </th>
+                      <th className="text-left px-4 py-2 text-sm font-medium">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recipe.map((item, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="px-4 py-2">{item.supply_name}</td>
+                        <td className="px-4 py-2">{item.quantity}</td>
+                        <td className="px-4 py-2">{item.unit}</td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => handleDeleteRecipeItem(index)}
+                            className="text-red-600 hover:bg-red-50 p-1 rounded"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              <div className="border-t pt-4">
+                <h3 className="font-medium mb-3">Agregar Insumo a Receta</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  (Las cantidades se deducirán del stock de insumos al vender)
+                </p>
+                {suppliesForbidden && (
+                  <p className="text-sm text-red-600 mb-3">
+                    Necesitás acceso a Stock para editar recetas
+                  </p>
+                )}
+                <div className="grid grid-cols-3 gap-3">
+                  <select
+                    value={newRecipeForm.supply_id}
+                    onChange={(e) => {
+                      const chosen = supplies.find((s) => String(s.id) === e.target.value)
+                      setNewRecipeForm({
+                        ...newRecipeForm,
+                        supply_id: e.target.value,
+                        unit: chosen ? chosen.unit : newRecipeForm.unit,
+                      })
+                    }}
+                    className="border rounded px-3 py-2 text-sm"
+                  >
+                    <option value="">Seleccionar insumo</option>
+                    {supplies.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Cantidad"
+                    value={newRecipeForm.quantity}
+                    onChange={(e) =>
+                      setNewRecipeForm({
+                        ...newRecipeForm,
+                        quantity: e.target.value,
+                      })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                    step="0.01"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Unidad (kg, litro...)"
+                    value={newRecipeForm.unit}
+                    onChange={(e) =>
+                      setNewRecipeForm({ ...newRecipeForm, unit: e.target.value })
+                    }
+                    className="border rounded px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  onClick={handleAddRecipeItem}
+                  className="mt-3 flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
+                >
+                  <Plus size={16} /> Agregar a Receta
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'receta' && !product?.has_recipe && (
+            <div className="text-gray-500 text-center py-8">
+              Este producto no tiene receta. Activa la opción "Tiene receta" en la
+              pestaña Información para poder definir insumos.
+            </div>
+          )}
+
+          {activeTab === 'historial' && (
+            <div className="text-gray-500 text-center py-8">
+              El historial de ventas se mostrará aquí (próximamente)
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ProductDetail

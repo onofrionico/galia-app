@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.store_hours import StoreHours
-from app.utils.decorators import admin_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.jwt_utils import token_required
 from datetime import datetime, time
 
@@ -9,6 +9,7 @@ bp = Blueprint('store_hours', __name__, url_prefix='/api/v1/store-hours')
 
 @bp.route('', methods=['GET'])
 @token_required
+@authenticated_only
 def get_store_hours(current_user):
     """Obtener horarios del local"""
     location_name = request.args.get('location_name')
@@ -28,7 +29,7 @@ def get_store_hours(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def create_store_hours(current_user):
     """Crear horario del local"""
     data = request.get_json()
@@ -63,7 +64,7 @@ def create_store_hours(current_user):
 
 @bp.route('/<int:hours_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def update_store_hours(current_user, hours_id):
     """Actualizar horario del local"""
     store_hours = StoreHours.query.get_or_404(hours_id)
@@ -99,7 +100,7 @@ def update_store_hours(current_user, hours_id):
 
 @bp.route('/<int:hours_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def delete_store_hours(current_user, hours_id):
     """Eliminar horario del local"""
     store_hours = StoreHours.query.get_or_404(hours_id)
@@ -111,6 +112,7 @@ def delete_store_hours(current_user, hours_id):
 
 @bp.route('/locations', methods=['GET'])
 @token_required
+@authenticated_only
 def get_locations(current_user):
     """Obtener lista de locales únicos"""
     locations = db.session.query(StoreHours.location_name).distinct().all()

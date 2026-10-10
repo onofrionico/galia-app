@@ -12,19 +12,12 @@ from calendar import monthrange
 import logging
 import pytz
 from app.utils.jwt_utils import token_required
+from app.utils.decorators import module_required, authenticated_only
 from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
 from app.utils.timezone_utils import get_current_time_argentina, get_current_time_only_argentina, get_current_date_argentina
 
 logger = logging.getLogger(__name__)
 bp = Blueprint('time_tracking', __name__, url_prefix='/api/v1/time-tracking')
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(current_user, *args, **kwargs):
-        if not current_user.is_admin:
-            return jsonify({'error': 'Se requieren permisos de administrador'}), 403
-        return f(current_user, *args, **kwargs)
-    return decorated
 
 def blocks_overlap(start1, end1, start2, end2):
     """Verifica si dos bloques de tiempo se superponen"""
@@ -35,6 +28,7 @@ def blocks_overlap(start1, end1, start2, end2):
 
 @bp.route('/check-in', methods=['POST'])
 @token_required
+@authenticated_only
 def check_in(current_user):
     data = request.get_json()
     
@@ -96,6 +90,7 @@ def check_in(current_user):
 
 @bp.route('/check-out', methods=['POST'])
 @token_required
+@authenticated_only
 def check_out(current_user):
     data = request.get_json()
     
@@ -139,6 +134,7 @@ def check_out(current_user):
 
 @bp.route('/today', methods=['GET'])
 @token_required
+@authenticated_only
 def get_today_record(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
@@ -165,6 +161,7 @@ def get_today_record(current_user):
 
 @bp.route('/records', methods=['GET'])
 @token_required
+@authenticated_only
 def get_records(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
@@ -191,6 +188,7 @@ def get_records(current_user):
 
 @bp.route('/monthly', methods=['GET'])
 @token_required
+@authenticated_only
 def get_monthly_records(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
@@ -222,6 +220,7 @@ def get_monthly_records(current_user):
 
 @bp.route('/current-week-worked', methods=['GET'])
 @token_required
+@authenticated_only
 def get_current_week_worked(current_user):
     """Get actual worked hours for the current week (Monday to Sunday)"""
     if not current_user.employee:
@@ -264,6 +263,7 @@ def get_current_week_worked(current_user):
 
 @bp.route('/record-hours', methods=['POST'])
 @token_required
+@authenticated_only
 def record_hours(current_user):
     data = request.get_json()
     
@@ -350,6 +350,7 @@ def record_hours(current_user):
 
 @bp.route('/calendar', methods=['GET'])
 @token_required
+@authenticated_only
 def get_calendar_data(current_user):
     """
     Obtiene datos de horas trabajadas para el calendario.
@@ -450,6 +451,7 @@ def get_calendar_data(current_user):
 
 @bp.route('/calendar/day-detail', methods=['GET'])
 @token_required
+@authenticated_only
 def get_day_detail(current_user):
     """
     Obtiene el detalle de horas trabajadas para un día específico.
@@ -537,7 +539,7 @@ def get_day_detail(current_user):
 
 @bp.route('/admin/records', methods=['GET'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def get_all_records(current_user):
     """
     Admin endpoint: Obtiene todos los registros de horas trabajadas con filtros opcionales.
@@ -589,7 +591,7 @@ def get_all_records(current_user):
 
 @bp.route('/admin/record/<int:employee_id>', methods=['POST'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def admin_create_record(current_user, employee_id):
     """
     Admin endpoint: Crea un registro de horas trabajadas para un empleado.
@@ -658,7 +660,7 @@ def admin_create_record(current_user, employee_id):
 
 @bp.route('/admin/work-block/<int:block_id>', methods=['PUT'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def admin_update_work_block(current_user, block_id):
     """
     Admin endpoint: Actualiza un bloque de trabajo existente.
@@ -711,7 +713,7 @@ def admin_update_work_block(current_user, block_id):
 
 @bp.route('/admin/work-block/<int:block_id>', methods=['DELETE'])
 @token_required
-@admin_required
+@module_required('Schedules')
 def admin_delete_work_block(current_user, block_id):
     """
     Admin endpoint: Elimina un bloque de trabajo.
