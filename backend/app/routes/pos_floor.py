@@ -6,6 +6,8 @@ from flask import Blueprint, jsonify, request
 from app.models import Product, ProductCategory
 from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosTable,
                             ProductModifierGroup, Salon)
+from app.services.pos import waiters
+from app.services.pos.common import display_name
 from app.services.pos.serializers import sale_to_dict
 from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
@@ -80,3 +82,10 @@ def cancel_reasons(current_user):
     reasons = (CancelReason.query.filter_by(is_active=True)
                .order_by(CancelReason.position, CancelReason.id).all())
     return jsonify({'cancel_reasons': [r.to_dict() for r in reasons]}), 200
+
+
+@bp.route('/waiters', methods=['GET'])
+@token_required
+@module_required('POS')
+def list_waiters(current_user):
+    return jsonify({'waiters': [{'id': u.id, 'name': display_name(u)} for u in waiters.list_waiters()]}), 200

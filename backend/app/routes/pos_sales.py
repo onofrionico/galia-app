@@ -211,6 +211,13 @@ def cancel_sale(current_user, sale_id):
     return _respond(action)
 
 
+@bp.route('/sales/<int:sale_id>/waiter', methods=['POST'])
+@token_required
+@module_required('POS')
+def change_waiter(current_user, sale_id):
+    return _respond(lambda: sale_service.change_waiter(current_user, sale_id, _body().get('waiter_id')))
+
+
 @bp.route('/sales/<int:sale_id>/events', methods=['GET'])
 @token_required
 @module_required('POS')

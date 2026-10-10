@@ -10,11 +10,12 @@ from decimal import Decimal
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import ProductVariant, User
+from app.models import ProductVariant
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, projection, stock_hooks
 from app.services.pos.cancel_reasons import resolve_reason
+from app.services.pos import waiters
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_status)
@@ -55,10 +56,7 @@ def open_sale(user, sale_type, table_id=None, people=None, customer_name=None, c
     waiter = user.id
     if waiter_id is not None:
         require_module(user, 'POS', 'Solo la caja puede asignar el mozo')
-        waiter_id = parse_id(waiter_id, 'El mozo')
-        if db.session.get(User, waiter_id) is None:
-            raise bad_request('El mozo no existe')
-        waiter = waiter_id
+        waiter = waiters.get_waiter(waiter_id).id
     sale = PosSale(business_date=get_current_date_argentina(), sale_type=sale_type,
                    table_id=table.id if table else None, people=people, customer_name=customer_name,
                    comment=comment, waiter_id=waiter, status='open', opened_at=now(), opened_by=user.id)
@@ -369,3 +367,17 @@ def split_sale(user, sale_id, lines):
         audit.record(sale, user, 'cancelled', reason='Dividida')
     db.session.commit()
     return new
+
+
+def change_waiter(user, sale_id, waiter_id):
+    require_module(user, 'POS', 'Solo la caja puede cambiar el mozo')
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se cambia el mozo de una venta abierta o en cobro')
+    waiter = waiters.get_waiter(waiter_id)
+    if waiter.id == sale.waiter_id:
+        raise bad_request('La venta ya tiene ese mozo')
+    previous = sale.waiter_id
+    sale.waiter_id = waiter.id
+    audit.record(sale, user, 'waiter_changed', from_waiter_id=previous, to_waiter_id=waiter.id)
+    db.session.commit()
+    return sale
