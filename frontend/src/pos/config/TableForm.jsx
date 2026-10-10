@@ -5,7 +5,10 @@ const toForm = (table) => ({ number: String(table.number), name: table.name ?? '
 
 export default function TableForm({ table, busy, onSave }) {
   const [form, setForm] = useState(toForm(table))
-  useEffect(() => setForm(toForm(table)), [table])
+  // Solo se reinicia si cambian los datos de la mesa: un objeto nuevo con los mismos valores
+  // (refetch del plano) no debe borrar lo que se está tipeando.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setForm(toForm(table)), [table.id, table.number, table.name, table.capacity, table.is_active])
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
   const submit = (event) => {
