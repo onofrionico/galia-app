@@ -116,7 +116,11 @@ def confirm(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_item(current_user, sale_id, item_id):
-    return _respond(lambda: sale_service.cancel_item(current_user, sale_id, item_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return sale_service.cancel_item(current_user, sale_id, item_id, data.get('reason'),
+                                        reason_id=data.get('reason_id'))
+    return _respond(action)
 
 
 @bp.route('/sales/<int:sale_id>/request-bill', methods=['POST'])
@@ -168,7 +172,11 @@ def add_payment(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_payment(current_user, payment_id):
-    return _respond(lambda: payment_service.cancel_payment(current_user, payment_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return payment_service.cancel_payment(current_user, payment_id, data.get('reason'),
+                                              reason_id=data.get('reason_id'))
+    return _respond(action)
 
 
 @bp.route('/sales/<int:sale_id>/close', methods=['POST'])
@@ -197,7 +205,10 @@ def split_sale(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_sale(current_user, sale_id):
-    return _respond(lambda: sale_service.cancel_sale(current_user, sale_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return sale_service.cancel_sale(current_user, sale_id, data.get('reason'), reason_id=data.get('reason_id'))
+    return _respond(action)
 
 
 @bp.route('/sales/<int:sale_id>/events', methods=['GET'])

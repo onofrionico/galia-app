@@ -4,7 +4,7 @@ from collections import defaultdict
 from flask import Blueprint, jsonify, request
 
 from app.models import Product, ProductCategory
-from app.models.pos import (ACTIVE_SALE_STATUSES, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosTable,
+from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosTable,
                             ProductModifierGroup, Salon)
 from app.services.pos.serializers import sale_to_dict
 from app.utils.decorators import module_required
@@ -71,3 +71,12 @@ def payment_methods(current_user):
 def discount_templates(current_user):
     templates = DiscountTemplate.query.filter_by(is_active=True).order_by(DiscountTemplate.name).all()
     return jsonify({'discount_templates': [t.to_dict() for t in templates]}), 200
+
+
+@bp.route('/cancel-reasons', methods=['GET'])
+@token_required
+@module_required('POS', 'Camarero', 'Anular')
+def cancel_reasons(current_user):
+    reasons = (CancelReason.query.filter_by(is_active=True)
+               .order_by(CancelReason.position, CancelReason.id).all())
+    return jsonify({'cancel_reasons': [r.to_dict() for r in reasons]}), 200
