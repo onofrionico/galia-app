@@ -1,5 +1,5 @@
 from app.extensions import db
-from app.models.pos import CancelReason
+from app.models.pos import CancelReason, PosSaleEvent
 from app.services.pos import sale_service
 from pos_helpers import auth_headers, make_catalog, make_floor, make_user, pos_app  # noqa: F401
 
@@ -145,11 +145,38 @@ def test_changes_since_lists_each_changed_sale_once(pos_app):
     data = client.get(f'/api/v1/pos/changes?since={since}', headers=headers).get_json()
     assert sorted(s['id'] for s in data['sales']) == sorted([first.id, counter.id])
     by_id = {s['id']: s for s in data['sales']}
+    first_events = [e.id for e in PosSaleEvent.query.filter_by(sale_id=first.id).order_by(PosSaleEvent.id)]
+    counter_events = [e.id for e in PosSaleEvent.query.filter_by(sale_id=counter.id).order_by(PosSaleEvent.id)]
     assert by_id[first.id] == {'id': first.id, 'table_id': t1.id, 'salon_id': salon.id, 'sale_type': 'salon',
-                               'status': 'open'}
+                               'status': 'open', 'event_ids': first_events}
     assert by_id[counter.id]['salon_id'] is None and by_id[counter.id]['sale_type'] == 'counter'
+    assert by_id[counter.id]['event_ids'] == counter_events
+    assert data['event_ids'] == sorted(first_events + counter_events)
+    assert data['last_event_id'] == max(counter_events)
+    # Al repetir con el último id, la ventana de solapamiento devuelve los mismos eventos: el cliente los filtra.
     again = client.get(f"/api/v1/pos/changes?since={data['last_event_id']}", headers=headers).get_json()
-    assert again == {'last_event_id': data['last_event_id'], 'sales': []}
+    assert again['last_event_id'] == data['last_event_id'] and again['event_ids'] == data['event_ids']
+
+
+def test_changes_returns_events_within_overlap_window(pos_app, monkeypatch):
+    from app.routes import pos_floor
+    monkeypatch.setattr(pos_floor, 'CHANGES_OVERLAP', 2)
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    cat = make_catalog()
+    _s, t1, t2 = make_floor()
+    headers = auth_headers(client, cashier)
+    old = sale_service.open_sale(cashier, 'salon', table_id=t1.id, people=2)
+    late = sale_service.open_sale(cashier, 'salon', table_id=t2.id, people=2)
+    sale_service.add_item(cashier, late.id, cat.unidad.id)
+    late_events = [e.id for e in PosSaleEvent.query.filter_by(sale_id=late.id).order_by(PosSaleEvent.id)]
+    since = max(late_events)
+    data = client.get(f'/api/v1/pos/changes?since={since}', headers=headers).get_json()
+    # Los eventos con id <= since pero dentro de la ventana (since - 2, since] vuelven a aparecer.
+    assert data['last_event_id'] == since
+    assert data['event_ids'] == [i for i in late_events if i > since - 2]
+    assert [s['id'] for s in data['sales']] == [late.id]
+    assert old.id not in [s['id'] for s in data['sales']]
 
 
 def test_changes_resets_when_too_many_events(pos_app, monkeypatch):
