@@ -45,6 +45,8 @@ import SupplierDetail from './pages/SupplierDetail'
 import PosLayout from './pos/layout/PosLayout'
 import PosRoute from './pos/layout/PosRoute'
 import PosHome from './pos/layout/PosHome'
+import SalonPage from './pos/floor/SalonPage'
+import CounterPage from './pos/counter/CounterPage'
 
 function App() {
   return (
@@ -54,6 +56,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/pos" element={<ProtectedRoute><PosRoute><PosLayout /></PosRoute></ProtectedRoute>}>
             <Route index element={<PosHome />} />
+            <Route path="salon/:salonId" element={<SalonPage />} />
+            <Route path="mostrador" element={<PosRoute require="pos"><CounterPage /></PosRoute>} />
           </Route>
           
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
