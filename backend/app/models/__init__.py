@@ -31,7 +31,7 @@ from app.models.user_permission import UserPermission
 from app.models.site_config import SiteConfig
 from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, ProductModifierGroup,
                             PaymentMethod, DiscountTemplate, PosPayment, PosDiscount, PosSale,
-                            PosSaleItem, PosSaleItemModifier, PosSaleEvent)
+                            PosSaleItem, PosSaleItemModifier, PosSaleEvent, CancelReason)
 
 __all__ = [
     'User',
@@ -88,4 +88,5 @@ __all__ = [
     'PosSaleItem',
     'PosSaleItemModifier',
     'PosSaleEvent',
+    'CancelReason',
 ]

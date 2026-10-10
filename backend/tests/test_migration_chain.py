@@ -42,3 +42,7 @@ def test_site_config_is_head_of_pos_base_chain():
 
 def test_pos_sales_engine_is_head():
     assert _revisions()['b1a4_add_pos_sales_engine'] == ['b1a3_add_site_config']
+
+
+def test_pos_cash_ui_support_is_head():
+    assert _revisions()['b1b1_add_pos_cash_ui_support'] == ['b1a4_add_pos_sales_engine']

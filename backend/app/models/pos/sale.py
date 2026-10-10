@@ -30,6 +30,7 @@ class PosSale(db.Model):
     cancelled_at = db.Column(db.DateTime, nullable=True)
     cancelled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     cancel_reason = db.Column(db.String(255), nullable=True)
+    cancel_reason_id = db.Column(db.Integer, db.ForeignKey('cancel_reasons.id'), nullable=True)
     subtotal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     discount_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
@@ -73,6 +74,7 @@ class PosSaleItem(db.Model):
     cancelled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     cancelled_at = db.Column(db.DateTime, nullable=True)
     cancel_reason = db.Column(db.String(255), nullable=True)
+    cancel_reason_id = db.Column(db.Integer, db.ForeignKey('cancel_reasons.id'), nullable=True)
 
     sale = db.relationship('PosSale', back_populates='items')
     modifiers = db.relationship('PosSaleItemModifier', back_populates='item', order_by='PosSaleItemModifier.id',

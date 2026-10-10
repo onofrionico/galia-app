@@ -33,6 +33,7 @@ class PosPayment(db.Model):
     cancelled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     cancelled_at = db.Column(db.DateTime, nullable=True)
     cancel_reason = db.Column(db.String(255), nullable=True)
+    cancel_reason_id = db.Column(db.Integer, db.ForeignKey('cancel_reasons.id'), nullable=True)
 
     sale = db.relationship('PosSale', back_populates='payments')
 
