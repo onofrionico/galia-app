@@ -41,6 +41,7 @@ import ModifierGroups from './pages/ModifierGroups'
 import Supplies from './pages/Supplies'
 import Stock from './pages/Stock'
 import BrandingConfig from './pages/admin/BrandingConfig'
+import PosSettings from './pages/admin/PosSettings'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import PosLayout from './pos/layout/PosLayout'
@@ -104,6 +105,7 @@ function App() {
             <Route path="/stock" element={<RoleProtectedRoute moduleName="Stock"><Stock /></RoleProtectedRoute>} />
             <Route path="/permissions" element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
             <Route path="/admin/branding" element={<RoleProtectedRoute adminOnly><BrandingConfig /></RoleProtectedRoute>} />
+            <Route path="/admin/pos-settings" element={<RoleProtectedRoute adminOnly><PosSettings /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

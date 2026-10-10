@@ -123,6 +123,7 @@ const navGroups = [
     items: [
       { to: '/permissions', icon: Shield, label: 'Permisos', adminOnly: true },
       { to: '/admin/branding', icon: ImageIcon, label: 'Branding', adminOnly: true },
+      { to: '/admin/pos-settings', icon: Store, label: 'Ajustes del POS', adminOnly: true },
     ],
   },
 ]
