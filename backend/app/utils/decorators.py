@@ -99,8 +99,12 @@ def employee_or_admin_required(f):
     return decorated_function
 
 
-def module_required(module_name):
-    """Exige acceso al módulo `module_name` (admin siempre pasa). Va debajo de @token_required."""
+def module_required(*module_names):
+    """Exige acceso a alguno de los módulos indicados (admin siempre pasa). Va debajo de @token_required."""
+    if not module_names:
+        raise ValueError('module_required necesita al menos un módulo')
+    label = ' o '.join(module_names)
+
     def decorator(f):
         @wraps(f)
         def decorated_function(current_user, *args, **kwargs):
@@ -112,21 +116,21 @@ def module_required(module_name):
                 )
                 return jsonify({'error': 'Autenticación requerida'}), 401
 
-            if not check_module_access(current_user, module_name):
+            if not any(check_module_access(current_user, name) for name in module_names):
                 logger.warning(
                     f"[SECURITY] Forbidden access attempt | "
                     f"User: {current_user.email} | Role: {current_user.role} | "
-                    f"Required module: {module_name} | "
+                    f"Required module: {label} | "
                     f"Path: {request.path} | Method: {request.method} | "
                     f"IP: {request.remote_addr} | Time: {datetime.utcnow().isoformat()}"
                 )
                 return jsonify({
                     'error': 'Acceso denegado',
-                    'message': f'No tienes acceso al módulo {module_name}'
+                    'message': f'No tienes acceso al módulo {label}'
                 }), 403
 
             return f(current_user, *args, **kwargs)
-        decorated_function._access_control = f'module:{module_name}'
+        decorated_function._access_control = 'module:' + '|'.join(module_names)
         return decorated_function
     return decorator
 

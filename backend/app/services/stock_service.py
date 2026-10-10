@@ -1,5 +1,5 @@
 from collections import defaultdict
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.extensions import db
 from app.models.product_variant import ProductVariant
@@ -8,6 +8,7 @@ from app.models.supply import Supply
 from app.utils.validation import parse_decimal
 
 MAX_SALE_QUANTITY = Decimal('1000000')
+STOCK_STEP = Decimal('0.001')
 
 
 def deduct_stock_for_sale(sale_items):
@@ -27,9 +28,7 @@ def deduct_stock_for_sale(sale_items):
 
     El llamador es responsable de hacer commit o rollback (acá sólo se hace flush).
 
-    NOTA: no hay bloqueo de filas. Antes de usar esta función con ventas concurrentes,
-    el subproyecto POS debe agregar `with_for_update()` en las lecturas o reemplazar el
-    descuento por un UPDATE atómico condicional (stock_quantity >= cantidad).
+    Las filas se bloquean con SELECT ... FOR UPDATE (ver move_stock).
     """
     variant_needed = defaultdict(Decimal)
     for item in sale_items:
@@ -43,32 +42,71 @@ def deduct_stock_for_sale(sale_items):
             raise ValueError(f'ProductVariant {variant_id} no encontrado')
         variant_needed[variant_id] += quantity
 
-    variant_deductions = []  # (variant, cantidad)
-    supply_needed = defaultdict(Decimal)
-    for variant_id, quantity in variant_needed.items():
+    variants, supplies = stock_requirements(dict(variant_needed))
+    move_stock(variants, supplies, sign=-1)
+
+
+def stock_requirements(variant_quantities, extra_supplies=None):
+    """Calcula qué stock hay que mover para estas cantidades vendidas.
+
+    variant_quantities: {product_variant_id: Decimal}; extra_supplies: {supply_id: Decimal}
+    (por ejemplo, insumos de modificadores). Devuelve (variantes, insumos) como {id: Decimal}:
+    - producto con receta: insumos de la receta × cantidad;
+    - producto sin receta con track_stock: la propia variante;
+    - producto sin receta sin track_stock: nada.
+    Levanta ValueError si una variante no existe.
+    """
+    variants = defaultdict(Decimal)
+    supplies = defaultdict(Decimal)
+    for variant_id, quantity in variant_quantities.items():
         variant = db.session.get(ProductVariant, variant_id)
         if not variant:
             raise ValueError(f'ProductVariant {variant_id} no encontrado')
         product = variant.product
         if product.has_recipe:
-            recipe_items = ProductRecipeItem.query.filter_by(product_id=product.id).all()
-            for recipe_item in recipe_items:
-                supply_needed[recipe_item.supply_id] += Decimal(recipe_item.quantity) * quantity
+            for recipe_item in ProductRecipeItem.query.filter_by(product_id=product.id).all():
+                supplies[recipe_item.supply_id] += Decimal(recipe_item.quantity) * quantity
         elif product.track_stock:
-            if Decimal(variant.stock_quantity) < quantity:
-                raise ValueError(f'Stock insuficiente para {product.name} - {variant.name}')
-            variant_deductions.append((variant, quantity))
+            variants[variant_id] += quantity
+    for supply_id, quantity in (extra_supplies or {}).items():
+        supplies[supply_id] += quantity
+    # Las columnas de stock son Numeric(10,3): cuantizar mantiene simétricos descuento y devolución.
+    return ({k: v.quantize(STOCK_STEP, rounding=ROUND_HALF_UP) for k, v in variants.items()},
+            {k: v.quantize(STOCK_STEP, rounding=ROUND_HALF_UP) for k, v in supplies.items()})
 
-    supply_deductions = []
-    for supply_id, needed in supply_needed.items():
-        supply = db.session.get(Supply, supply_id)
-        if Decimal(supply.stock_quantity) < needed:
-            raise ValueError(f'Stock insuficiente de {supply.name}')
-        supply_deductions.append((supply, needed))
 
-    for variant, quantity in variant_deductions:
-        variant.stock_quantity = Decimal(variant.stock_quantity) - quantity
-    for supply, needed in supply_deductions:
-        supply.stock_quantity = Decimal(supply.stock_quantity) - needed
+def move_stock(variants, supplies, sign, allow_negative=False):
+    """Aplica un movimiento de stock: sign=-1 descuenta, sign=1 devuelve.
 
+    Bloquea las filas con SELECT ... FOR UPDATE en orden de id (evita deadlocks) y recarga
+    sus valores. Con sign=-1 y allow_negative=False valida que alcance y, si falta, no
+    modifica nada. El llamador hace commit o rollback.
+    """
+    if sign not in (-1, 1):
+        raise ValueError('sign debe ser -1 o 1')
+    if any(q < 0 for q in (*variants.values(), *supplies.values())):
+        raise ValueError('Las cantidades de stock no pueden ser negativas')
+    locked_variants = (
+        ProductVariant.query.filter(ProductVariant.id.in_(list(variants)))
+        .order_by(ProductVariant.id).with_for_update().populate_existing().all()
+        if variants else []
+    )
+    locked_supplies = (
+        Supply.query.filter(Supply.id.in_(list(supplies)))
+        .order_by(Supply.id).with_for_update().populate_existing().all()
+        if supplies else []
+    )
+    if len(locked_variants) != len(variants) or len(locked_supplies) != len(supplies):
+        raise ValueError('Producto o insumo no encontrado')
+    if sign < 0 and not allow_negative:
+        for variant in locked_variants:
+            if Decimal(variant.stock_quantity) < variants[variant.id]:
+                raise ValueError(f'Stock insuficiente para {variant.product.name} - {variant.name}')
+        for supply in locked_supplies:
+            if Decimal(supply.stock_quantity) < supplies[supply.id]:
+                raise ValueError(f'Stock insuficiente de {supply.name}')
+    for variant in locked_variants:
+        variant.stock_quantity = Decimal(variant.stock_quantity) + sign * variants[variant.id]
+    for supply in locked_supplies:
+        supply.stock_quantity = Decimal(supply.stock_quantity) + sign * supplies[supply.id]
     db.session.flush()

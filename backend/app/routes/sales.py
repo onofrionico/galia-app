@@ -205,6 +205,8 @@ def get_sale(current_user, sale_id):
 def update_sale(current_user, sale_id):
     """Update a sale"""
     sale = Sale.query.get_or_404(sale_id)
+    if sale.source == 'galia':
+        return jsonify({'error': 'Las ventas del POS se modifican desde el POS'}), 409
     data = request.get_json()
     
     if data.get('fecha'):
@@ -240,6 +242,8 @@ def update_sale(current_user, sale_id):
 def delete_sale(current_user, sale_id):
     """Delete a sale"""
     sale = Sale.query.get_or_404(sale_id)
+    if sale.source == 'galia':
+        return jsonify({'error': 'Las ventas del POS se modifican desde el POS'}), 409
     db.session.delete(sale)
     db.session.commit()
     return jsonify({'message': 'Venta eliminada correctamente'}), 200
