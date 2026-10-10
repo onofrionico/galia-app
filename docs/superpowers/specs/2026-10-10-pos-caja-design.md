@@ -79,7 +79,7 @@ Solapas por salón activo, "Mostrador" (solo `POS`), "Configuración" (solo `POS
 - **Modo "elegir mesa destino"** (para mover): se resaltan las mesas libres, las demás se atenúan; tocar una libre confirma, Esc o "Cancelar" sale.
 - Tocar una mesa libre abre `OpenTableModal`; tocar una ocupada selecciona su venta (`?sale=`).
 
-### Tablero de mostrador (`CounterBoard`)
+### Tablero de mostrador (`CounterPage`)
 
 Tarjetas de ventas de mostrador `open`/`billing` (número del día, cliente, total, antigüedad) y un botón "Nueva venta" que crea la venta (nombre de cliente opcional) y abre el panel con el modal de productos.
 
@@ -88,7 +88,7 @@ Tarjetas de ventas de mostrador `open`/`billing` (número del día, cliente, tot
 - **Encabezado:** mesa o "Mostrador #n", personas, mozo (con "Cambiar" para `POS`), hora de apertura, estado. Pestañas por cuenta si la mesa tiene varias ventas.
 - **Pestañas del panel:** "Ticket" e "Historial" (solo `POS`; línea de tiempo de `GET /sales/<id>/events`: quién, qué, cuándo, motivo).
 - **Ticket:** ítems agrupados por tanda; los pendientes aparte y resaltados. Cada ítem muestra cantidad, nombre y variante, modificadores, nota, importe y sus descuentos. Abajo: subtotal, descuentos, total, pagado y saldo.
-- **Menú del ítem** (`ItemActionsMenu`, al tocarlo):
+- **Menú del ítem** (al tocarlo, dentro de `TicketItem`):
   - Pendiente: "Borrar".
   - Confirmado: "Descuento al ítem", "Anular" (con `Anular`).
   - Descuento aplicado: "Quitar descuento".
@@ -97,12 +97,12 @@ Tarjetas de ventas de mostrador `open`/`billing` (número del día, cliente, tot
 
 ### Abrir mesa (`OpenTableModal`)
 
-Personas (por defecto 2, teclado numérico) y, solo para `POS`, el mozo (por defecto quien abre; lista de `GET /pos/waiters`). Al aceptar abre la venta, la selecciona y abre `AddProductsModal`.
+Personas (por defecto 2, con botones − y +) y, solo para `POS`, el mozo (por defecto quien abre; lista de `GET /pos/waiters`). Al aceptar abre la venta, la selecciona y abre `AddProductsModal`.
 
 ### Agregar productos (`AddProductsModal`)
 
 - **Paso 1, lista:** foco en la búsqueda; chips de categorías; grilla de tarjetas de producto con precio (el de la variante si es única, "desde $x" si hay varias). Enter agrega el primer resultado. Un toque agrega una unidad sin modificadores si el producto no los necesita y tiene una sola variante; si no, va al paso 2. El modal queda abierto y el pie muestra lo agregado ("3 agregados: 2 Latte, 1 Medialuna") y "Listo".
-- **Paso 2, detalle** (también con toque largo o el botón "⋯" de la tarjeta, para agregar nota o cantidad): variante, grupos de modificadores con su mínimo y máximo (los obligatorios bloquean "Agregar" hasta cumplirse), nota, cantidad y el importe del renglón. "Agregar" vuelve al paso 1.
+- **Paso 2, detalle** (también con el botón "⋯" de la tarjeta, para agregar nota o cantidad): variante, grupos de modificadores con su mínimo y máximo (los obligatorios bloquean "Agregar" hasta cumplirse), nota, cantidad y el importe del renglón. "Agregar" vuelve al paso 1.
 - El catálogo sale de `GET /catalog` (una vez por sesión). Cada agregado llama a `POST /sales/<id>/items`.
 
 ### Cobro (`PaymentModal`)
@@ -148,7 +148,7 @@ Los medios de pago y las plantillas activas se leen de `GET /payment-methods` (`
 
 - Corre en `PosLayout`, solo con la pestaña visible.
 - Cada 3 s llama a `GET /pos/changes?since=<último id>`.
-- Por cada venta en la respuesta invalida su `sale`, `events`, el `floor` del salón de su mesa (o todos los `floor` si no se conoce el salón) y, si es de mostrador, el tablero.
+- Por cada venta en la respuesta invalida su `sale` y sus `events`; si hay ventas de salón, el plano (`floor`, solo se vuelve a pedir el que está en pantalla) y, si hay de mostrador, el tablero.
 - El primer llamado (sin `since`) solo obtiene el último id.
 - Con `reset: true` o tras un error de red, invalida todo `['pos']`.
 - La lógica de "respuesta → claves a invalidar" es una función pura testeada.
@@ -156,7 +156,7 @@ Los medios de pago y las plantillas activas se leen de `GET /payment-methods` (`
 ### Mutations (`useSaleActions`)
 
 - Cada acción escribe la venta devuelta en `['pos','sale',id]` e invalida el plano o el tablero correspondiente.
-- Sin actualizaciones optimistas: el frontend nunca muestra montos que no calculó el backend. La única cuenta local es la vista previa del vuelto mientras se tipea "Recibido".
+- Sin actualizaciones optimistas: el frontend nunca muestra montos que no calculó el backend. Las únicas cuentas locales son vistas previas: el vuelto mientras se tipea "Recibido", el importe del renglón antes de agregarlo y la suma de las cuentas de una mesa en el plano.
 - Mientras una mutation corre, los botones de esa venta se deshabilitan.
 
 ### Idempotencia de pagos
@@ -210,14 +210,15 @@ Una migración `b1b1_add_pos_cash_ui_support` después de `b1a4_add_pos_sales_en
 ### Frontend (`frontend/src/pos/`)
 
 - `api/posApi.js`: un método por endpoint de `/api/v1/pos`, sobre el `api` de axios existente.
-- `hooks/`: `useFloor`, `useSale`, `useSales`, `useCatalog`, `usePosChanges`, `useSaleActions`, `usePosPermissions`, `usePosLookups` (mozos, motivos, medios, plantillas).
-- `layout/`: `PosLayout.jsx`, `PosTopBar.jsx`, `PosRoute.jsx` (guardia de permisos), `Toasts.jsx`.
-- `floor/`: `FloorPlan.jsx`, `TableTile.jsx`.
-- `counter/`: `CounterBoard.jsx`.
-- `sale/`: `SalePanel.jsx`, `TicketItem.jsx`, `ItemActionsMenu.jsx`, `SaleFooter.jsx`, `SaleHistory.jsx`.
-- `modals/`: `AddProductsModal.jsx` (con `ProductDetailStep.jsx`), `PaymentModal.jsx`, `DiscountModal.jsx`, `SplitModal.jsx`, `CancelReasonModal.jsx`, `OpenTableModal.jsx`, `WaiterModal.jsx`, `NumericKeypad.jsx`.
-- `config/`: `SalonList.jsx`, `FloorEditor.jsx`.
-- `utils/`: `money.js` (formato ARS), `errors.js` (mensaje de error de axios a texto), `changes.js` (respuesta de `/changes` a claves de invalidación), `change.js` (vista previa del vuelto y montos rápidos), `permissions.js` (acciones permitidas según módulos, estado y rol).
+- `hooks/`: `keys.js`, `usePosQueries.js` (`useFloor`, `useSale`, `useCounterSales`, `useCatalog`, `useSaleEvents` y `useLookup` para mozos, motivos, medios y plantillas), `useSaleMutation.js`, `usePosChanges.js`, `usePosPermissions.js`, `useConfigMutation.js`, `useElementWidth.js`, `useNow.js`.
+- `layout/`: `PosLayout.jsx`, `PosTopBar.jsx`, `PosRoute.jsx` (guardia de permisos), `PosHome.jsx`.
+- `ui/`: `Modal.jsx`, `Toasts.jsx`, `buttons.js`, `Chip.jsx`, `StatusBadge.jsx`, `CenteredMessage.jsx`.
+- `floor/`: `FloorPlan.jsx`, `TableTile.jsx`, `SalonPage.jsx`.
+- `counter/`: `CounterPage.jsx`.
+- `sale/`: `SalePanel.jsx`, `SaleHeader.jsx`, `Ticket.jsx`, `TicketItem.jsx`, `SaleFooter.jsx`, `SaleHistory.jsx`.
+- `modals/`: `AddProductsModal.jsx` (con `ProductDetailStep.jsx`), `PaymentModal.jsx`, `DiscountModal.jsx`, `SplitModal.jsx`, `CancelReasonModal.jsx`, `OpenTableModal.jsx`, `WaiterModal.jsx`, `NewCounterSaleModal.jsx`, `NumericKeypad.jsx`.
+- `config/`: `PosConfigPage.jsx`, `SalonList.jsx`, `FloorEditor.jsx`, `TableForm.jsx`.
+- `utils/`: `money.js` (formato ARS), `errors.js` (mensaje de error de axios a texto), `changes.js` (respuesta de `/changes` a claves de invalidación), `change.js` (vista previa del vuelto y montos rápidos), `keypad.js`, `ids.js`, `time.js`, `permissions.js` (acciones permitidas según módulos, estado y rol), `floor.js` (estado de mesa y geometría del plano), `catalog.js`, `modifiers.js`, `quantity.js`, `events.js`.
 - Páginas de Galia: `pages/ModifierGroups.jsx`, sección en `pages/ProductDetail.jsx`, `pages/admin/PosSettings.jsx`; rutas en `App.jsx` y entradas en `Sidebar.jsx`.
 
 Los componentes usan la paleta Galia de Tailwind ya existente. Tamaños táctiles: objetivos de al menos 44 px.
@@ -241,7 +242,7 @@ Los componentes usan la paleta Galia de Tailwind ya existente. Tamaños táctile
 
 ### Frontend
 
-- **Vitest** como dependencia de desarrollo, sin Testing Library, para la lógica pura de `utils/`: `money`, `changes`, `change`, `permissions`.
+- **Vitest** como dependencia de desarrollo, sin Testing Library, para la lógica pura de `utils/` (todos los archivos salvo `errors.js`).
 - `npm run lint` sin errores nuevos respecto de la línea base y `npm run build` OK.
 
 ### Verificación manual
