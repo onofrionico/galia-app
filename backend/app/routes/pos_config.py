@@ -267,6 +267,17 @@ def update_modifier_group(current_user, group_id):
     return _run(action)
 
 
+@bp.route('/products/<int:product_id>/modifier-groups', methods=['GET'])
+@token_required
+@module_required('Products')
+def get_product_modifier_groups(current_user, product_id):
+    if db.session.get(Product, product_id) is None:
+        return jsonify({'error': 'El producto no existe'}), 404
+    rows = (ProductModifierGroup.query.filter_by(product_id=product_id)
+            .order_by(ProductModifierGroup.position).all())
+    return jsonify({'product_id': product_id, 'group_ids': [r.group_id for r in rows]}), 200
+
+
 @bp.route('/products/<int:product_id>/modifier-groups', methods=['PUT'])
 @token_required
 @module_required('Products')

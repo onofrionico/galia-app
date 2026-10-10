@@ -118,3 +118,80 @@ def test_open_sale_rejects_waiter_without_permission(pos_app):
     response = client.post('/api/v1/pos/sales', headers=auth_headers(client, cashier),
                            json={'sale_type': 'salon', 'table_id': t1.id, 'people': 2, 'waiter_id': cook.id})
     assert response.status_code == 400
+
+
+def test_changes_without_since_returns_last_event(pos_app):
+    client = pos_app.test_client()
+    waiter = make_user('mozo@test.com', modules=('Camarero',))
+    _s, t1, _t = make_floor()
+    headers = auth_headers(client, waiter)
+    empty = client.get('/api/v1/pos/changes', headers=headers).get_json()
+    assert empty == {'last_event_id': 0, 'sales': []}
+    sale_service.open_sale(waiter, 'salon', table_id=t1.id, people=2)
+    data = client.get('/api/v1/pos/changes', headers=headers).get_json()
+    assert data['last_event_id'] > 0 and data['sales'] == []
+
+
+def test_changes_since_lists_each_changed_sale_once(pos_app):
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    cat = make_catalog()
+    salon, t1, t2 = make_floor()
+    headers = auth_headers(client, cashier)
+    since = client.get('/api/v1/pos/changes', headers=headers).get_json()['last_event_id']
+    first = sale_service.open_sale(cashier, 'salon', table_id=t1.id, people=2)
+    sale_service.add_item(cashier, first.id, cat.unidad.id)
+    counter = sale_service.open_sale(cashier, 'counter')
+    data = client.get(f'/api/v1/pos/changes?since={since}', headers=headers).get_json()
+    assert sorted(s['id'] for s in data['sales']) == sorted([first.id, counter.id])
+    by_id = {s['id']: s for s in data['sales']}
+    assert by_id[first.id] == {'id': first.id, 'table_id': t1.id, 'salon_id': salon.id, 'sale_type': 'salon',
+                               'status': 'open'}
+    assert by_id[counter.id]['salon_id'] is None and by_id[counter.id]['sale_type'] == 'counter'
+    again = client.get(f"/api/v1/pos/changes?since={data['last_event_id']}", headers=headers).get_json()
+    assert again == {'last_event_id': data['last_event_id'], 'sales': []}
+
+
+def test_changes_resets_when_too_many_events(pos_app, monkeypatch):
+    from app.routes import pos_floor
+    monkeypatch.setattr(pos_floor, 'CHANGES_LIMIT', 2)
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    cat = make_catalog()
+    _s, t1, _t = make_floor()
+    sale = sale_service.open_sale(cashier, 'salon', table_id=t1.id, people=2)
+    sale_service.add_item(cashier, sale.id, cat.unidad.id)
+    sale_service.add_item(cashier, sale.id, cat.unidad.id)
+    data = client.get('/api/v1/pos/changes?since=0', headers=auth_headers(client, cashier)).get_json()
+    assert data['reset'] is True and data['last_event_id'] >= 3
+
+
+def test_changes_resets_when_since_is_ahead(pos_app):
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    data = client.get('/api/v1/pos/changes?since=500', headers=auth_headers(client, cashier)).get_json()
+    assert data == {'last_event_id': 0, 'reset': True, 'sales': []}
+
+
+def test_changes_requires_pos_or_camarero(pos_app):
+    client = pos_app.test_client()
+    nobody = make_user('x@test.com')
+    assert client.get('/api/v1/pos/changes', headers=auth_headers(client, nobody)).status_code == 403
+
+
+def test_events_include_user_name(pos_app):
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    sale = sale_service.open_sale(cashier, 'counter')
+    events = client.get(f'/api/v1/pos/sales/{sale.id}/events', headers=auth_headers(client, cashier)).get_json()
+    assert events['events'][0]['user_name'] == 'caja@test.com'
+
+
+def test_get_product_modifier_groups(pos_app):
+    client = pos_app.test_client()
+    admin = make_user('admin@test.com', role='admin')
+    cat = make_catalog()
+    headers = auth_headers(client, admin)
+    data = client.get(f'/api/v1/pos/config/products/{cat.cortado.id}/modifier-groups', headers=headers).get_json()
+    assert data == {'product_id': cat.cortado.id, 'group_ids': [cat.group.id, cat.extras.id]}
+    assert client.get('/api/v1/pos/config/products/9999/modifier-groups', headers=headers).status_code == 404

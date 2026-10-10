@@ -5,8 +5,10 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
+from app.models import User
 from app.models.pos import SALE_STATUSES, SALE_TYPES, PosSale, PosSaleEvent
 from app.services.pos import discount_service, payment_service, sale_service
+from app.services.pos.common import display_name
 from app.services.pos.errors import PosError, not_found
 from app.services.pos.serializers import sale_to_dict
 from app.utils.decorators import module_required
@@ -225,4 +227,7 @@ def sale_events(current_user, sale_id):
     if db.session.get(PosSale, sale_id) is None:
         return jsonify({'error': 'La venta no existe'}), 404
     events = PosSaleEvent.query.filter_by(sale_id=sale_id).order_by(PosSaleEvent.id).all()
-    return jsonify({'events': [e.to_dict() for e in events]}), 200
+    user_ids = {e.user_id for e in events}
+    users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    return jsonify({'events': [{**e.to_dict(), 'user_name': display_name(users.get(e.user_id))}
+                               for e in events]}), 200

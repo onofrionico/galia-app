@@ -2,9 +2,11 @@
 from collections import defaultdict
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
 
+from app.extensions import db
 from app.models import Product, ProductCategory
-from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosTable,
+from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosTable,
                             ProductModifierGroup, Salon)
 from app.services.pos import waiters
 from app.services.pos.common import display_name
@@ -89,3 +91,38 @@ def cancel_reasons(current_user):
 @module_required('POS')
 def list_waiters(current_user):
     return jsonify({'waiters': [{'id': u.id, 'name': display_name(u)} for u in waiters.list_waiters()]}), 200
+
+
+CHANGES_LIMIT = 500
+
+
+def _changed_sale(sale):
+    table = sale.table
+    return {'id': sale.id, 'table_id': sale.table_id, 'salon_id': table.salon_id if table else None,
+            'sale_type': sale.sale_type, 'status': sale.status}
+
+
+@bp.route('/changes', methods=['GET'])
+@token_required
+@module_required('POS', 'Camarero')
+def changes(current_user):
+    """Ventas con eventos posteriores a `since`. La UI lo consulta cada pocos segundos.
+
+    Un evento que se confirma más tarde que otro con id mayor puede no aparecer; el refresco de
+    respaldo de la UI (plano cada 60 s, venta cada 30 s) lo cubre.
+    """
+    last = db.session.query(func.max(PosSaleEvent.id)).scalar() or 0
+    since = request.args.get('since', type=int)
+    if since is None:
+        return jsonify({'last_event_id': last, 'sales': []}), 200
+    if since > last:
+        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+    rows = (db.session.query(PosSaleEvent.id, PosSaleEvent.sale_id)
+            .filter(PosSaleEvent.id > since).order_by(PosSaleEvent.id).limit(CHANGES_LIMIT + 1).all())
+    if len(rows) > CHANGES_LIMIT:
+        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+    if not rows:
+        return jsonify({'last_event_id': since, 'sales': []}), 200
+    sale_ids = sorted({row.sale_id for row in rows})
+    sales = PosSale.query.filter(PosSale.id.in_(sale_ids)).all()
+    return jsonify({'last_event_id': rows[-1].id, 'sales': [_changed_sale(s) for s in sales]}), 200
