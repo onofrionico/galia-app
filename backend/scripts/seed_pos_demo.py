@@ -1,7 +1,10 @@
 """Carga datos de prueba para el POS: usuarios, catálogo con modificadores, salones, mesas y plantillas.
 
 Uso (desde backend/, con DATABASE_URL apuntando a una base DESCARTABLE ya migrada):
-    python scripts/seed_pos_demo.py
+    POS_DEMO_SEED=1 python scripts/seed_pos_demo.py
+
+Se niega a correr (sale con código 1) si falta POS_DEMO_SEED=1 o si la base no es SQLite ni está en
+localhost/127.0.0.1: crea un admin con contraseña conocida y no debe tocar nunca producción.
 
 Es idempotente: si ya existe el salón "Salón principal" no hace nada.
 Usuarios de prueba (contraseña DEMO_PASSWORD):
@@ -14,6 +17,8 @@ import sys
 from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from sqlalchemy.engine import make_url  # noqa: E402
 
 from app import create_app  # noqa: E402
 from app.extensions import db  # noqa: E402
@@ -103,7 +108,19 @@ def seed():
     print('Datos de prueba cargados.')
 
 
+def _local_database(url):
+    parsed = make_url(url)
+    return parsed.get_backend_name() == 'sqlite' or parsed.host in ('localhost', '127.0.0.1')
+
+
 if __name__ == '__main__':
+    if os.environ.get('POS_DEMO_SEED') != '1':
+        print('Negado: definí POS_DEMO_SEED=1 para cargar los datos de prueba del POS.')
+        sys.exit(1)
     app = create_app(os.environ.get('FLASK_ENV', 'production'))
+    if not _local_database(app.config['SQLALCHEMY_DATABASE_URI']):
+        print('Negado: la base de datos no es SQLite ni local (localhost/127.0.0.1). '
+              'Los datos de prueba crean un admin con contraseña conocida.')
+        sys.exit(1)
     with app.app_context():
         seed()
