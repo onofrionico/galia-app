@@ -23,23 +23,25 @@ def create_app(config_name='development'):
     app.config.setdefault('COMPRESS_ALGORITHM', 'gzip')
     compress.init_app(app)
     
-    # Middleware para loguear todas las requests
+    # Middleware para loguear las requests (solo en modo debug; nunca el header Authorization)
     @app.before_request
     def log_request_info():
-        print(f"\n[REQUEST] {request.method} {request.path}")
-        print(f"[REQUEST] Origin: {request.headers.get('Origin', 'No Origin header')}")
-        print(f"[REQUEST] Authorization: {request.headers.get('Authorization', 'No Auth header')[:50] if request.headers.get('Authorization') else 'No Auth header'}")
-        print(f"[REQUEST] Content-Type: {request.headers.get('Content-Type', 'No Content-Type')}")
-        
+        if app.debug:
+            print(f"\n[REQUEST] {request.method} {request.path}")
+            print(f"[REQUEST] Origin: {request.headers.get('Origin', 'No Origin header')}")
+            print(f"[REQUEST] Authorization: {'presente' if request.headers.get('Authorization') else 'No Auth header'}")
+            print(f"[REQUEST] Content-Type: {request.headers.get('Content-Type', 'No Content-Type')}")
+
         # Manejar preflight OPTIONS requests explícitamente
         if request.method == 'OPTIONS':
             response = app.make_default_options_response()
             return response
-    
+
     @app.after_request
     def log_response_info(response):
-        print(f"[RESPONSE] Status: {response.status}")
-        print(f"[RESPONSE] CORS headers: {response.headers.get('Access-Control-Allow-Origin', 'Not set')}")
+        if app.debug:
+            print(f"[RESPONSE] Status: {response.status}")
+            print(f"[RESPONSE] CORS headers: {response.headers.get('Access-Control-Allow-Origin', 'Not set')}")
         return response
     
     db.init_app(app)
