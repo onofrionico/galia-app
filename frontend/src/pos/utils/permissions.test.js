@@ -1,0 +1,69 @@
+import { describe, expect, it } from 'vitest'
+import { itemActions, posPermissions, saleActions } from './permissions'
+
+const cashier = posPermissions({ modules: ['POS', 'Anular'] })
+const waiter = posPermissions({ modules: ['Camarero'] })
+
+const sale = (overrides = {}) => ({
+  status: 'open', sale_type: 'salon', balance: 1000, paid_total: 0,
+  items: [{ id: 1, status: 'confirmed' }, { id: 2, status: 'pending' }],
+  ...overrides,
+})
+
+describe('posPermissions', () => {
+  it('el admin puede todo', () => {
+    expect(posPermissions({ isAdmin: true })).toEqual({
+      pos: true, waiter: true, canUse: true, charge: true, cancel: true, discounts: true,
+    })
+  })
+  it('Cobrar habilita cobrar sin POS', () => {
+    expect(posPermissions({ modules: ['Camarero', 'Cobrar'] }).charge).toBe(true)
+    expect(waiter.charge).toBe(false)
+    expect(waiter.canUse).toBe(true)
+  })
+})
+
+describe('saleActions', () => {
+  it('venta de salón abierta con pendientes', () => {
+    const actions = saleActions(sale(), cashier)
+    expect(actions).toMatchObject({
+      addItems: true, confirm: true, requestBill: true, reopen: false, pay: true, close: false,
+      move: true, split: true, cancelSale: true, changeWaiter: true, history: true,
+    })
+  })
+  it('el mozo sin Cobrar no cobra ni ve el historial', () => {
+    const actions = saleActions(sale(), waiter)
+    expect(actions.pay).toBe(false)
+    expect(actions.history).toBe(false)
+    expect(actions.changeWaiter).toBe(false)
+    expect(actions.cancelSale).toBe(false)
+  })
+  it('en cuenta pedida se reabre y no se agregan ítems', () => {
+    const actions = saleActions(sale({ status: 'billing', items: [{ id: 1, status: 'confirmed' }] }), cashier)
+    expect(actions).toMatchObject({ addItems: false, confirm: false, requestBill: false, reopen: true, pay: true })
+  })
+  it('con pagos no se divide ni se anula; con saldo 0 se cierra', () => {
+    const actions = saleActions(sale({ status: 'billing', paid_total: 500, balance: 0 }), cashier)
+    expect(actions).toMatchObject({ split: false, cancelSale: false, pay: false, close: true })
+  })
+  it('el mostrador no pide cuenta ni se mueve', () => {
+    const actions = saleActions(sale({ sale_type: 'counter' }), cashier)
+    expect(actions.requestBill).toBe(false)
+    expect(actions.move).toBe(false)
+    expect(actions.pay).toBe(true)
+  })
+  it('una venta cerrada solo permite anular pagos', () => {
+    const actions = saleActions(sale({ status: 'closed', balance: 0, paid_total: 1000 }), cashier)
+    expect(Object.entries(actions).filter(([, v]) => v).map(([k]) => k).sort()).toEqual(['cancelPayment', 'history'])
+  })
+})
+
+describe('itemActions', () => {
+  it('pendiente: solo borrar', () => {
+    expect(itemActions({ status: 'pending' }, sale(), cashier)).toEqual({ remove: true, discount: false, cancel: false })
+  })
+  it('confirmado: descuento y anular con permiso', () => {
+    expect(itemActions({ status: 'confirmed' }, sale(), cashier)).toEqual({ remove: false, discount: true, cancel: true })
+    expect(itemActions({ status: 'confirmed' }, sale(), waiter).cancel).toBe(false)
+  })
+})
