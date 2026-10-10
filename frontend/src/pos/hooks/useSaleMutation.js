@@ -11,8 +11,10 @@ export function useSaleMutation() {
   const toast = useToast()
   const { mutateAsync, isPending } = useMutation({
     mutationFn: ({ fn }) => fn(),
-    onSuccess: (sale) => {
+    onSuccess: async (sale) => {
       if (sale?.id) {
+        // Un refetch en vuelo (iniciado antes de la acción) pisaría la venta recién devuelta.
+        await queryClient.cancelQueries({ queryKey: posKeys.sale(sale.id) })
         queryClient.setQueryData(posKeys.sale(sale.id), sale)
         queryClient.invalidateQueries({ queryKey: posKeys.events(sale.id) })
       }
