@@ -6,8 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.pos import PaymentMethod, PosPayment
 from app.services.pos import audit, pricing, projection
+from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos.closing import close_sale_rows
-from app.services.pos.common import (MAX_MONEY, active_payments, load_sale, now, parse_id, recalc, require_reason)
+from app.services.pos.common import (MAX_MONEY, active_payments, load_sale, now, parse_id, recalc)
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.services.pos.sale_service import confirm_pending
 from app.utils.validation import clean_str, parse_decimal
@@ -89,8 +90,8 @@ def close_sale(user, sale_id):
     return sale
 
 
-def cancel_payment(user, payment_id, reason):
-    reason = require_reason(reason)
+def cancel_payment(user, payment_id, reason, reason_id=None):
+    reason, reason_id = resolve_reason(reason_id, reason)
     payment = db.session.get(PosPayment, parse_id(payment_id, 'El pago'))
     if payment is None:
         raise not_found('El pago no existe')
@@ -103,6 +104,7 @@ def cancel_payment(user, payment_id, reason):
     payment.cancelled_at = now()
     payment.cancelled_by = user.id
     payment.cancel_reason = reason
+    payment.cancel_reason_id = reason_id
     was_closed = sale.status == 'closed'
     if was_closed:
         projection.unproject(sale)
@@ -110,7 +112,8 @@ def cancel_payment(user, payment_id, reason):
         sale.closed_at = None
         sale.closed_by = None
     recalc(sale)
-    audit.record(sale, user, 'payment_cancelled', payment_id=payment.id, amount=payment.amount, reason=reason)
+    audit.record(sale, user, 'payment_cancelled', payment_id=payment.id, amount=payment.amount, reason=reason,
+                 reason_id=reason_id)
     if was_closed:
         audit.record(sale, user, 'reopened', reason='payment_cancelled', payment_id=payment.id)
     db.session.commit()

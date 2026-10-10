@@ -26,6 +26,7 @@ def item_to_dict(item):
         'confirmed_at': _iso(item.confirmed_at),
         'cancelled_at': _iso(item.cancelled_at),
         'cancel_reason': item.cancel_reason,
+        'cancel_reason_id': item.cancel_reason_id,
         'modifiers': [{'option_id': m.option_id, 'group_name': m.group_name, 'option_name': m.option_name,
                        'price_delta': _money(m.price_delta)} for m in item.modifiers],
     }
@@ -45,6 +46,7 @@ def payment_to_dict(payment):
         'id': payment.id, 'payment_method_id': payment.payment_method_id, 'method_name': payment.method_name,
         'amount': _money(payment.amount), 'tendered': _money(payment.tendered), 'change': _money(payment.change),
         'is_active': payment.cancelled_at is None, 'cancel_reason': payment.cancel_reason,
+        'cancel_reason_id': payment.cancel_reason_id,
         'created_at': _iso(payment.created_at),
     }
 
@@ -68,6 +70,7 @@ def sale_to_dict(sale, include_items=True):
         'closed_at': _iso(sale.closed_at),
         'cancelled_at': _iso(sale.cancelled_at),
         'cancel_reason': sale.cancel_reason,
+        'cancel_reason_id': sale.cancel_reason_id,
         'subtotal': _money(sale.subtotal),
         'discount_total': _money(sale.discount_total),
         'total': _money(sale.total),
