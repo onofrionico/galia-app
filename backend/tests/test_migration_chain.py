@@ -23,9 +23,9 @@ def test_single_head():
     assert len(heads) == 1, heads
 
 
-def test_pos_base_chain_starts_after_menu_groups():
+def test_pos_base_chain_starts_after_schema_drift_fix():
     revisions = _revisions()
-    assert revisions['b1a0_add_permissions_system'] == ['carta_grupos_fudo']
+    assert revisions['b1a0_add_permissions_system'] == ['sync_schema_drift']
 
 
 def test_suppliers_follows_permissions():
