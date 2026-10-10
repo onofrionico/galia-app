@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_cors import CORS
 from app.config import config
-from app.extensions import db, login_manager, bcrypt, migrate
+from app.extensions import db, login_manager, bcrypt, migrate, compress
 
 def create_app(config_name='development'):
     app = Flask(__name__)
@@ -18,6 +18,10 @@ def create_app(config_name='development'):
          expose_headers=["Content-Type", "Authorization"],
          supports_credentials=True,
          max_age=3600)
+
+    # Solo gzip: evita depender de brotli en el cliente y comprime el JSON del POS (plano, catálogo).
+    app.config.setdefault('COMPRESS_ALGORITHM', 'gzip')
+    compress.init_app(app)
     
     # Middleware para loguear todas las requests
     @app.before_request
