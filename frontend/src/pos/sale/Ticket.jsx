@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import { discountLabel, formatMoney } from '../utils/money'
 import TicketItem from './TicketItem'
 
-function Totals({ sale, saleDiscounts, canRemove, onRemoveDiscount, busy }) {
+function Totals({ sale, saleDiscounts, activeDiscountCount, canRemove, onRemoveDiscount, busy }) {
   return (
     <dl className="space-y-1 border-t pt-3 text-sm">
       <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatMoney(sale.subtotal)}</dd></div>
@@ -20,8 +20,9 @@ function Totals({ sale, saleDiscounts, canRemove, onRemoveDiscount, busy }) {
           </dd>
         </div>
       ))}
-      {sale.discount_total > 0 && (
-        <div className="flex justify-between text-green-700"><dt>Descuentos</dt><dd>−{formatMoney(sale.discount_total)}</dd></div>
+      {/* Suma de los descuentos ya listados (por renglón y de la venta): solo si hay más de uno. */}
+      {activeDiscountCount > 1 && sale.discount_total > 0 && (
+        <div className="flex justify-between text-green-700"><dt>Total descuentos</dt><dd>−{formatMoney(sale.discount_total)}</dd></div>
       )}
       <div className="flex justify-between text-base font-semibold"><dt>Total</dt><dd>{formatMoney(sale.total)}</dd></div>
       {sale.paid_total > 0 && (
@@ -64,7 +65,8 @@ export default function Ticket({ sale, perms, handlers, busy }) {
           <ul className="divide-y divide-amber-100">{pending.map(row)}</ul>
         </section>
       )}
-      <Totals sale={sale} saleDiscounts={saleDiscounts} busy={busy} onRemoveDiscount={handlers.removeDiscount}
+      <Totals sale={sale} saleDiscounts={saleDiscounts} activeDiscountCount={active.length} busy={busy}
+        onRemoveDiscount={handlers.removeDiscount}
         canRemove={['open', 'billing'].includes(sale.status)} />
     </div>
   )
