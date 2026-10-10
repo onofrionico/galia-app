@@ -27,6 +27,7 @@ import {
   Settings,
   Shield,
   Image as ImageIcon,
+  Store,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -68,6 +69,7 @@ const navGroups = [
     accentText: 'text-galia-lime',
     accentBorder: 'border-galia-lime',
     items: [
+      { to: '/pos', icon: Store, label: 'Abrir POS', anyModule: ['POS', 'Camarero'] },
       { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
       { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
       { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
@@ -137,6 +139,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const canSee = (item) => {
     if (item.adminOnly) return isAdmin()
+    if (item.anyModule) return item.anyModule.some(hasModuleAccess)
     if (!item.module) return true
     return hasModuleAccess(item.module)
   }

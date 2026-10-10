@@ -42,6 +42,9 @@ import Stock from './pages/Stock'
 import BrandingConfig from './pages/admin/BrandingConfig'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
+import PosLayout from './pos/layout/PosLayout'
+import PosRoute from './pos/layout/PosRoute'
+import PosHome from './pos/layout/PosHome'
 
 function App() {
   return (
@@ -49,6 +52,9 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/pos" element={<ProtectedRoute><PosRoute><PosLayout /></PosRoute></ProtectedRoute>}>
+            <Route index element={<PosHome />} />
+          </Route>
           
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
