@@ -3,9 +3,10 @@ import { posApi } from '../api/posApi'
 import { posKeys } from './keys'
 
 // Los intervalos son de respaldo: el refresco normal lo dispara usePosChanges.
-export const useFloor = (salonId) => useQuery({
+export const useFloor = (salonId, { enabled = true } = {}) => useQuery({
   queryKey: posKeys.floor(salonId),
   queryFn: () => posApi.getFloor(salonId),
+  enabled,
   refetchInterval: 60_000,
   staleTime: 10_000,
 })

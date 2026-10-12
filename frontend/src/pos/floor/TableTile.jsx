@@ -2,13 +2,9 @@ import { formatMoney } from '../utils/money'
 import { tableStatus, tableSummary } from '../utils/floor'
 import { elapsedLabel } from '../utils/time'
 
-const STATUS_STYLES = {
-  free: 'border-gray-300 bg-white text-gray-700',
-  open: 'border-amber-400 bg-amber-100 text-amber-900',
-  billing: 'border-red-400 bg-red-100 text-red-900',
-}
+import { TABLE_STATUS_STYLES } from './tableStyles'
 
-export default function TableTile({ table, scale, selected, picking, now, onClick }) {
+export default function TableTile({ table, scale, selected, picking, now, onClick, dimmed = false }) {
   const status = tableStatus(table)
   const summary = tableSummary(table)
   const disabled = picking && status !== 'free'
@@ -17,7 +13,7 @@ export default function TableTile({ table, scale, selected, picking, now, onClic
   return (
     <button type="button" onClick={onClick} disabled={disabled}
       aria-label={`${table.label}${status === 'free' ? ', libre' : `, ${formatMoney(summary.total)}`}`}
-      className={`absolute flex flex-col justify-between overflow-hidden rounded-lg border-2 p-1.5 text-left text-xs transition ${STATUS_STYLES[status]} ${ring} ${disabled ? 'opacity-40' : ''}`}
+      className={`absolute flex flex-col justify-between overflow-hidden rounded-lg border-2 p-1.5 text-left text-xs transition ${TABLE_STATUS_STYLES[status]} ${ring} ${disabled || dimmed ? 'opacity-40' : ''}`}
       style={{ left: table.pos_x * scale, top: table.pos_y * scale, width: table.width * scale, height: table.height * scale }}>
       <span className="flex w-full items-center justify-between gap-1 text-sm font-semibold">
         <span className="truncate">{table.label}</span>
