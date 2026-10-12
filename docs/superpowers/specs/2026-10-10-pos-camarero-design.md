@@ -88,7 +88,7 @@ Se descartaron:
 
 ### Entrada
 
-- **Después del login** (`utils/postLogin.js`, función pura):
+- **Después del login** (`src/utils/postLogin.js`, función pura `postLoginPath`):
   - si `ProtectedRoute` guardó una ruta de origen (`location.state.from`), se vuelve ahí;
   - si no, un usuario con `Camarero`, sin `POS` y que no es admin, va a `/camarero`;
   - los demás, a `/dashboard`.
@@ -108,9 +108,10 @@ Se descartaron:
 - `vite-plugin-pwa` (dependencia de desarrollo) se usa **solo para el service worker**:
   - `manifest: false`, `strategies: 'generateSW'`, `registerType: 'prompt'`;
   - precachea solo los archivos estáticos del build;
-  - `navigateFallbackDenylist: [/^\/api/]` y sin `runtimeCaching`, así la API nunca se cachea;
+  - `scope: '/camarero'`: el service worker controla solo las páginas del Camarero, así el resto de Galia no queda cacheado;
+  - `navigateFallbackAllowlist: [/^\/camarero/]`, `navigateFallbackDenylist: [/^\/api/]` y sin `runtimeCaching`, así la API nunca se cachea;
   - `devOptions.enabled: false`.
-- **`UpdateBanner`** (con `useRegisterSW` de `virtual:pwa-register/react`): "Hay una versión nueva — Actualizar", que llama a `updateServiceWorker(true)`. Se monta en `CamareroLayout`. El resto de Galia toma la versión nueva al recargar.
+- **`UpdateBanner`** (con `useRegisterSW` de `virtual:pwa-register/react`): "Hay una versión nueva — Actualizar", que llama a `updateServiceWorker(true)`. Se monta en `CamareroLayout` (que es también quien registra el service worker). El resto de Galia no usa service worker.
 
 ### Sesión
 
@@ -226,8 +227,8 @@ Los del 1b (`errorMessage`, toasts): 409/400 con el mensaje del backend, 403 "No
 - `utils/`:
   - `tableFilters.js`: filtro Mías/Todas, `hasPending`, `isMine`;
   - `zoom.js`: límites y paso de zoom;
+  - `salons.js`: `pickSalonId` (salón de la URL, guardado o primero activo);
   - `connectivity.js`: `connectivityReducer`;
-  - `postLogin.js`;
   - con sus `*.test.js`.
 
 **Cambios en `frontend/src/pos/`:**
@@ -242,6 +243,7 @@ Los del 1b (`errorMessage`, toasts): 409/400 con el mensaje del backend, 403 "No
 
 **Fuera de `pos/` y `camarero/`:**
 - `App.jsx` (rutas).
+- `utils/postLogin.js` (`postLoginPath`, `storeRedirect`, `takeStoredRedirect`) y su test.
 - `components/ProtectedRoute.jsx` (`state.from`).
 - `context/AuthContext.jsx` (`login` devuelve los módulos).
 - `pages/Login.jsx` (destino con `postLogin`).
