@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models import Product, ProductCategory
-from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosTable,
+from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosSaleItem, PosTable,
                             ProductModifierGroup, Salon)
 from app.services.pos import waiters
 from app.services.pos.common import display_name
@@ -16,6 +16,16 @@ from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 
 bp = Blueprint('pos_floor', __name__, url_prefix='/api/v1/pos')
+
+
+def _pending_counts(sale_ids):
+    """Ítems sin confirmar por venta, en una sola consulta agrupada."""
+    if not sale_ids:
+        return {}
+    rows = (db.session.query(PosSaleItem.sale_id, func.count(PosSaleItem.id))
+            .filter(PosSaleItem.sale_id.in_(sale_ids), PosSaleItem.status == 'pending')
+            .group_by(PosSaleItem.sale_id).all())
+    return dict(rows)
 
 
 @bp.route('/floor', methods=['GET'])
@@ -29,9 +39,11 @@ def floor(current_user):
     active = (PosSale.query.filter(PosSale.table_id.in_([t.id for t in tables]),
                                    PosSale.status.in_(ACTIVE_SALE_STATUSES)).order_by(PosSale.opened_at).all()
               if tables else [])
+    pending = _pending_counts([sale.id for sale in active])
     by_table = defaultdict(list)
     for sale in active:
-        by_table[sale.table_id].append(sale_to_dict(sale, include_items=False))
+        by_table[sale.table_id].append({**sale_to_dict(sale, include_items=False),
+                                        'pending_count': pending.get(sale.id, 0)})
     return jsonify({
         'salons': [s.to_dict() for s in salons],
         'salon_id': salon_id,
