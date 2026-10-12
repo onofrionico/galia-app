@@ -5,6 +5,7 @@ import { useCatalog } from '../hooks/usePosQueries'
 import { useSaleMutation } from '../hooks/useSaleMutation'
 import Chip from '../ui/Chip'
 import Modal from '../ui/Modal'
+import { useModalPresentation } from '../ui/ModalPresentation'
 import { btn } from '../ui/buttons'
 import { addedSummary, filterProducts, needsDetail, priceLabel } from '../utils/catalog'
 import ProductDetailStep from './ProductDetailStep'
@@ -19,6 +20,8 @@ export default function AddProductsModal({ sale, onClose }) {
   const [added, setAdded] = useState([])
   const { run, busy } = useSaleMutation()
   const inputRef = useRef(null)
+  // En el celular no se enfoca el buscador: el teclado taparía la carta.
+  const autoFocus = useModalPresentation() !== 'sheet'
 
   const products = useMemo(
     () => filterProducts(data?.products ?? [], { query, categoryId }),
@@ -26,8 +29,8 @@ export default function AddProductsModal({ sale, onClose }) {
   )
 
   useEffect(() => {
-    if (!detail) inputRef.current?.focus()
-  }, [detail])
+    if (!detail && autoFocus) inputRef.current?.focus()
+  }, [detail, autoFocus])
 
   const add = async (product, { variantId, quantity = 1, optionIds = [], note = null }) => {
     const result = await run(sale.id, () => posApi.addItem(sale.id, {
