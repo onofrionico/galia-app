@@ -29,7 +29,7 @@ export default function MoveSheet({ sale, onClose }) {
     <Modal title={`Mover ${saleTitle(sale)}`} onClose={onClose}>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {(data?.salons ?? []).map((salon) => (
-          <Chip key={salon.id} active={salon.id === data?.salon_id} onClick={() => setSalonId(salon.id)}>
+          <Chip key={salon.id} active={salon.id === salonId} onClick={() => setSalonId(salon.id)}>
             {salon.name}
           </Chip>
         ))}

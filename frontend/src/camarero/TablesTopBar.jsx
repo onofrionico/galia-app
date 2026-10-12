@@ -4,7 +4,7 @@ import { LayoutGrid, Map as MapIcon, Menu } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 const pill = (active) =>
-  `min-h-[44px] whitespace-nowrap rounded-full px-4 text-sm font-medium ${
+  `min-h-[48px] whitespace-nowrap rounded-full px-4 text-sm font-medium ${
     active ? 'bg-galia-cream text-galia-plum' : 'bg-white/10 text-galia-cream'
   }`
 

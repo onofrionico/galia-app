@@ -69,7 +69,11 @@ export default function TablesScreen() {
         <OpenTableModal table={openTable} allowWaiterPick={false} onClose={() => setOpenTable(null)}
           onOpened={(id, isNew) => {
             setOpenTable(null)
-            navigate(`/camarero/venta/${id}${isNew ? '?add=1' : ''}`)
+            // Si la hoja sigue abierta, se reemplaza su entrada de historial en vez de apilar encima (quedaría huérfana).
+            navigate(`/camarero/venta/${id}`, {
+              replace: Boolean(window.history.state?.posSheet),
+              state: isNew ? { openAdd: true } : undefined,
+            })
           }} />
       )}
     </div>
