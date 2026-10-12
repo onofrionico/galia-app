@@ -1,7 +1,7 @@
 {
-  "name": "Galia Café - Gestión de Cafetería",
-  "short_name": "Galia Café",
-  "description": "Sistema de gestión para cafetería con carga de recibos y análisis ML",
+  "name": "Galia Camarero",
+  "short_name": "Camarero",
+  "description": "Pedidos del salón de Galia Café desde el celular",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -11,7 +11,8 @@
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/apple-touch-icon.png",
@@ -19,9 +20,9 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#8B4513",
-  "background_color": "#ffffff",
+  "theme_color": "#5C2E46",
+  "background_color": "#F5F1EA",
   "display": "standalone",
-  "start_url": "/",
+  "start_url": "/camarero",
   "scope": "/"
 }
