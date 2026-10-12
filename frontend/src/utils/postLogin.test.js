@@ -28,4 +28,15 @@ describe('postLoginPath', () => {
     expect(postLoginPath({ ...waiter, from: 'https://evil.example' })).toBe('/camarero')
     expect(postLoginPath({ ...waiter, from: 42 })).toBe('/camarero')
   })
+
+  it('trata la raíz y el dashboard como "sin origen"', () => {
+    const waiter = { modules: [{ name: 'Camarero' }] }
+    expect(postLoginPath({ ...waiter, from: '/' })).toBe('/camarero')
+    expect(postLoginPath({ ...waiter, from: '/dashboard' })).toBe('/camarero')
+    expect(postLoginPath({ ...waiter, from: '/dashboard?x=1' })).toBe('/camarero')
+    expect(postLoginPath({ ...waiter, stored: '/' })).toBe('/camarero')
+    expect(postLoginPath({ ...waiter, from: '/', stored: '/camarero/venta/3' })).toBe('/camarero/venta/3')
+    expect(postLoginPath({ isAdmin: true, from: '/' })).toBe('/dashboard')
+    expect(postLoginPath({ ...waiter, from: '/dashboard/x' })).toBe('/dashboard/x')
+  })
 })
