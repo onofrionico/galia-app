@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { storeRedirect } from '@/utils/postLogin'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -33,6 +34,7 @@ api.interceptors.response.use(
       console.warn('[SECURITY] 401 Unauthorized - Redirigiendo a login')
       localStorage.removeItem('auth_token')
       delete api.defaults.headers.common['Authorization']
+      storeRedirect(`${window.location.pathname}${window.location.search}`)
       window.location.href = '/login'
     }
     
@@ -61,10 +63,11 @@ api.interceptors.response.use(
       }))
       
       // Si no estamos en la página de inicio, redirigir después de 2 segundos.
-      // En el POS no: una acción sin permiso no debe sacar a la caja de la pantalla.
+      // En el POS y en el Camarero no: una acción sin permiso no debe sacar a nadie de la pantalla.
       if (!window.location.pathname.includes('/dashboard') &&
           !window.location.pathname.includes('/home') &&
-          !window.location.pathname.startsWith('/pos')) {
+          !window.location.pathname.startsWith('/pos') &&
+          !window.location.pathname.startsWith('/camarero')) {
         setTimeout(() => {
           window.location.href = '/dashboard'
         }, 2000)

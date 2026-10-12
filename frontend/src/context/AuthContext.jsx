@@ -48,11 +48,13 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }
 
+  // Devuelve también los módulos: el login decide adónde ir sin esperar a que se actualice el estado.
   const login = async (email, password) => {
     const userData = await authService.login(email, password)
+    const modules = await loadModules(userData)
     setUser(userData)
-    setUserModules(await loadModules(userData))
-    return userData
+    setUserModules(modules)
+    return { user: userData, modules }
   }
 
   const logout = async () => {
