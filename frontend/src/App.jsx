@@ -50,6 +50,8 @@ import PosHome from './pos/layout/PosHome'
 import SalonPage from './pos/floor/SalonPage'
 import CounterPage from './pos/counter/CounterPage'
 import PosConfigPage from './pos/config/PosConfigPage'
+import CamareroLayout from './camarero/CamareroLayout'
+import TablesScreen from './camarero/TablesScreen'
 
 function App() {
   return (
@@ -62,6 +64,9 @@ function App() {
             <Route path="salon/:salonId" element={<SalonPage />} />
             <Route path="mostrador" element={<PosRoute require="pos"><CounterPage /></PosRoute>} />
             <Route path="config" element={<PosRoute require="pos"><PosConfigPage /></PosRoute>} />
+          </Route>
+          <Route path="/camarero" element={<ProtectedRoute><PosRoute><CamareroLayout /></PosRoute></ProtectedRoute>}>
+            <Route index element={<TablesScreen />} />
           </Route>
           
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

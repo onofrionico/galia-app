@@ -1,0 +1,77 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
+import FloorPlan from '@/pos/floor/FloorPlan'
+import { useFloor } from '@/pos/hooks/usePosQueries'
+import OpenTableModal from '@/pos/modals/OpenTableModal'
+import CenteredMessage from '@/pos/ui/CenteredMessage'
+import { useDevicePrefs } from './hooks/useDevicePrefs'
+import { pickSalonId } from './utils/salons'
+import { filterTables, isDimmed } from './utils/tableFilters'
+import TableList from './TableList'
+import TablesTopBar from './TablesTopBar'
+
+export default function TablesScreen() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const [prefs, setPrefs] = useDevicePrefs()
+  const [openTable, setOpenTable] = useState(null)
+  const fromUrl = Number(params.get('salon')) || null
+  const requested = fromUrl ?? prefs.salonId ?? undefined
+  const { data, isLoading, isError } = useFloor(requested)
+  const chosen = data ? pickSalonId({ fromUrl, saved: prefs.salonId, salons: data.salons }) : null
+
+  const selectSalon = (id) => {
+    setPrefs({ salonId: id })
+    setParams(id ? { salon: String(id) } : {}, { replace: true })
+  }
+
+  // Si el salón pedido ya no está activo (o no había ninguno), se pasa al elegido; el de la URL queda guardado.
+  useEffect(() => {
+    if (!data || chosen === null) return
+    if (chosen !== requested) selectSalon(chosen)
+    else if (prefs.salonId !== chosen) setPrefs({ salonId: chosen })
+  }, [data, chosen, requested]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isLoading) return <CenteredMessage>Cargando mesas…</CenteredMessage>
+  if (isError || !data) return <CenteredMessage>No se pudieron cargar las mesas.</CenteredMessage>
+  if (data.salons.length === 0) {
+    return <CenteredMessage>No hay salones configurados. Pedile a la caja que los cree.</CenteredMessage>
+  }
+
+  const userId = user?.id
+  const ready = chosen === data.salon_id
+
+  const onTableClick = (table) => {
+    if (table.sales.length > 0) navigate(`/camarero/venta/${table.sales[0].id}`)
+    else setOpenTable(table)
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <TablesTopBar salons={data.salons} salonId={chosen} onSalon={selectSalon}
+        view={prefs.view} onView={(view) => setPrefs({ view })}
+        filter={prefs.filter} onFilter={(filter) => setPrefs({ filter })} />
+      <div className="min-h-0 flex-1 overflow-auto">
+        {!ready && <CenteredMessage>Cargando mesas…</CenteredMessage>}
+        {ready && prefs.view === 'floor' && (
+          <div className="p-3">
+            <FloorPlan tables={data.tables} isDimmed={(table) => isDimmed(table, prefs.filter, userId)}
+              onTableClick={onTableClick} />
+          </div>
+        )}
+        {ready && prefs.view !== 'floor' && (
+          <TableList tables={filterTables(data.tables, prefs.filter, userId)} userId={userId} onTableClick={onTableClick} />
+        )}
+      </div>
+      {openTable && (
+        <OpenTableModal table={openTable} allowWaiterPick={false} onClose={() => setOpenTable(null)}
+          onOpened={(id, isNew) => {
+            setOpenTable(null)
+            navigate(`/camarero/venta/${id}${isNew ? '?add=1' : ''}`)
+          }} />
+      )}
+    </div>
+  )
+}

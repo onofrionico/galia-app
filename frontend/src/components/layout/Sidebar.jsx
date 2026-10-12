@@ -27,6 +27,7 @@ import {
   Settings,
   Shield,
   Image as ImageIcon,
+  Smartphone,
   Store,
 } from 'lucide-react'
 
@@ -70,6 +71,7 @@ const navGroups = [
     accentBorder: 'border-galia-lime',
     items: [
       { to: '/pos', icon: Store, label: 'Abrir POS', anyModule: ['POS', 'Camarero'] },
+      { to: '/camarero', icon: Smartphone, label: 'Camarero', anyModule: ['POS', 'Camarero'] },
       { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
       { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
       { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
