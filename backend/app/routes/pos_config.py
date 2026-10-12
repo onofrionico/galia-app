@@ -7,7 +7,8 @@ from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
 from app.models import Product, Supply
-from app.models.pos import (ACTIVE_SALE_STATUSES, DISCOUNT_KINDS, DISCOUNT_SCOPES, PAYMENT_KINDS, DiscountTemplate,
+from app.models.pos import (ACTIVE_SALE_STATUSES, DISCOUNT_KINDS, DISCOUNT_SCOPES, PAYMENT_KINDS, CancelReason,
+                            DiscountTemplate,
                             ModifierGroup, ModifierOption, PaymentMethod, PosSale, PosTable, ProductModifierGroup,
                             Salon)
 from app.services.pos.pricing import money
@@ -266,6 +267,17 @@ def update_modifier_group(current_user, group_id):
     return _run(action)
 
 
+@bp.route('/products/<int:product_id>/modifier-groups', methods=['GET'])
+@token_required
+@module_required('Products')
+def get_product_modifier_groups(current_user, product_id):
+    if db.session.get(Product, product_id) is None:
+        return jsonify({'error': 'El producto no existe'}), 404
+    rows = (ProductModifierGroup.query.filter_by(product_id=product_id)
+            .order_by(ProductModifierGroup.position).all())
+    return jsonify({'product_id': product_id, 'group_ids': [r.group_id for r in rows]}), 200
+
+
 @bp.route('/products/<int:product_id>/modifier-groups', methods=['PUT'])
 @token_required
 @module_required('Products')
@@ -397,4 +409,50 @@ def update_discount_template(current_user, template_id):
         _apply_template(template, _body(), creating=False)
         db.session.flush()
         return template.to_dict()
+    return _run(action)
+
+
+# Motivos de anulación (solo admin)
+
+def _apply_cancel_reason(reason, data, creating):
+    if creating or 'name' in data:
+        reason.name = _name(data, 100)
+    if 'position' in data:
+        reason.position = _int(data['position'], 'La posición')
+    if 'is_active' in data:
+        reason.is_active = bool(data['is_active'])
+
+
+@bp.route('/cancel-reasons', methods=['GET'])
+@token_required
+@admin_required
+def list_cancel_reasons(current_user):
+    reasons = CancelReason.query.order_by(CancelReason.position, CancelReason.id).all()
+    return jsonify({'cancel_reasons': [r.to_dict() for r in reasons]}), 200
+
+
+@bp.route('/cancel-reasons', methods=['POST'])
+@token_required
+@admin_required
+def create_cancel_reason(current_user):
+    def action():
+        reason = CancelReason()
+        _apply_cancel_reason(reason, _body(), creating=True)
+        db.session.add(reason)
+        db.session.flush()
+        return reason.to_dict()
+    return _run(action, 201)
+
+
+@bp.route('/cancel-reasons/<int:reason_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_cancel_reason(current_user, reason_id):
+    def action():
+        reason = db.session.get(CancelReason, reason_id)
+        if reason is None:
+            raise not_found('El motivo no existe')
+        _apply_cancel_reason(reason, _body(), creating=False)
+        db.session.flush()
+        return reason.to_dict()
     return _run(action)

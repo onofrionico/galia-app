@@ -2,10 +2,15 @@
 from collections import defaultdict
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
+from app.extensions import db
 from app.models import Product, ProductCategory
-from app.models.pos import (ACTIVE_SALE_STATUSES, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosTable,
+from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosTable,
                             ProductModifierGroup, Salon)
+from app.services.pos import waiters
+from app.services.pos.common import display_name
 from app.services.pos.serializers import sale_to_dict
 from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
@@ -71,3 +76,63 @@ def payment_methods(current_user):
 def discount_templates(current_user):
     templates = DiscountTemplate.query.filter_by(is_active=True).order_by(DiscountTemplate.name).all()
     return jsonify({'discount_templates': [t.to_dict() for t in templates]}), 200
+
+
+@bp.route('/cancel-reasons', methods=['GET'])
+@token_required
+@module_required('POS', 'Camarero', 'Anular')
+def cancel_reasons(current_user):
+    reasons = (CancelReason.query.filter_by(is_active=True)
+               .order_by(CancelReason.position, CancelReason.id).all())
+    return jsonify({'cancel_reasons': [r.to_dict() for r in reasons]}), 200
+
+
+@bp.route('/waiters', methods=['GET'])
+@token_required
+@module_required('POS')
+def list_waiters(current_user):
+    return jsonify({'waiters': [{'id': u.id, 'name': display_name(u)} for u in waiters.list_waiters()]}), 200
+
+
+CHANGES_LIMIT = 500
+CHANGES_OVERLAP = 50
+
+
+def _changed_sale(sale, event_ids):
+    table = sale.table
+    return {'id': sale.id, 'table_id': sale.table_id, 'salon_id': table.salon_id if table else None,
+            'sale_type': sale.sale_type, 'status': sale.status, 'event_ids': event_ids}
+
+
+@bp.route('/changes', methods=['GET'])
+@token_required
+@module_required('POS', 'Camarero')
+def changes(current_user):
+    """Ventas con eventos posteriores a `since`. La UI lo consulta cada pocos segundos.
+
+    Con varios hilos, un evento puede confirmarse después que otro de id mayor. Por eso la ventana
+    arranca CHANGES_OVERLAP ids antes de `since`: devuelve también los eventos recientes ya
+    informados, con sus ids (`event_ids` en total y por venta), y la UI descarta los que ya vio.
+    """
+    last = db.session.query(func.max(PosSaleEvent.id)).scalar() or 0
+    since = request.args.get('since', type=int)
+    if since is None:
+        return jsonify({'last_event_id': last, 'sales': []}), 200
+    if since > last:
+        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+    # En la ventana hay a lo sumo CHANGES_OVERLAP ids <= since; si se llena el límite, hay más de
+    # CHANGES_LIMIT eventos posteriores a since.
+    rows = (db.session.query(PosSaleEvent.id, PosSaleEvent.sale_id)
+            .filter(PosSaleEvent.id > max(0, since - CHANGES_OVERLAP)).order_by(PosSaleEvent.id)
+            .limit(CHANGES_LIMIT + CHANGES_OVERLAP + 1).all())
+    if sum(1 for row in rows if row.id > since) > CHANGES_LIMIT:
+        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+    if not rows:
+        return jsonify({'last_event_id': since, 'event_ids': [], 'sales': []}), 200
+    events_by_sale = defaultdict(list)
+    for row in rows:
+        events_by_sale[row.sale_id].append(row.id)
+    sales = (PosSale.query.options(selectinload(PosSale.table))
+             .filter(PosSale.id.in_(sorted(events_by_sale))).order_by(PosSale.id).all())
+    return jsonify({'last_event_id': max(since, rows[-1].id), 'event_ids': [row.id for row in rows],
+                    'sales': [_changed_sale(s, events_by_sale[s.id]) for s in sales]}), 200

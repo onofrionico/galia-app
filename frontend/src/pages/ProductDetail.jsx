@@ -5,6 +5,7 @@ import productsService from '../services/productsService'
 import suppliesService from '../services/suppliesService'
 import productCategoriesService from '../services/productCategoriesService'
 import EditableNumberInput from '../components/EditableNumberInput'
+import ProductModifiersTab from '../components/products/ProductModifiersTab'
 
 const ProductDetail = () => {
   const { id } = useParams()
@@ -302,7 +303,7 @@ const ProductDetail = () => {
 
       <div className="bg-white rounded-lg shadow">
         <div className="border-b flex">
-          {['info', 'variantes', 'receta', 'historial'].map((tab) => (
+          {['info', 'variantes', 'receta', 'modificadores', 'historial'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -315,6 +316,7 @@ const ProductDetail = () => {
               {tab === 'info' && 'Información'}
               {tab === 'variantes' && 'Variantes'}
               {tab === 'receta' && 'Receta'}
+              {tab === 'modificadores' && 'Modificadores'}
               {tab === 'historial' && 'Historial'}
             </button>
           ))}
@@ -686,6 +688,11 @@ const ProductDetail = () => {
               Este producto no tiene receta. Activa la opción "Tiene receta" en la
               pestaña Información para poder definir insumos.
             </div>
+          )}
+
+          {activeTab === 'modificadores' && product && <ProductModifiersTab productId={product.id} />}
+          {activeTab === 'modificadores' && !product && (
+            <div className="py-8 text-center text-gray-500">Guardá el producto para asignarle modificadores.</div>
           )}
 
           {activeTab === 'historial' && (

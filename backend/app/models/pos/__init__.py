@@ -5,11 +5,12 @@ from app.models.pos.discounts import DISCOUNT_KINDS, DISCOUNT_SCOPES, DiscountTe
 from app.models.pos.sale import (ACTIVE_SALE_STATUSES, ITEM_STATUSES, SALE_STATUSES, SALE_TYPES, PosSale,
                                  PosSaleItem, PosSaleItemModifier)
 from app.models.pos.events import PosSaleEvent
+from app.models.pos.cancel_reasons import CancelReason
 
 __all__ = [
     'Salon', 'PosTable', 'ModifierGroup', 'ModifierOption', 'ProductModifierGroup',
     'PaymentMethod', 'PAYMENT_KINDS', 'PosPayment',
     'DiscountTemplate', 'DISCOUNT_KINDS', 'DISCOUNT_SCOPES', 'PosDiscount',
     'PosSale', 'PosSaleItem', 'PosSaleItemModifier', 'SALE_TYPES', 'SALE_STATUSES', 'ACTIVE_SALE_STATUSES',
-    'ITEM_STATUSES', 'PosSaleEvent',
+    'ITEM_STATUSES', 'PosSaleEvent', 'CancelReason',
 ]

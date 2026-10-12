@@ -27,6 +27,7 @@ import {
   Settings,
   Shield,
   Image as ImageIcon,
+  Store,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -68,6 +69,7 @@ const navGroups = [
     accentText: 'text-galia-lime',
     accentBorder: 'border-galia-lime',
     items: [
+      { to: '/pos', icon: Store, label: 'Abrir POS', anyModule: ['POS', 'Camarero'] },
       { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
       { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
       { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
@@ -83,7 +85,8 @@ const navGroups = [
     accentText: 'text-amber-200',
     accentBorder: 'border-amber-200',
     items: [
-      { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products' },
+      { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products', end: true },
+      { to: '/products/modifiers', icon: Tag, label: 'Modificadores', subItem: true, module: 'Products' },
       { to: '/product-categories', icon: Tag, label: 'Categorías', subItem: true, module: 'Products' },
       { to: '/supplies', icon: Package, label: 'Insumos', module: 'Stock' },
       { to: '/stock', icon: Package, label: 'Stock', module: 'Stock' },
@@ -120,6 +123,7 @@ const navGroups = [
     items: [
       { to: '/permissions', icon: Shield, label: 'Permisos', adminOnly: true },
       { to: '/admin/branding', icon: ImageIcon, label: 'Branding', adminOnly: true },
+      { to: '/admin/pos-settings', icon: Store, label: 'Ajustes del POS', adminOnly: true },
     ],
   },
 ]
@@ -137,6 +141,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const canSee = (item) => {
     if (item.adminOnly) return isAdmin()
+    if (item.anyModule) return item.anyModule.some(hasModuleAccess)
     if (!item.module) return true
     return hasModuleAccess(item.module)
   }
@@ -176,6 +181,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <NavLink
         key={item.to}
         to={item.to}
+        end={item.end}
         onClick={onClose}
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
@@ -262,6 +268,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             <NavLink
                               key={item.to}
                               to={item.to}
+                              end={item.end}
                               onClick={onClose}
                               className={({ isActive }) =>
                                 `flex items-center gap-3 rounded-md transition-colors ${

@@ -5,8 +5,10 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
+from app.models import User
 from app.models.pos import SALE_STATUSES, SALE_TYPES, PosSale, PosSaleEvent
 from app.services.pos import discount_service, payment_service, sale_service
+from app.services.pos.common import display_name
 from app.services.pos.errors import PosError, not_found
 from app.services.pos.serializers import sale_to_dict
 from app.utils.decorators import module_required
@@ -116,7 +118,11 @@ def confirm(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_item(current_user, sale_id, item_id):
-    return _respond(lambda: sale_service.cancel_item(current_user, sale_id, item_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return sale_service.cancel_item(current_user, sale_id, item_id, data.get('reason'),
+                                        reason_id=data.get('reason_id'))
+    return _respond(action)
 
 
 @bp.route('/sales/<int:sale_id>/request-bill', methods=['POST'])
@@ -168,7 +174,11 @@ def add_payment(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_payment(current_user, payment_id):
-    return _respond(lambda: payment_service.cancel_payment(current_user, payment_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return payment_service.cancel_payment(current_user, payment_id, data.get('reason'),
+                                              reason_id=data.get('reason_id'))
+    return _respond(action)
 
 
 @bp.route('/sales/<int:sale_id>/close', methods=['POST'])
@@ -197,7 +207,17 @@ def split_sale(current_user, sale_id):
 @token_required
 @module_required('Anular')
 def cancel_sale(current_user, sale_id):
-    return _respond(lambda: sale_service.cancel_sale(current_user, sale_id, _body().get('reason')))
+    def action():
+        data = _body()
+        return sale_service.cancel_sale(current_user, sale_id, data.get('reason'), reason_id=data.get('reason_id'))
+    return _respond(action)
+
+
+@bp.route('/sales/<int:sale_id>/waiter', methods=['POST'])
+@token_required
+@module_required('POS')
+def change_waiter(current_user, sale_id):
+    return _respond(lambda: sale_service.change_waiter(current_user, sale_id, _body().get('waiter_id')))
 
 
 @bp.route('/sales/<int:sale_id>/events', methods=['GET'])
@@ -207,4 +227,7 @@ def sale_events(current_user, sale_id):
     if db.session.get(PosSale, sale_id) is None:
         return jsonify({'error': 'La venta no existe'}), 404
     events = PosSaleEvent.query.filter_by(sale_id=sale_id).order_by(PosSaleEvent.id).all()
-    return jsonify({'events': [e.to_dict() for e in events]}), 200
+    user_ids = {e.user_id for e in events}
+    users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    return jsonify({'events': [{**e.to_dict(), 'user_name': display_name(users.get(e.user_id))}
+                               for e in events]}), 200

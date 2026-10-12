@@ -60,9 +60,11 @@ api.interceptors.response.use(
         }
       }))
       
-      // Si no estamos en la página de inicio, redirigir después de 2 segundos
-      if (!window.location.pathname.includes('/dashboard') && 
-          !window.location.pathname.includes('/home')) {
+      // Si no estamos en la página de inicio, redirigir después de 2 segundos.
+      // En el POS no: una acción sin permiso no debe sacar a la caja de la pantalla.
+      if (!window.location.pathname.includes('/dashboard') &&
+          !window.location.pathname.includes('/home') &&
+          !window.location.pathname.startsWith('/pos')) {
         setTimeout(() => {
           window.location.href = '/dashboard'
         }, 2000)

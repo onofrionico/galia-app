@@ -10,13 +10,15 @@ from decimal import Decimal
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import ProductVariant, User
+from app.models import ProductVariant
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, projection, stock_hooks
+from app.services.pos.cancel_reasons import resolve_reason
+from app.services.pos import waiters
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
-                                     require_module, require_reason, require_status)
+                                     require_module, require_status)
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.utils.timezone_utils import get_current_date_argentina
 from app.utils.validation import clean_str, parse_decimal
@@ -54,10 +56,7 @@ def open_sale(user, sale_type, table_id=None, people=None, customer_name=None, c
     waiter = user.id
     if waiter_id is not None:
         require_module(user, 'POS', 'Solo la caja puede asignar el mozo')
-        waiter_id = parse_id(waiter_id, 'El mozo')
-        if db.session.get(User, waiter_id) is None:
-            raise bad_request('El mozo no existe')
-        waiter = waiter_id
+        waiter = waiters.get_waiter(waiter_id).id
     sale = PosSale(business_date=get_current_date_argentina(), sale_type=sale_type,
                    table_id=table.id if table else None, people=people, customer_name=customer_name,
                    comment=comment, waiter_id=waiter, status='open', opened_at=now(), opened_by=user.id)
@@ -200,19 +199,20 @@ def reopen(user, sale_id):
     return sale
 
 
-def _cancel_item_row(item, user, reason):
+def _cancel_item_row(item, user, reason, reason_id=None):
     item.status = 'cancelled'
     item.cancelled_at = now()
     item.cancelled_by = user.id
     item.cancel_reason = reason
+    item.cancel_reason_id = reason_id
     for discount in item.discounts:
         if discount.cancelled_at is None:
             discount.cancelled_at = now()
             discount.cancelled_by = user.id
 
 
-def cancel_item(user, sale_id, item_id, reason):
-    reason = require_reason(reason)
+def cancel_item(user, sale_id, item_id, reason, reason_id=None):
+    reason, reason_id = resolve_reason(reason_id, reason)
     sale = load_sale(sale_id)
     require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se anulan ítems de una venta abierta o en cobro')
     item = _find_item(sale, item_id)
@@ -220,24 +220,24 @@ def cancel_item(user, sale_id, item_id, reason):
         raise PosError('El ítem está pendiente: borralo en lugar de anularlo')
     if item.status == 'cancelled':
         raise PosError('El ítem ya está anulado')
-    _cancel_item_row(item, user, reason)
+    _cancel_item_row(item, user, reason, reason_id)
     stock_hooks.restore([item])
     recalc(sale)
     if sale.total < sale.paid_total:
         raise PosError('El total quedaría por debajo de lo ya pagado; anulá un pago primero')
     audit.record(sale, user, 'item_cancelled', item=item, product=item.product_name, quantity=item.quantity,
-                 reason=reason)
+                 reason=reason, reason_id=reason_id)
     close_if_settled(sale, user)
     db.session.commit()
     return sale
 
 
-def cancel_sale_rows(sale, user, reason):
+def cancel_sale_rows(sale, user, reason, reason_id=None):
     """Anula una venta sin pagos activos: ítems, descuentos y stock. No hace commit."""
     confirmed = [i for i in sale.items if i.status == 'confirmed']
     for item in sale.items:
         if item.status != 'cancelled':
-            _cancel_item_row(item, user, reason)
+            _cancel_item_row(item, user, reason, reason_id)
     for discount in sale.discounts:
         if discount.cancelled_at is None:
             discount.cancelled_at = now()
@@ -247,11 +247,12 @@ def cancel_sale_rows(sale, user, reason):
     sale.cancelled_at = now()
     sale.cancelled_by = user.id
     sale.cancel_reason = reason
+    sale.cancel_reason_id = reason_id
     recalc(sale)
 
 
-def cancel_sale(user, sale_id, reason):
-    reason = require_reason(reason)
+def cancel_sale(user, sale_id, reason, reason_id=None):
+    reason, reason_id = resolve_reason(reason_id, reason)
     sale = load_sale(sale_id)
     require_status(sale, tuple(ACTIVE_SALE_STATUSES) + ('closed',),
                    'Solo se anula una venta abierta, en cobro o cerrada sin pagos')
@@ -261,8 +262,8 @@ def cancel_sale(user, sale_id, reason):
         projection.unproject(sale)
         sale.closed_at = None
         sale.closed_by = None
-    cancel_sale_rows(sale, user, reason)
-    audit.record(sale, user, 'cancelled', reason=reason)
+    cancel_sale_rows(sale, user, reason, reason_id)
+    audit.record(sale, user, 'cancelled', reason=reason, reason_id=reason_id)
     db.session.commit()
     return sale
 
@@ -366,3 +367,17 @@ def split_sale(user, sale_id, lines):
         audit.record(sale, user, 'cancelled', reason='Dividida')
     db.session.commit()
     return new
+
+
+def change_waiter(user, sale_id, waiter_id):
+    require_module(user, 'POS', 'Solo la caja puede cambiar el mozo')
+    sale = load_sale(sale_id)
+    require_status(sale, ACTIVE_SALE_STATUSES, 'Solo se cambia el mozo de una venta abierta o en cobro')
+    waiter = waiters.get_waiter(waiter_id)
+    if waiter.id == sale.waiter_id:
+        raise bad_request('La venta ya tiene ese mozo')
+    previous = sale.waiter_id
+    sale.waiter_id = waiter.id
+    audit.record(sale, user, 'waiter_changed', from_waiter_id=previous, to_waiter_id=waiter.id)
+    db.session.commit()
+    return sale
