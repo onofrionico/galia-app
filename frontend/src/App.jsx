@@ -52,6 +52,7 @@ import CounterPage from './pos/counter/CounterPage'
 import PosConfigPage from './pos/config/PosConfigPage'
 import CamareroLayout from './camarero/CamareroLayout'
 import TablesScreen from './camarero/TablesScreen'
+import SaleScreen from './camarero/SaleScreen'
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
           </Route>
           <Route path="/camarero" element={<ProtectedRoute><PosRoute><CamareroLayout /></PosRoute></ProtectedRoute>}>
             <Route index element={<TablesScreen />} />
+            <Route path="venta/:saleId" element={<SaleScreen />} />
           </Route>
           
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
