@@ -1,7 +1,6 @@
 import { formatMoney } from '../utils/money'
 import { tableStatus, tableSummary } from '../utils/floor'
 import { elapsedLabel } from '../utils/time'
-
 import { TABLE_STATUS_STYLES } from './tableStyles'
 
 export default function TableTile({ table, scale, selected, picking, now, onClick, dimmed = false }) {
