@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import FloorPlan from '@/pos/floor/FloorPlan'
 import { useFloor } from '@/pos/hooks/usePosQueries'
 import OpenTableModal from '@/pos/modals/OpenTableModal'
 import CenteredMessage from '@/pos/ui/CenteredMessage'
 import { useDevicePrefs } from './hooks/useDevicePrefs'
 import { pickSalonId } from './utils/salons'
-import { filterTables, isDimmed } from './utils/tableFilters'
+import { filterTables } from './utils/tableFilters'
+import FloorView from './FloorView'
 import TableList from './TableList'
 import TablesTopBar from './TablesTopBar'
 
@@ -56,10 +56,7 @@ export default function TablesScreen() {
       <div className="min-h-0 flex-1 overflow-auto">
         {!ready && <CenteredMessage>Cargando mesas…</CenteredMessage>}
         {ready && prefs.view === 'floor' && (
-          <div className="p-3">
-            <FloorPlan tables={data.tables} isDimmed={(table) => isDimmed(table, prefs.filter, userId)}
-              onTableClick={onTableClick} />
-          </div>
+          <FloorView tables={data.tables} filter={prefs.filter} userId={userId} onTableClick={onTableClick} />
         )}
         {ready && prefs.view !== 'floor' && (
           <TableList tables={filterTables(data.tables, prefs.filter, userId)} userId={userId} onTableClick={onTableClick} />
