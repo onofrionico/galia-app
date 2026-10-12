@@ -9,11 +9,14 @@ const POLL_MS = 3000
 // Consulta /pos/changes cada 3 s con la pestaña visible e invalida solo lo que cambió.
 // El backend repite una ventana de eventos ya informados: se recuerdan los ids vistos y solo se
 // invalidan las ventas con eventos nuevos. Si falla la red, al reconectar refresca todo el POS.
-export function usePosChanges() {
+// onResult(ok, error): informa cada consulta (el celular lo usa para detectar la falta de conexión).
+export function usePosChanges({ onResult } = {}) {
   const queryClient = useQueryClient()
   const lastId = useRef(null)
   const failed = useRef(false)
   const seen = useRef(new Set())
+  const onResultRef = useRef(onResult)
+  onResultRef.current = onResult
 
   useQuery({
     queryKey: ['pos-changes'],
@@ -29,9 +32,11 @@ export function usePosChanges() {
         }
         seen.current = rememberEventIds(seen.current, response.event_ids)
         lastId.current = response.last_event_id
+        onResultRef.current?.(true)
         return response.last_event_id
       } catch (error) {
         failed.current = true
+        onResultRef.current?.(false, error)
         throw error
       }
     },

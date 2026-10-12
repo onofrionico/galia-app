@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { posApi } from '../api/posApi'
 import { posKeys } from '../hooks/keys'
@@ -19,19 +19,26 @@ import SaleHeader from './SaleHeader'
 import SaleHistory from './SaleHistory'
 import Ticket from './Ticket'
 
-function PanelShell({ children }) {
-  return (
-    <aside aria-label="Venta" className="flex h-full w-[400px] flex-shrink-0 flex-col border-l border-gray-200 bg-white xl:w-[440px]">
-      {children}
-    </aside>
-  )
+const SHELLS = {
+  panel: 'flex h-full w-[400px] flex-shrink-0 flex-col border-l border-gray-200 bg-white xl:w-[440px]',
+  screen: 'flex h-full w-full flex-col bg-white pt-[env(safe-area-inset-top)]',
 }
 
-function PanelMessage({ onClose, children }) {
+function PanelShell({ variant, children }) {
+  return <aside aria-label="Venta" className={SHELLS[variant]}>{children}</aside>
+}
+
+function PanelMessage({ variant, closeLabel, onClose, children }) {
   return (
-    <PanelShell>
-      <div className="flex justify-end p-2">
-        <button type="button" onClick={onClose} aria-label="Cerrar panel" className="rounded-lg p-2 hover:bg-gray-100"><X size={20} /></button>
+    <PanelShell variant={variant}>
+      <div className={`flex p-2 ${closeLabel ? 'justify-start' : 'justify-end'}`}>
+        {closeLabel ? (
+          <button type="button" onClick={onClose} className="flex min-h-[44px] items-center gap-1 px-2 font-medium text-galia-plum">
+            <ArrowLeft size={18} /> {closeLabel}
+          </button>
+        ) : (
+          <button type="button" onClick={onClose} aria-label="Cerrar panel" className="rounded-lg p-2 hover:bg-gray-100"><X size={20} /></button>
+        )}
       </div>
       <p className="p-6 text-center text-gray-500">{children}</p>
     </PanelShell>
@@ -39,7 +46,9 @@ function PanelMessage({ onClose, children }) {
 }
 
 // siblings: ventas activas de la misma mesa (pestañas "Cuenta 1", "Cuenta 2").
-export default function SalePanel({ saleId, siblings = [], initialModal = null, onSelect, onClose, onStartMove }) {
+// variant: 'panel' (caja, lateral de 400 px) o 'screen' (celular, pantalla completa con "← closeLabel").
+export default function SalePanel({ saleId, siblings = [], initialModal = null, onSelect, onClose, onStartMove,
+  variant = 'panel', closeLabel = null }) {
   const { data: sale, isLoading, isError } = useSale(saleId)
   const perms = usePosPermissions()
   const toast = useToast()
@@ -48,8 +57,8 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
   const [tab, setTab] = useState('ticket')
   const [modal, setModal] = useState(initialModal ? { type: initialModal } : null)
 
-  if (isLoading) return <PanelMessage onClose={onClose}>Cargando venta…</PanelMessage>
-  if (isError || !sale) return <PanelMessage onClose={onClose}>No se encontró la venta.</PanelMessage>
+  if (isLoading) return <PanelMessage variant={variant} closeLabel={closeLabel} onClose={onClose}>Cargando venta…</PanelMessage>
+  if (isError || !sale) return <PanelMessage variant={variant} closeLabel={closeLabel} onClose={onClose}>No se encontró la venta.</PanelMessage>
 
   const actions = saleActions(sale, perms)
   const { pending } = saleCounts(sale)
@@ -98,8 +107,9 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
     `flex-1 py-2 text-sm font-medium ${active ? 'border-b-2 border-galia-plum text-galia-plum' : 'text-gray-600'}`
 
   return (
-    <PanelShell>
-      <SaleHeader sale={sale} onClose={onClose} canChangeWaiter={actions.changeWaiter} onChangeWaiter={handlers.changeWaiter} />
+    <PanelShell variant={variant}>
+      <SaleHeader sale={sale} onClose={onClose} closeLabel={closeLabel}
+        canChangeWaiter={actions.changeWaiter} onChangeWaiter={handlers.changeWaiter} />
       {siblings.length > 1 && (
         <div className="flex gap-1 overflow-x-auto border-b px-3 py-2" role="tablist" aria-label="Cuentas de la mesa">
           {siblings.map((s, index) => (
@@ -121,7 +131,9 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
           ? <SaleHistory saleId={sale.id} />
           : <Ticket sale={sale} perms={perms} handlers={itemHandlers} busy={busy} />}
       </div>
-      <SaleFooter sale={sale} actions={actions} handlers={handlers} busy={busy} />
+      <div className="bg-gray-50 pb-[env(safe-area-inset-bottom)]">
+        <SaleFooter sale={sale} actions={actions} handlers={handlers} busy={busy} />
+      </div>
 
       {modal?.type === 'add' && <AddProductsModal sale={sale} onClose={closeModal} />}
       {modal?.type === 'pay' && (

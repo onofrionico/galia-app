@@ -5,6 +5,7 @@ import { useLookup } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
 import { useSaleMutation } from '../hooks/useSaleMutation'
 import Modal from '../ui/Modal'
+import { useModalPresentation } from '../ui/ModalPresentation'
 import { btn } from '../ui/buttons'
 import { changeFor, quickTenders } from '../utils/change'
 import { newRequestId } from '../utils/ids'
@@ -30,6 +31,8 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [cancelling, setCancelling] = useState(null)
   const requestId = useRef(newRequestId())
   const { run, busy } = useSaleMutation()
+  // En el celular se usa el teclado del teléfono (los campos tienen inputMode="decimal").
+  const showKeypad = useModalPresentation() !== 'sheet'
 
   const method = methods.find((m) => m.id === methodId) ?? methods[0] ?? null
   const isCash = method?.kind === 'cash'
@@ -164,7 +167,7 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
               </p>
             </>
           )}
-          <div className="mt-3"><NumericKeypad onKey={onKey} /></div>
+          {showKeypad && <div className="mt-3"><NumericKeypad onKey={onKey} /></div>}
           {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
           <button type="button" className={btn('primary', 'mt-3 w-full text-lg')} disabled={busy} onClick={submit}>
             {amount >= sale.balance ? 'Registrar pago y cerrar' : 'Registrar pago'}

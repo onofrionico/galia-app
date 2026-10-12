@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { postLoginPath, takeStoredRedirect } from '@/utils/postLogin'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -9,6 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -16,8 +18,13 @@ const Login = () => {
     setLoading(true)
 
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      const { user, modules } = await login(email, password)
+      navigate(postLoginPath({
+        from: location.state?.from,
+        stored: takeStoredRedirect(),
+        isAdmin: user?.role === 'admin',
+        modules,
+      }), { replace: true })
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión')
     } finally {
