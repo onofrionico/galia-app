@@ -11,6 +11,7 @@ Usuarios de prueba (contraseña DEMO_PASSWORD):
     admin@galia.test  admin
     caja@galia.test   POS, Cobrar, Anular, Descuentos
     mozo@galia.test   Camarero
+    mozo2@galia.test  Camarero, Cobrar, Anular
 """
 import os
 import sys
@@ -72,6 +73,7 @@ def seed():
     _user('admin@galia.test', 'admin')
     _user('caja@galia.test', 'employee', ('POS', 'Cobrar', 'Anular', 'Descuentos'))
     _user('mozo@galia.test', 'employee', ('Camarero',))
+    _user('mozo2@galia.test', 'employee', ('Camarero', 'Cobrar', 'Anular'))
 
     cafeteria = ProductCategory(name='Cafetería')
     panaderia = ProductCategory(name='Panadería')
