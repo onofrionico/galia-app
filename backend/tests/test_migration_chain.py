@@ -46,3 +46,7 @@ def test_pos_sales_engine_is_head():
 
 def test_pos_cash_ui_support_is_head():
     assert _revisions()['b1b1_add_pos_cash_ui_support'] == ['b1a4_add_pos_sales_engine']
+
+
+def test_cash_registers_follows_cash_ui_support():
+    assert _revisions()['b2a0_add_cash_registers'] == ['b1b1_add_pos_cash_ui_support']
