@@ -10,6 +10,8 @@ export function keysToInvalidate(response) {
   for (const sale of sales) keys.push(posKeys.sale(sale.id), posKeys.events(sale.id))
   if (sales.some((s) => s.sale_type === 'salon')) keys.push(posKeys.floors)
   if (sales.some((s) => s.sale_type === 'counter')) keys.push(posKeys.sales)
+  // Cobros y anulaciones no tocan `cash_version`, pero cambian el resumen de la sesión de caja.
+  keys.push(posKeys.cashSessionAll)
   return keys
 }
 

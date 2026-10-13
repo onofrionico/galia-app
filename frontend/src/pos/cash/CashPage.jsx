@@ -28,7 +28,7 @@ function LastClosed({ registerId }) {
 
 export default function CashPage() {
   const { register, openSessionId, isLoading, isError } = useMainRegister()
-  const { data: session, isError: sessionError } = useCashSession(openSessionId)
+  const { data: session, isError: sessionError, isFetching: sessionFetching } = useCashSession(openSessionId)
   const [modal, setModal] = useState(null)
   const [closedResult, setClosedResult] = useState(null)
   const close = () => setModal(null)
@@ -74,7 +74,7 @@ export default function CashPage() {
       <MovementList session={session} />
       {['expense', 'withdrawal', 'deposit'].includes(modal) && <MovementModal session={session} kind={modal} onClose={close} />}
       {modal === 'close' && (
-        <CloseSessionModal session={session} onClose={close}
+        <CloseSessionModal session={session} refreshing={sessionFetching} onClose={close}
           onClosed={(result) => { setClosedResult(result); setModal(null) }} />
       )}
       {closeSummary}

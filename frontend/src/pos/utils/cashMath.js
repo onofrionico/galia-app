@@ -15,7 +15,8 @@ export function differenceTone(diff) {
   return 'even'
 }
 
-// Valida el cierre: el efectivo es obligatorio, lo vacío vale lo esperado y una diferencia exige nota.
+// Valida el cierre: el efectivo es obligatorio y una diferencia exige nota. Los medios vacíos
+// no se envían: el backend toma su esperado actual (el del cliente puede estar desactualizado).
 export function closeValidation(methods, texts, note) {
   const counts = []
   let hasDifference = false
@@ -23,7 +24,6 @@ export function closeValidation(methods, texts, note) {
     const text = String(texts[method.payment_method_id] ?? '').trim()
     if (!text) {
       if (method.kind === 'cash') return { ok: false, error: 'Cargá lo contado en efectivo', counts: [] }
-      counts.push({ payment_method_id: method.payment_method_id, counted: Number(method.expected) })
       continue
     }
     const counted = parseAmount(text)

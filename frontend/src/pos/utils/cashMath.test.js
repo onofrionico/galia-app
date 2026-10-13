@@ -31,10 +31,10 @@ describe('closeValidation', () => {
     expect(result.error).toBe('Cargá lo contado en efectivo')
   })
 
-  it('toma lo esperado en los medios vacíos', () => {
+  it('toma lo esperado en los medios vacíos (no los envía: el backend usa su esperado)', () => {
     const result = closeValidation(methods, { 1: '1900' }, '')
     expect(result).toEqual({ ok: true, error: null, counts: [
-      { payment_method_id: 1, counted: 1900 }, { payment_method_id: 2, counted: 900 },
+      { payment_method_id: 1, counted: 1900 },
     ] })
   })
 

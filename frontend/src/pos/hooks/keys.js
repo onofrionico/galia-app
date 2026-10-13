@@ -14,6 +14,7 @@ export const posKeys = {
   tables: (salonId) => ['pos', 'config', 'tables', salonId],
   cash: ['pos', 'cash'],
   cashRegisters: ['pos', 'cash', 'registers'],
+  cashSessionAll: ['pos', 'cash', 'session'],
   cashSession: (id) => ['pos', 'cash', 'session', id],
   cashSessions: (params) => ['pos', 'cash', 'sessions', params],
   cashUnassigned: (params) => ['pos', 'cash', 'unassigned', params],

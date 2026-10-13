@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { posCashApi } from '../api/posApi'
+import { posKeys } from '../hooks/keys'
 import { useCashMutation } from '../hooks/useCash'
 import NumericKeypad from '../modals/NumericKeypad'
 import Modal from '../ui/Modal'
@@ -29,13 +31,24 @@ export function CloseSummaryModal({ result, onClose }) {
   )
 }
 
-export default function CloseSessionModal({ session, onClose, onClosed }) {
+export default function CloseSessionModal({ session, refreshing = false, onClose, onClosed }) {
   const methods = session.summary.methods
   const [texts, setTexts] = useState({})
   const [focused, setFocused] = useState(methods.find((m) => m.kind === 'cash')?.payment_method_id ?? null)
   const [fresh, setFresh] = useState(true)
   const [note, setNote] = useState('')
   const { run, busy } = useCashMutation()
+  const queryClient = useQueryClient()
+  const sessionId = session.id
+  // Al abrir, se relee la sesión: lo esperado y las ventas abiertas pueden haber cambiado en otra terminal.
+  // `reread` cubre el primer render, antes de que `refreshing` (isFetching) pase a true.
+  const [reread, setReread] = useState(false)
+  useEffect(() => {
+    let active = true
+    queryClient.invalidateQueries({ queryKey: posKeys.cashSession(sessionId) })
+      .finally(() => { if (active) setReread(true) })
+    return () => { active = false }
+  }, [queryClient, sessionId])
   const validation = closeValidation(methods, texts, note)
 
   if (session.summary.open_sales > 0) {
@@ -97,7 +110,7 @@ export default function CloseSessionModal({ session, onClose, onClosed }) {
         </div>
         <div>
           <NumericKeypad onKey={onKey} />
-          <button type="button" className={btn('primary', 'mt-3 w-full text-lg')} disabled={busy || !validation.ok}
+          <button type="button" className={btn('primary', 'mt-3 w-full text-lg')} disabled={busy || !reread || refreshing || !validation.ok}
             onClick={submit}>
             Confirmar cierre
           </button>

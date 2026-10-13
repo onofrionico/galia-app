@@ -16,8 +16,13 @@ describe('keysToInvalidate', () => {
     })
     expect(keys).toEqual([
       ['pos', 'sale', 3], ['pos', 'events', 3], ['pos', 'sale', 4], ['pos', 'events', 4],
-      ['pos', 'floor'], ['pos', 'sales'],
+      ['pos', 'floor'], ['pos', 'sales'], ['pos', 'cash', 'session'],
     ])
+  })
+  it('con ventas cambiadas refresca las sesiones de caja (cobros y anulaciones)', () => {
+    const keys = keysToInvalidate({ last_event_id: 8, sales: [{ id: 6, sale_type: 'counter' }] })
+    expect(keys).toContainEqual(['pos', 'cash', 'session'])
+    expect(keysToInvalidate({ last_event_id: 8, sales: [] })).not.toContainEqual(['pos', 'cash', 'session'])
   })
 })
 
@@ -41,7 +46,7 @@ describe('unseenChanges', () => {
     }
     const filtered = unseenChanges(response, seen)
     expect(filtered.sales.map((s) => s.id)).toEqual([5])
-    expect(keysToInvalidate(filtered)).toEqual([['pos', 'sale', 5], ['pos', 'events', 5], ['pos', 'floor']])
+    expect(keysToInvalidate(filtered)).toEqual([['pos', 'sale', 5], ['pos', 'events', 5], ['pos', 'floor'], ['pos', 'cash', 'session']])
   })
   it('respeta reset y ventas sin event_ids (backend viejo)', () => {
     const reset = { last_event_id: 9, reset: true, sales: [] }

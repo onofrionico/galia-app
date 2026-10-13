@@ -17,7 +17,13 @@ export const useRegisters = (enabled = true) => useQuery({
 export function useMainRegister(enabled = true) {
   const query = useRegisters(enabled)
   const register = query.data?.[0] ?? null
-  return { register, openSessionId: register?.open_session?.id ?? null, isLoading: query.isLoading, isError: query.isError }
+  // Un error de refresco en segundo plano no oculta los datos que ya están en caché.
+  return {
+    register,
+    openSessionId: register?.open_session?.id ?? null,
+    isLoading: query.isLoading,
+    isError: query.isError && !query.data,
+  }
 }
 
 export const useCashSession = (id) => useQuery({
