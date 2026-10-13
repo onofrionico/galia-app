@@ -78,3 +78,9 @@ def test_price_only_change_reports_no_structure_change(menu_app, storage):
     publish(storage)
     result = sync_and_publish(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]), storage)
     assert result['published'] is True and result['structure_changed'] is False
+
+
+def test_nightly_sync_includes_products_catalog(menu_app, storage):
+    result = sync_and_publish(FakeFudoClient(products=[fudo_product(1, 'Latte', 6900)]), storage)
+
+    assert result['catalog']['products_created'] == 1
