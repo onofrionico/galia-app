@@ -9,6 +9,8 @@ import MySchedule from './pages/MySchedule'
 import TimeTracking from './pages/TimeTracking'
 import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
+import CashSessions from './pages/CashSessions'
+import CashSessionDetail from './pages/CashSessionDetail'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
 import EmployeeForm from './pages/EmployeeForm'
@@ -83,6 +85,8 @@ function App() {
             <Route path="/import-time-tracking" element={<RoleProtectedRoute moduleName="Schedules"><ImportTimeTracking /></RoleProtectedRoute>} />
             <Route path="/sales" element={<RoleProtectedRoute moduleName="Sales"><Sales /></RoleProtectedRoute>} />
             <Route path="/expenses" element={<RoleProtectedRoute moduleName="Expenses"><Expenses /></RoleProtectedRoute>} />
+            <Route path="/cash-sessions" element={<RoleProtectedRoute moduleName="POS"><CashSessions /></RoleProtectedRoute>} />
+            <Route path="/cash-sessions/:id" element={<RoleProtectedRoute moduleName="POS"><CashSessionDetail /></RoleProtectedRoute>} />
             <Route path="/expense-categories" element={<RoleProtectedRoute moduleName="Expenses"><ExpenseCategories /></RoleProtectedRoute>} />
             <Route path="/reports" element={<RoleProtectedRoute moduleName="Reports"><Reports /></RoleProtectedRoute>} />
             <Route path="/employees" element={<RoleProtectedRoute moduleName="Employees"><Employees /></RoleProtectedRoute>} />
