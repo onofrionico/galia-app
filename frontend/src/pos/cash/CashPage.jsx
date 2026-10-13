@@ -4,11 +4,11 @@ import { posCashApi } from '../api/posApi'
 import { posKeys } from '../hooks/keys'
 import { useCashSession, useMainRegister } from '../hooks/useCash'
 import CenteredMessage from '../ui/CenteredMessage'
-import Modal from '../ui/Modal'
 import { btn } from '../ui/buttons'
 import { formatMoney } from '../utils/money'
 import { timeLabel } from '../utils/time'
 import CashSummaryCards from './CashSummaryCards'
+import CloseSessionModal from './CloseSessionModal'
 import MovementList from './MovementList'
 import MovementModal from './MovementModal'
 import OpenSessionModal from './OpenSessionModal'
@@ -69,11 +69,7 @@ export default function CashPage() {
       <h3 className="font-semibold">Movimientos</h3>
       <MovementList session={session} />
       {['expense', 'withdrawal', 'deposit'].includes(modal) && <MovementModal session={session} kind={modal} onClose={close} />}
-      {modal === 'close' && (
-        <Modal title="Cerrar caja" onClose={close} size="sm">
-          <p>El cierre llega en la próxima tarea.</p>
-        </Modal>
-      )}
+      {modal === 'close' && <CloseSessionModal session={session} onClose={close} />}
     </div>
   )
 }
