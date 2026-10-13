@@ -107,7 +107,7 @@ valor enviado es distinto del actual (así el formulario puede reenviar el objet
 - `DELETE /products/<id>`: 409 si está vinculado.
 - `PUT /products/<id>/variants/<vid>`: si la variante está vinculada, 409 al cambiar `name`, `price` o
   `is_active`. `stock_quantity` y `min_stock` siguen editables.
-- `DELETE /products/<id>/variants/<vid>`: 409 si está vinculada.
+- `DELETE /products/<id>/variants/<vid>`: 409 si está vinculada, salvo que esté `missing` (ya no existe en Fudo): en ese caso se desvincula (`fudo_product_id` y `fudo_status` en null) y queda inactiva, para poder resolver la alerta.
 - `POST /products/<id>/variants`: sigue permitido en Productos vinculados (variantes manuales).
 
 Endpoints nuevos (todos `@token_required` + `@module_required('Products')`, salvo el GET que es

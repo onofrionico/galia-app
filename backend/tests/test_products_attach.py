@@ -78,6 +78,40 @@ def test_sync_after_attach_keeps_source_inactive(menu_client, admin_headers):
     assert Product.query.count() == 2
 
 
+def test_attach_into_inactive_product_reactivates_it(menu_client, admin_headers):
+    _sync([fudo_product(1, 'Café chico', 3000)])
+    old = _product_of(1)
+    _sync([fudo_product(7, 'Café chico nuevo', 3100)])
+    assert old.is_active is False
+
+    response = menu_client.post(f'/api/v1/products/{old.id}/variants/attach',
+                                json={'fudo_product_id': '7'}, headers=admin_headers)
+
+    assert response.status_code == 200
+    assert response.get_json()['is_active'] is True
+    assert old.is_active is True
+
+
+def test_delete_missing_variant_clears_the_alert(menu_client, admin_headers):
+    _sync([fudo_product(1, 'Café chico', 3000), fudo_product(2, 'Café grande', 3500)])
+    product = _product_of(1)
+    menu_client.post(f'/api/v1/products/{product.id}/variants/attach',
+                     json={'fudo_product_id': '2'}, headers=admin_headers)
+    _sync([fudo_product(2, 'Café grande', 3500)])
+    missing = ProductVariant.query.filter_by(fudo_product_id='1').one()
+
+    response = menu_client.delete(f'/api/v1/products/{product.id}/variants/{missing.id}', headers=admin_headers)
+
+    assert response.status_code == 200
+    assert missing.fudo_product_id is None and missing.fudo_status is None
+    assert missing.is_active is False
+    data = menu_client.get(f'/api/v1/products/{product.id}', headers=admin_headers).get_json()
+    assert data['fudo_alerts'] == 0
+    ok = ProductVariant.query.filter_by(fudo_product_id='2').one()
+    assert menu_client.delete(f'/api/v1/products/{product.id}/variants/{ok.id}',
+                              headers=admin_headers).status_code == 409
+
+
 def test_attach_creates_variant_for_unlinked_fudo_product(menu_client, admin_headers):
     _sync([fudo_product(1, 'Café chico', 3000), fudo_product(3, 'Café XL', 4000, active=False)])
     target = _product_of(1)

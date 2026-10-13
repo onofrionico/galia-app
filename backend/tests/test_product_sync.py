@@ -85,6 +85,27 @@ def test_adopts_unlinked_category_with_same_name_ignoring_case(menu_app):
     assert ProductCategory.query.count() == 1
 
 
+def test_adopts_category_with_accented_uppercase_name(menu_app):
+    manual = ProductCategory(name='PANADERÍA')
+    db.session.add(manual)
+    db.session.commit()
+
+    result = product_sync_service.sync_product_categories([fudo_category(1, 'PANADERÍA')], _stats())
+    db.session.commit()
+
+    assert result['1'].id == manual.id
+    assert ProductCategory.query.count() == 1
+
+
+def test_accented_name_clash_gets_suffix_instead_of_failing(menu_app):
+    product_sync_service.sync_product_categories([fudo_category(1, 'PANADERÍA')], _stats())
+    result = product_sync_service.sync_product_categories(
+        [fudo_category(1, 'PANADERÍA'), fudo_category(2, 'Panadería')], _stats())
+    db.session.commit()
+
+    assert result['2'].name == 'Panadería (Fudo)'
+
+
 def test_name_clash_with_other_linked_category_gets_suffix(menu_app):
     product_sync_service.sync_product_categories([fudo_category(1, 'Bebidas')], _stats())
     result = product_sync_service.sync_product_categories(

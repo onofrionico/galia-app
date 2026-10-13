@@ -586,7 +586,7 @@ const ProductDetail = () => {
                           />
                         </td>
                         <td className="px-4 py-2">
-                          {linked ? (
+                          {linked && status !== 'missing' ? (
                             variants.length > 1 && (
                               <button
                                 onClick={() => handleDetachVariant(variant)}

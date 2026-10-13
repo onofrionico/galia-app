@@ -280,7 +280,11 @@ def update_variant(current_user, product_id, variant_id):
 def delete_variant(current_user, product_id, variant_id):
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
     if variant.fudo_product_id:
-        return _fudo_locked()
+        if variant.fudo_status != 'missing':
+            return _fudo_locked()
+        # Ya no existe en Fudo: se desvincula para poder resolver la alerta.
+        variant.fudo_product_id = None
+        variant.fudo_status = None
     variant.is_active = False
     db.session.commit()
     return jsonify({'message': 'Variante desactivada correctamente'}), 200
@@ -442,10 +446,10 @@ def fudo_candidates(current_user):
     ]}), 200
 
 
-def _deactivate_if_empty(product):
+def _refresh_active(product):
+    """Un Producto vinculado a Fudo está activo si tiene alguna variante activa."""
     db.session.flush()
-    if product.variants.filter_by(is_active=True).count() == 0:
-        product.is_active = False
+    product.is_active = product.variants.filter_by(is_active=True).count() > 0
 
 
 @bp.route('/<int:product_id>/variants/attach', methods=['POST'])
@@ -475,7 +479,8 @@ def attach_fudo_variant(current_user, product_id):
     else:
         source = db.session.get(Product, variant.product_id)
         variant.product_id = product.id
-        _deactivate_if_empty(source)
+        _refresh_active(source)
+    _refresh_active(product)
     db.session.commit()
     return jsonify(product_detail(product)), 200
 
@@ -495,6 +500,6 @@ def detach_variant(current_user, product_id, variant_id):
     db.session.add(new_product)
     db.session.flush()
     variant.product_id = new_product.id
-    _deactivate_if_empty(product)
+    _refresh_active(product)
     db.session.commit()
     return jsonify(product_detail(new_product)), 201

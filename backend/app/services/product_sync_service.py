@@ -5,8 +5,6 @@ No hace commit: lo hace quien lo llama (menu_sync_service.sync_fudo_products).
 """
 from decimal import Decimal
 
-from sqlalchemy import func
-
 from app.extensions import db
 from app.models.product import Product
 from app.models.product_category import ProductCategory
@@ -16,11 +14,15 @@ NO_CATEGORY_ID = '__none__'
 NO_CATEGORY_NAME = 'Sin categoría'
 
 
+def _key(name):
+    # Se compara en Python: lower() de SQLite (y de Postgres con locale C) no pasa a minúscula letras acentuadas.
+    return name.strip().casefold()
+
+
 def _name_taken(name, exclude_id=None):
-    query = ProductCategory.query.filter(func.lower(ProductCategory.name) == name.lower())
-    if exclude_id is not None:
-        query = query.filter(ProductCategory.id != exclude_id)
-    return db.session.query(query.exists()).scalar()
+    key = _key(name)
+    rows = db.session.query(ProductCategory.id, ProductCategory.name)
+    return any(_key(other) == key for category_id, other in rows if category_id != exclude_id)
 
 
 def _free_name(base, exclude_id=None):
@@ -41,10 +43,11 @@ def upsert_category(by_fudo_id, fudo_category_id, name, stats):
     category = by_fudo_id.get(fudo_category_id)
     if category is None:
         clean = name.strip()[:100] or 'Sin nombre'
-        category = ProductCategory.query.filter(
-            func.lower(ProductCategory.name) == clean.lower(),
-            ProductCategory.fudo_category_id.is_(None),
-        ).first()
+        category = next(
+            (c for c in ProductCategory.query.filter(ProductCategory.fudo_category_id.is_(None))
+             if _key(c.name) == _key(clean)),
+            None,
+        )
         if category is None:
             category = ProductCategory(name=_free_name(clean))
             db.session.add(category)
