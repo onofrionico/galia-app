@@ -12,6 +12,10 @@ from app.utils.decorators import module_required, authenticated_only
 from app.utils.validation import clean_str, json_object, parse_decimal
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.menu_storage import get_menu_storage, public_url
+from app.services.product_fudo_info import (
+    FUDO_LOCKED_ERROR, LOCKED_VARIANT_FIELDS, changes_locked, fudo_info, fudo_payload,
+    locked_product_fields, product_detail,
+)
 
 UPLOAD_OVERHEAD_BYTES = 1024 * 1024  # overhead multipart
 
@@ -29,6 +33,10 @@ def _bad_body():
     return jsonify(_BAD_BODY[0]), _BAD_BODY[1]
 
 
+def _fudo_locked():
+    return jsonify({'error': FUDO_LOCKED_ERROR}), 409
+
+
 def _valid_id(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
@@ -43,8 +51,14 @@ def list_products(current_user):
     page = request.args.get('page', 1, type=int)
     per_page = max(1, min(request.args.get('per_page', 50, type=int), 200))
 
+    fudo_alerts = request.args.get('fudo_alerts', 'false').lower() == 'true'
+
     query = Product.query
-    if not include_inactive:
+    if fudo_alerts:
+        alert_ids = db.session.query(ProductVariant.product_id).filter(
+            ProductVariant.fudo_status.in_(['missing', 'inactive']))
+        query = query.filter(Product.id.in_(alert_ids))
+    elif not include_inactive:
         query = query.filter(Product.is_active == True)
     if category_id:
         query = query.filter(Product.category_id == category_id)
@@ -57,6 +71,10 @@ def list_products(current_user):
     for p in products:
         variants = ProductVariant.query.filter_by(product_id=p['id'], is_active=True).all()
         p['variants'] = [v.to_dict() for v in variants]
+
+    info = fudo_info([p['id'] for p in products])
+    for p in products:
+        p.update(fudo_payload(info.get(p['id'])))
 
     return jsonify({
         'products': products,
@@ -110,16 +128,7 @@ def create_product(current_user):
 @authenticated_only
 def get_product(current_user, product_id):
     product = Product.query.get_or_404(product_id)
-    data = product.to_dict()
-
-    variants = ProductVariant.query.filter_by(product_id=product_id).all()
-    data['variants'] = [v.to_dict() for v in variants]
-
-    if product.has_recipe:
-        recipe = ProductRecipeItem.query.filter_by(product_id=product_id).all()
-        data['recipe'] = [r.to_dict() for r in recipe]
-
-    return jsonify(data), 200
+    return jsonify(product_detail(product)), 200
 
 
 @bp.route('/<int:product_id>', methods=['PUT'])
@@ -130,6 +139,10 @@ def update_product(current_user, product_id):
     data = json_object()
     if data is None:
         return _bad_body()
+
+    locked = locked_product_fields(fudo_info([product.id]).get(product.id))
+    if changes_locked(data, locked, product):
+        return _fudo_locked()
 
     try:
         if 'name' in data:
@@ -163,7 +176,7 @@ def update_product(current_user, product_id):
         product.is_active = bool(data['is_active'])
 
     db.session.commit()
-    return jsonify(product.to_dict()), 200
+    return jsonify(product_detail(product)), 200
 
 
 @bp.route('/<int:product_id>', methods=['DELETE'])
@@ -171,6 +184,8 @@ def update_product(current_user, product_id):
 @module_required('Products')
 def delete_product(current_user, product_id):
     product = Product.query.get_or_404(product_id)
+    if fudo_info([product.id]):
+        return _fudo_locked()
     product.is_active = False
     db.session.commit()
     return jsonify({'message': 'Producto desactivado correctamente'}), 200
@@ -227,6 +242,8 @@ def update_variant(current_user, product_id, variant_id):
     data = json_object()
     if data is None:
         return _bad_body()
+    if variant.fudo_product_id and changes_locked(data, LOCKED_VARIANT_FIELDS, variant):
+        return _fudo_locked()
 
     try:
         updates = {}
@@ -259,6 +276,8 @@ def update_variant(current_user, product_id, variant_id):
 @module_required('Products')
 def delete_variant(current_user, product_id, variant_id):
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
+    if variant.fudo_product_id:
+        return _fudo_locked()
     variant.is_active = False
     db.session.commit()
     return jsonify({'message': 'Variante desactivada correctamente'}), 200
