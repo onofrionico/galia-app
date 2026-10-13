@@ -7,6 +7,7 @@ from app.extensions import db
 from app.models.pos import PaymentMethod, PosPayment
 from app.services.pos import audit, pricing, projection
 from app.services.pos.cancel_reasons import resolve_reason
+from app.services.pos.cash_service import current_session_id
 from app.services.pos.closing import close_sale_rows
 from app.services.pos.common import (MAX_MONEY, active_payments, load_sale, now, parse_id, recalc)
 from app.services.pos.errors import PosError, bad_request, not_found
@@ -57,7 +58,8 @@ def add_payment(user, sale_id, payment_method_id, amount, tendered=None, client_
         tendered = pricing.money(parse_decimal(tendered, 'El monto entregado', minimum=amount, maximum=MAX_MONEY))
         change = tendered - amount
     payment = PosPayment(payment_method_id=method.id, method_name=method.name, amount=amount, tendered=tendered,
-                         change=change, client_request_id=request_id, created_by=user.id, created_at=now())
+                         change=change, client_request_id=request_id, created_by=user.id, created_at=now(),
+                         cash_session_id=current_session_id())
     sale.payments.append(payment)
     try:
         recalc(sale)
@@ -105,6 +107,7 @@ def cancel_payment(user, payment_id, reason, reason_id=None):
     payment.cancelled_by = user.id
     payment.cancel_reason = reason
     payment.cancel_reason_id = reason_id
+    payment.cancel_cash_session_id = current_session_id()
     was_closed = sale.status == 'closed'
     if was_closed:
         projection.unproject(sale)
