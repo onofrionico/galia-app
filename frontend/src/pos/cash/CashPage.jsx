@@ -28,7 +28,7 @@ function LastClosed({ registerId }) {
 
 export default function CashPage() {
   const { register, openSessionId, isLoading, isError } = useMainRegister()
-  const { data: session } = useCashSession(openSessionId)
+  const { data: session, isError: sessionError } = useCashSession(openSessionId)
   const [modal, setModal] = useState(null)
   const close = () => setModal(null)
 
@@ -46,6 +46,7 @@ export default function CashPage() {
       </div>
     )
   }
+  if (!session && sessionError) return <CenteredMessage>No se pudo cargar la caja.</CenteredMessage>
   if (!session) return <CenteredMessage>Cargando caja…</CenteredMessage>
 
   return (

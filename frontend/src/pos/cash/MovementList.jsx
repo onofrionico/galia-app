@@ -17,12 +17,14 @@ export default function MovementList({ session }) {
   const { run, busy } = useCashMutation()
   const canCancel = isAdmin() && session.status === 'open'
 
+  const dismiss = () => {
+    setCancelling(null)
+    setReason('')
+  }
+
   const confirm = async () => {
     if (!reason.trim()) return
-    if (await run(() => posCashApi.cancelMovement(cancelling.id, reason.trim()))) {
-      setCancelling(null)
-      setReason('')
-    }
+    if (await run(() => posCashApi.cancelMovement(cancelling.id, reason.trim()))) dismiss()
   }
 
   return (
@@ -42,10 +44,10 @@ export default function MovementList({ session }) {
       </ul>
       {cancelling && (
         <Modal title={`Anular ${LABELS[cancelling.kind].toLowerCase()} de ${formatMoney(cancelling.amount)}`}
-          onClose={() => setCancelling(null)} size="sm"
+          onClose={dismiss} size="sm"
           footer={(
             <div className="flex justify-end gap-2">
-              <button type="button" className={btn('secondary')} onClick={() => setCancelling(null)}>Volver</button>
+              <button type="button" className={btn('secondary')} onClick={dismiss}>Volver</button>
               <button type="button" className={btn('danger')} disabled={busy || !reason.trim()} onClick={confirm}>Anular</button>
             </div>
           )}>
