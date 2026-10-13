@@ -10,6 +10,8 @@ class ProductCategory(db.Model):
     color = db.Column(db.String(20), nullable=True)
     icon = db.Column(db.String(10), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    fudo_category_id = db.Column(db.String(20), unique=True, nullable=True)
+    fudo_status = db.Column(db.String(20), nullable=True)  # None | 'missing'
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -23,6 +25,8 @@ class ProductCategory(db.Model):
             'color': self.color,
             'icon': self.icon,
             'is_active': self.is_active,
+            'fudo_category_id': self.fudo_category_id,
+            'fudo_status': self.fudo_status,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }
