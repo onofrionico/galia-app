@@ -6,6 +6,8 @@ from app.models.pos.sale import (ACTIVE_SALE_STATUSES, ITEM_STATUSES, SALE_STATU
                                  PosSaleItem, PosSaleItemModifier)
 from app.models.pos.events import PosSaleEvent
 from app.models.pos.cancel_reasons import CancelReason
+from app.models.pos.cash import (CASH_MOVEMENT_KINDS, CASH_SESSION_STATUSES, CashEvent, CashMovement, CashRegister,
+                                 CashSession, CashSessionCount)
 
 __all__ = [
     'Salon', 'PosTable', 'ModifierGroup', 'ModifierOption', 'ProductModifierGroup',
@@ -13,4 +15,6 @@ __all__ = [
     'DiscountTemplate', 'DISCOUNT_KINDS', 'DISCOUNT_SCOPES', 'PosDiscount',
     'PosSale', 'PosSaleItem', 'PosSaleItemModifier', 'SALE_TYPES', 'SALE_STATUSES', 'ACTIVE_SALE_STATUSES',
     'ITEM_STATUSES', 'PosSaleEvent', 'CancelReason',
+    'CashRegister', 'CashSession', 'CashMovement', 'CashSessionCount', 'CashEvent',
+    'CASH_MOVEMENT_KINDS', 'CASH_SESSION_STATUSES',
 ]

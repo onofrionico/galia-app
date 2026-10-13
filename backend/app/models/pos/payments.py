@@ -34,6 +34,9 @@ class PosPayment(db.Model):
     cancelled_at = db.Column(db.DateTime, nullable=True)
     cancel_reason = db.Column(db.String(255), nullable=True)
     cancel_reason_id = db.Column(db.Integer, db.ForeignKey('cancel_reasons.id'), nullable=True)
+    # Sesión de caja abierta al registrar el pago y al anularlo (nulas: sin caja).
+    cash_session_id = db.Column(db.Integer, db.ForeignKey('cash_sessions.id'), nullable=True, index=True)
+    cancel_cash_session_id = db.Column(db.Integer, db.ForeignKey('cash_sessions.id'), nullable=True, index=True)
 
     sale = db.relationship('PosSale', back_populates='payments')
 

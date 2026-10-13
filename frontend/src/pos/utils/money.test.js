@@ -21,6 +21,16 @@ describe('parseAmount', () => {
     expect(parseAmount('1500,5')).toBe(1500.5)
     expect(parseAmount('$ 2.000,25')).toBe(2000.25)
   })
+  it('toma un punto final con 1 o 2 dígitos como decimal', () => {
+    expect(parseAmount('12.50')).toBe(12.5)
+    expect(parseAmount('1.5')).toBe(1.5)
+    expect(parseAmount('0.75')).toBe(0.75)
+  })
+  it('mantiene puntos de miles', () => {
+    expect(parseAmount('10.000')).toBe(10000)
+    expect(parseAmount('1.234.567')).toBe(1234567)
+    expect(parseAmount('1.234.50')).toBe(123450)
+  })
   it('devuelve NaN si no hay número', () => {
     expect(parseAmount('')).toBeNaN()
     expect(parseAmount('abc')).toBeNaN()
