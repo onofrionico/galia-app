@@ -8,7 +8,7 @@ from app.models.menu import FudoProduct
 from app.models.product import Product
 from app.models.product_category import ProductCategory
 from app.models.product_variant import ProductVariant
-from app.services import menu_sync_service
+from app.services import menu_sync_service, product_sync_service
 from menu_fakes import FakeFudoClient, fudo_category, fudo_product
 
 
@@ -51,3 +51,84 @@ def test_fudo_product_id_is_unique(menu_app):
     with pytest.raises(IntegrityError):
         db.session.commit()
     db.session.rollback()
+
+
+def _stats():
+    return {'categories_created': 0}
+
+
+def test_creates_categories_from_fudo(menu_app):
+    stats = _stats()
+    result = product_sync_service.sync_product_categories(
+        [fudo_category(1, 'Cafés'), fudo_category(2, 'Pastelería')], stats)
+    db.session.commit()
+
+    assert set(result) == {'1', '2'}
+    assert result['1'].name == 'Cafés'
+    assert result['1'].is_active is True
+    assert stats['categories_created'] == 2
+
+
+def test_adopts_unlinked_category_with_same_name_ignoring_case(menu_app):
+    manual = ProductCategory(name='cafés', color='#123456', icon='☕')
+    db.session.add(manual)
+    db.session.commit()
+
+    stats = _stats()
+    result = product_sync_service.sync_product_categories([fudo_category(1, 'Cafés')], stats)
+    db.session.commit()
+
+    assert result['1'].id == manual.id
+    assert manual.fudo_category_id == '1'
+    assert manual.color == '#123456' and manual.icon == '☕'
+    assert stats['categories_created'] == 0
+    assert ProductCategory.query.count() == 1
+
+
+def test_name_clash_with_other_linked_category_gets_suffix(menu_app):
+    product_sync_service.sync_product_categories([fudo_category(1, 'Bebidas')], _stats())
+    result = product_sync_service.sync_product_categories(
+        [fudo_category(1, 'Bebidas'), fudo_category(2, 'Bebidas')], _stats())
+    db.session.commit()
+
+    assert result['1'].name == 'Bebidas'
+    assert result['2'].name == 'Bebidas (Fudo)'
+
+
+def test_suffixed_name_is_stable_across_syncs(menu_app):
+    raw = [fudo_category(1, 'Bebidas'), fudo_category(2, 'Bebidas')]
+    product_sync_service.sync_product_categories(raw, _stats())
+    result = product_sync_service.sync_product_categories(raw, _stats())
+    db.session.commit()
+
+    assert result['2'].name == 'Bebidas (Fudo)'
+
+
+def test_renames_linked_category(menu_app):
+    product_sync_service.sync_product_categories([fudo_category(1, 'Cafes')], _stats())
+    result = product_sync_service.sync_product_categories([fudo_category(1, 'Cafés de especialidad')], _stats())
+    db.session.commit()
+
+    assert result['1'].name == 'Cafés de especialidad'
+
+
+def test_missing_category_is_deactivated_and_comes_back(menu_app):
+    product_sync_service.sync_product_categories([fudo_category(1, 'Cafés'), fudo_category(2, 'Té')], _stats())
+    result = product_sync_service.sync_product_categories([fudo_category(1, 'Cafés')], _stats())
+    db.session.commit()
+    assert result['2'].is_active is False
+    assert result['2'].fudo_status == 'missing'
+
+    result = product_sync_service.sync_product_categories([fudo_category(1, 'Cafés'), fudo_category(2, 'Té')], _stats())
+    db.session.commit()
+    assert result['2'].is_active is True
+    assert result['2'].fudo_status is None
+
+
+def test_empty_categories_do_not_mark_missing(menu_app):
+    product_sync_service.sync_product_categories([fudo_category(1, 'Cafés')], _stats())
+    result = product_sync_service.sync_product_categories([], _stats())
+    db.session.commit()
+
+    assert result['1'].is_active is True
+    assert result['1'].fudo_status is None
