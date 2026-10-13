@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Save, X, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { Save, X, Plus, Trash2, ArrowLeft, Lock, Link2, Unlink } from 'lucide-react'
 import productsService from '../services/productsService'
 import suppliesService from '../services/suppliesService'
 import productCategoriesService from '../services/productCategoriesService'
 import EditableNumberInput from '../components/EditableNumberInput'
 import ProductModifiersTab from '../components/products/ProductModifiersTab'
+import FudoProductPicker from '../components/menu/FudoProductPicker'
+import {
+  FUDO_LOCK_HINT,
+  FUDO_STATUS_LABELS,
+  candidateLegend,
+  isFudoLocked,
+  variantFudoStatus,
+} from '../utils/fudoLock'
 
 const ProductDetail = () => {
   const { id } = useParams()
@@ -47,6 +55,7 @@ const ProductDetail = () => {
   const [imageError, setImageError] = useState('')
   const [supplies, setSupplies] = useState([])
   const [suppliesForbidden, setSuppliesForbidden] = useState(false)
+  const [fudoCandidates, setFudoCandidates] = useState(null)
 
   useEffect(() => {
     fetchCategories()
@@ -200,6 +209,39 @@ const ProductDetail = () => {
     }
   }
 
+  const openFudoPicker = async () => {
+    try {
+      setFudoCandidates(await productsService.getFudoCandidates())
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al cargar productos de Fudo')
+    }
+  }
+
+  const handleAttachFudo = async (candidate) => {
+    if (candidate.product_id && !window.confirm(`«${candidate.name}» se moverá desde «${candidate.product_name}». ¿Continuar?`)) {
+      return
+    }
+    try {
+      const updated = await productsService.attachFudoVariant(product.id, candidate.fudo_id)
+      setFudoCandidates(null)
+      setProduct(updated)
+      setVariants(updated.variants || [])
+      setError('')
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al agregar la variante de Fudo')
+    }
+  }
+
+  const handleDetachVariant = async (variant) => {
+    if (!window.confirm(`¿Separar «${variant.name}» en un producto propio?`)) return
+    try {
+      await productsService.detachVariant(product.id, variant.id)
+      fetchProduct()
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error al separar la variante')
+    }
+  }
+
   const toRecipePayload = (items) =>
     items.map((i) => ({ supply_id: i.supply_id, quantity: i.quantity, unit: i.unit }))
 
@@ -301,6 +343,12 @@ const ProductDetail = () => {
         </div>
       )}
 
+      {product?.fudo_linked && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded mb-4 flex items-center gap-2">
+          <Lock size={16} /> Nombre, categoría, precios y estado se editan en Fudo.
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow">
         <div className="border-b flex">
           {['info', 'variantes', 'receta', 'modificadores', 'historial'].map((tab) => (
@@ -326,13 +374,18 @@ const ProductDetail = () => {
           {activeTab === 'info' && (
             <div className="space-y-4 max-w-2xl">
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Nombre *
+                  {isFudoLocked(product, 'name') && <Lock size={12} className="inline ml-1 text-gray-500" />}
+                </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   required
+                  disabled={isFudoLocked(product, 'name')}
+                  title={isFudoLocked(product, 'name') ? FUDO_LOCK_HINT : undefined}
                 />
               </div>
 
@@ -349,14 +402,19 @@ const ProductDetail = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Categoría *</label>
+                <label className="block text-sm font-medium mb-1">
+                  Categoría *
+                  {isFudoLocked(product, 'category_id') && <Lock size={12} className="inline ml-1 text-gray-500" />}
+                </label>
                 <select
                   value={formData.category_id}
                   onChange={(e) =>
                     setFormData({ ...formData, category_id: e.target.value === '' ? '' : parseInt(e.target.value, 10) })
                   }
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   required
+                  disabled={isFudoLocked(product, 'category_id')}
+                  title={isFudoLocked(product, 'category_id') ? FUDO_LOCK_HINT : undefined}
                 >
                   <option value="">Seleccionar categoría</option>
                   {categories.map((cat) => (
@@ -468,6 +526,7 @@ const ProductDetail = () => {
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="text-left px-4 py-2 text-sm font-medium">Nombre</th>
+                    <th className="text-left px-4 py-2 text-sm font-medium">Fudo</th>
                     <th className="text-left px-4 py-2 text-sm font-medium">Precio</th>
                     <th className="text-left px-4 py-2 text-sm font-medium">
                       Stock
@@ -481,48 +540,99 @@ const ProductDetail = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {variants.map((variant) => (
-                    <tr key={variant.id} className="border-b">
-                      <td className="px-4 py-2">{variant.name}</td>
-                      <td className="px-4 py-2">
-                        <EditableNumberInput
-                          value={variant.price}
-                          onCommit={(raw) => handleUpdateVariant(variant.id, 'price', raw)}
-                          className="w-20 border rounded px-2 py-1"
-                          step="0.01"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <EditableNumberInput
-                          value={variant.stock_quantity}
-                          onCommit={(raw) => handleUpdateVariant(variant.id, 'stock_quantity', raw)}
-                          className="w-20 border rounded px-2 py-1"
-                          disabled={formData.has_recipe}
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <EditableNumberInput
-                          value={variant.min_stock}
-                          onCommit={(raw) => handleUpdateVariant(variant.id, 'min_stock', raw)}
-                          className="w-20 border rounded px-2 py-1"
-                          disabled={formData.has_recipe}
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <button
-                          onClick={() => handleDeleteVariant(variant.id)}
-                          className="text-red-600 hover:bg-red-50 p-1 rounded"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {variants.map((variant) => {
+                    const status = variantFudoStatus(variant)
+                    const linked = status !== null
+                    return (
+                      <tr key={variant.id} className={`border-b ${variant.is_active ? '' : 'opacity-60'}`}>
+                        <td className="px-4 py-2">{variant.name}</td>
+                        <td className="px-4 py-2">
+                          {linked && (
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${
+                                status === 'ok' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {FUDO_STATUS_LABELS[status]}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {linked ? (
+                            <span title={FUDO_LOCK_HINT}>${variant.price}</span>
+                          ) : (
+                            <EditableNumberInput
+                              value={variant.price}
+                              onCommit={(raw) => handleUpdateVariant(variant.id, 'price', raw)}
+                              className="w-20 border rounded px-2 py-1"
+                              step="0.01"
+                            />
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          <EditableNumberInput
+                            value={variant.stock_quantity}
+                            onCommit={(raw) => handleUpdateVariant(variant.id, 'stock_quantity', raw)}
+                            className="w-20 border rounded px-2 py-1"
+                            disabled={formData.has_recipe}
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <EditableNumberInput
+                            value={variant.min_stock}
+                            onCommit={(raw) => handleUpdateVariant(variant.id, 'min_stock', raw)}
+                            className="w-20 border rounded px-2 py-1"
+                            disabled={formData.has_recipe}
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          {linked && status !== 'missing' ? (
+                            variants.length > 1 && (
+                              <button
+                                onClick={() => handleDetachVariant(variant)}
+                                className="flex items-center gap-1 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded"
+                                title="Separar en un producto propio"
+                              >
+                                <Unlink size={16} /> Separar
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              onClick={() => handleDeleteVariant(variant.id)}
+                              className="text-red-600 hover:bg-red-50 p-1 rounded"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
 
+              <div className="mb-6">
+                {fudoCandidates === null ? (
+                  <button
+                    onClick={openFudoPicker}
+                    className="flex items-center gap-2 border border-emerald-300 text-emerald-800 px-3 py-2 rounded text-sm hover:bg-emerald-50"
+                  >
+                    <Link2 size={16} /> Agregar variante desde Fudo
+                  </button>
+                ) : (
+                  <FudoProductPicker
+                    products={fudoCandidates}
+                    isDisabled={(p) => p.product_id === product.id}
+                    describe={(p) => candidateLegend(p, product.id)}
+                    emptyLabel='No hay productos de Fudo: tocá "Sincronizar con Fudo" en Productos.'
+                    onSelect={handleAttachFudo}
+                    onCancel={() => setFudoCandidates(null)}
+                  />
+                )}
+              </div>
+
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Agregar Variante</h3>
+                <h3 className="font-medium mb-3">Agregar variante manual</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="text"

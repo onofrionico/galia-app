@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Search } from 'lucide-react'
+import { Plus, Edit2, Trash2, Search, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import productsService from '../services/productsService'
 import productCategoriesService from '../services/productCategoriesService'
+import { useAuth } from '../context/AuthContext'
+import { syncSummary } from '../utils/fudoLock'
 
 const Products = () => {
   const navigate = useNavigate()
@@ -14,6 +16,10 @@ const Products = () => {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [error, setError] = useState('')
+  const { hasModuleAccess } = useAuth()
+  const [fudoAlerts, setFudoAlerts] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     fetchCategories()
@@ -21,7 +27,7 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts()
-  }, [page, search, categoryFilter])
+  }, [page, search, categoryFilter, fudoAlerts])
 
   const fetchCategories = async () => {
     try {
@@ -44,6 +50,9 @@ const Products = () => {
       }
       if (categoryFilter) {
         params.category_id = categoryFilter
+      }
+      if (fudoAlerts) {
+        params.fudo_alerts = true
       }
 
       const response = await productsService.getProducts(params)
@@ -79,6 +88,22 @@ const Products = () => {
     setPage(1)
   }
 
+  const handleSyncFudo = async () => {
+    setSyncing(true)
+    setNotice('')
+    try {
+      const result = await productsService.syncFudo()
+      setNotice(syncSummary(result))
+      setError('')
+      fetchCategories()
+      fetchProducts()
+    } catch (error) {
+      setError(error.response?.data?.error || 'Error sincronizando con Fudo')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (loading && products.length === 0) {
     return <div className="p-4">Cargando productos...</div>
   }
@@ -87,17 +112,34 @@ const Products = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Productos</h1>
-        <button
-          onClick={() => navigate('/products/new')}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          <Plus size={20} /> Nuevo Producto
-        </button>
+        <div className="flex gap-2">
+          {hasModuleAccess('Products') && (
+            <button
+              onClick={handleSyncFudo}
+              disabled={syncing}
+              className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} /> Sincronizar con Fudo
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/products/new')}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            <Plus size={20} /> Nuevo Producto
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
+        </div>
+      )}
+
+      {notice && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-4">
+          {notice}
         </div>
       )}
 
@@ -125,6 +167,18 @@ const Products = () => {
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-2 text-sm whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={fudoAlerts}
+              onChange={(e) => {
+                setFudoAlerts(e.target.checked)
+                setPage(1)
+              }}
+              className="w-4 h-4"
+            />
+            Con alertas de Fudo
+          </label>
         </div>
       </div>
 
@@ -184,6 +238,19 @@ const Products = () => {
                         Receta
                       </span>
                     )}
+                    {product.fudo_linked && (
+                      <span className="ml-2 text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded">
+                        Fudo
+                      </span>
+                    )}
+                    {product.fudo_alerts > 0 && (
+                      <span
+                        className="ml-2 inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded"
+                        title="Alguna variante está inactiva o ya no existe en Fudo"
+                      >
+                        <AlertTriangle size={12} /> {product.fudo_alerts}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     {product.category_icon && (
@@ -216,13 +283,15 @@ const Products = () => {
                       >
                         <Edit2 size={18} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="p-1 hover:bg-red-50 rounded text-red-600"
-                        title="Desactivar"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {!product.fudo_linked && (
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="p-1 hover:bg-red-50 rounded text-red-600"
+                          title="Desactivar"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

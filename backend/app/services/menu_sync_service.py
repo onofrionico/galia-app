@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuItem, MenuItemVariant
+from app.services import product_sync_service
 from app.utils.slug import unique_slug
 
 NO_CATEGORY_ID = '__none__'
@@ -103,7 +104,8 @@ def sync_fudo_products(client):
         raise ValueError('Fudo no devolvió productos; no se sincronizó nada')
 
     stats = {'categories_created': 0, 'items_created': 0}
-    categories = _sync_categories(client.get_all_product_categories(), stats)
+    raw_categories = client.get_all_product_categories()
+    categories = _sync_categories(raw_categories, stats)
     category_names = {fid: c.name for fid, c in categories.items()}
 
     existing = {p.fudo_id: p for p in FudoProduct.query.all()}
@@ -173,8 +175,9 @@ def sync_fudo_products(client):
         linked.add(product.fudo_id)
         stats['items_created'] += 1
 
+    catalog = product_sync_service.sync_products_from_cache(list(by_id.values()), raw_categories)
     db.session.commit()
-    return {'products': len(by_id), 'price_changes': price_changes, 'alerts': alerts, **stats}
+    return {'products': len(by_id), 'price_changes': price_changes, 'alerts': alerts, **stats, 'catalog': catalog}
 
 
 def linked_fudo_ids():

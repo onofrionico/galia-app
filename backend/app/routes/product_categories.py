@@ -5,6 +5,7 @@ from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
 from app.utils.validation import clean_str, json_object
 from sqlalchemy.exc import IntegrityError
+from app.services.product_fudo_info import FUDO_LOCKED_ERROR, LOCKED_CATEGORY_FIELDS, changes_locked
 
 bp = Blueprint('product_categories', __name__, url_prefix='/api/v1/product-categories')
 
@@ -69,6 +70,8 @@ def update_category(current_user, category_id):
     data = json_object()
     if data is None:
         return jsonify({'error': 'El cuerpo de la petición debe ser un objeto JSON'}), 400
+    if category.fudo_category_id and changes_locked(data, LOCKED_CATEGORY_FIELDS, category):
+        return jsonify({'error': FUDO_LOCKED_ERROR}), 409
 
     limits = {'description': None, 'color': 20, 'icon': 10}
     try:
@@ -103,6 +106,8 @@ def update_category(current_user, category_id):
 @module_required('Products')
 def delete_category(current_user, category_id):
     category = ProductCategory.query.get_or_404(category_id)
+    if category.fudo_category_id:
+        return jsonify({'error': FUDO_LOCKED_ERROR}), 409
     category.is_active = False
     db.session.commit()
     return jsonify({'message': 'Categoría desactivada correctamente'}), 200

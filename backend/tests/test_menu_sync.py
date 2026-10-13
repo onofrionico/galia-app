@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from unittest.mock import ANY
 
 import pytest
 
@@ -33,7 +34,8 @@ def test_sync_caches_products_with_category_names(menu_app):
     assert product.name == 'Latte'
     assert product.price == Decimal('6900')
     assert product.category_name == 'Cafetería'
-    assert stats == {'products': 1, 'price_changes': 0, 'alerts': 0, 'categories_created': 1, 'items_created': 1}
+    assert stats == {'products': 1, 'price_changes': 0, 'alerts': 0, 'categories_created': 1, 'items_created': 1,
+                     'catalog': ANY}
 
 
 def test_sync_updates_linked_variant_price(menu_app):

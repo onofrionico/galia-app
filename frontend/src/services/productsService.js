@@ -69,6 +69,28 @@ const productsService = {
     return response.data
   },
 
+  async syncFudo() {
+    const response = await api.post('/products/sync')
+    return response.data
+  },
+
+  async getFudoCandidates() {
+    const response = await api.get('/products/fudo-candidates')
+    return response.data.products
+  },
+
+  async attachFudoVariant(productId, fudoProductId) {
+    const response = await api.post(`/products/${productId}/variants/attach`, {
+      fudo_product_id: fudoProductId,
+    })
+    return response.data
+  },
+
+  async detachVariant(productId, variantId) {
+    const response = await api.post(`/products/${productId}/variants/${variantId}/detach`)
+    return response.data
+  },
+
   async uploadProductImage(file) {
     const formData = new FormData()
     formData.append('file', file)

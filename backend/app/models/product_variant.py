@@ -11,6 +11,8 @@ class ProductVariant(db.Model):
     stock_quantity = db.Column(db.Numeric(10, 3), nullable=False, default=0)
     min_stock = db.Column(db.Numeric(10, 3), nullable=False, default=0)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    fudo_product_id = db.Column(db.String(20), unique=True, nullable=True)
+    fudo_status = db.Column(db.String(20), nullable=True)  # 'ok' | 'inactive' | 'missing' | None (no vinculada)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -23,6 +25,8 @@ class ProductVariant(db.Model):
             'stock_quantity': float(self.stock_quantity) if self.stock_quantity is not None else 0.0,
             'min_stock': float(self.min_stock) if self.min_stock is not None else 0.0,
             'is_active': self.is_active,
+            'fudo_product_id': self.fudo_product_id,
+            'fudo_status': self.fudo_status,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }

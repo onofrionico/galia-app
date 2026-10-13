@@ -7,11 +7,18 @@ from app.models.product_variant import ProductVariant
 from app.models.product_recipe_item import ProductRecipeItem
 from app.models.product_category import ProductCategory
 from app.models.supply import Supply
+from app.models.menu import FudoProduct
+from app.services import menu_sync_service
+from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
 from app.utils.validation import clean_str, json_object, parse_decimal
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.menu_storage import get_menu_storage, public_url
+from app.services.product_fudo_info import (
+    FUDO_LOCKED_ERROR, LOCKED_VARIANT_FIELDS, changes_locked, fudo_info, fudo_payload,
+    locked_product_fields, product_detail,
+)
 
 UPLOAD_OVERHEAD_BYTES = 1024 * 1024  # overhead multipart
 
@@ -29,6 +36,10 @@ def _bad_body():
     return jsonify(_BAD_BODY[0]), _BAD_BODY[1]
 
 
+def _fudo_locked():
+    return jsonify({'error': FUDO_LOCKED_ERROR}), 409
+
+
 def _valid_id(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
@@ -43,8 +54,14 @@ def list_products(current_user):
     page = request.args.get('page', 1, type=int)
     per_page = max(1, min(request.args.get('per_page', 50, type=int), 200))
 
+    fudo_alerts = request.args.get('fudo_alerts', 'false').lower() == 'true'
+
     query = Product.query
-    if not include_inactive:
+    if fudo_alerts:
+        alert_ids = db.session.query(ProductVariant.product_id).filter(
+            ProductVariant.fudo_status.in_(['missing', 'inactive']))
+        query = query.filter(Product.id.in_(alert_ids))
+    elif not include_inactive:
         query = query.filter(Product.is_active == True)
     if category_id:
         query = query.filter(Product.category_id == category_id)
@@ -57,6 +74,10 @@ def list_products(current_user):
     for p in products:
         variants = ProductVariant.query.filter_by(product_id=p['id'], is_active=True).all()
         p['variants'] = [v.to_dict() for v in variants]
+
+    info = fudo_info([p['id'] for p in products])
+    for p in products:
+        p.update(fudo_payload(info.get(p['id'])))
 
     return jsonify({
         'products': products,
@@ -110,16 +131,7 @@ def create_product(current_user):
 @authenticated_only
 def get_product(current_user, product_id):
     product = Product.query.get_or_404(product_id)
-    data = product.to_dict()
-
-    variants = ProductVariant.query.filter_by(product_id=product_id).all()
-    data['variants'] = [v.to_dict() for v in variants]
-
-    if product.has_recipe:
-        recipe = ProductRecipeItem.query.filter_by(product_id=product_id).all()
-        data['recipe'] = [r.to_dict() for r in recipe]
-
-    return jsonify(data), 200
+    return jsonify(product_detail(product)), 200
 
 
 @bp.route('/<int:product_id>', methods=['PUT'])
@@ -130,6 +142,10 @@ def update_product(current_user, product_id):
     data = json_object()
     if data is None:
         return _bad_body()
+
+    locked = locked_product_fields(fudo_info([product.id]).get(product.id))
+    if changes_locked(data, locked, product):
+        return _fudo_locked()
 
     try:
         if 'name' in data:
@@ -163,7 +179,7 @@ def update_product(current_user, product_id):
         product.is_active = bool(data['is_active'])
 
     db.session.commit()
-    return jsonify(product.to_dict()), 200
+    return jsonify(product_detail(product)), 200
 
 
 @bp.route('/<int:product_id>', methods=['DELETE'])
@@ -171,6 +187,8 @@ def update_product(current_user, product_id):
 @module_required('Products')
 def delete_product(current_user, product_id):
     product = Product.query.get_or_404(product_id)
+    if fudo_info([product.id]):
+        return _fudo_locked()
     product.is_active = False
     db.session.commit()
     return jsonify({'message': 'Producto desactivado correctamente'}), 200
@@ -227,6 +245,8 @@ def update_variant(current_user, product_id, variant_id):
     data = json_object()
     if data is None:
         return _bad_body()
+    if variant.fudo_product_id and changes_locked(data, LOCKED_VARIANT_FIELDS, variant):
+        return _fudo_locked()
 
     try:
         updates = {}
@@ -259,6 +279,12 @@ def update_variant(current_user, product_id, variant_id):
 @module_required('Products')
 def delete_variant(current_user, product_id, variant_id):
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
+    if variant.fudo_product_id:
+        if variant.fudo_status != 'missing':
+            return _fudo_locked()
+        # Ya no existe en Fudo: se desvincula para poder resolver la alerta.
+        variant.fudo_product_id = None
+        variant.fudo_status = None
     variant.is_active = False
     db.session.commit()
     return jsonify({'message': 'Variante desactivada correctamente'}), 200
@@ -388,3 +414,92 @@ def upload_image_endpoint(current_user):
         current_app.logger.exception('Error subiendo la imagen del producto')
         return jsonify({'error': 'No se pudo subir la imagen, probá de nuevo'}), 502
     return jsonify({'image_url': public_url(key)}), 200
+
+
+@bp.route('/sync', methods=['POST'])
+@token_required
+@module_required('Products')
+def sync_fudo(current_user):
+    try:
+        stats = menu_sync_service.sync_fudo_products(FudoClient())
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Error sincronizando productos con Fudo')
+        return jsonify({'error': 'Error sincronizando con Fudo. Revisá las credenciales o probá más tarde.'}), 502
+    return jsonify(stats), 200
+
+
+@bp.route('/fudo-candidates', methods=['GET'])
+@token_required
+@authenticated_only
+def fudo_candidates(current_user):
+    rows = (
+        db.session.query(FudoProduct, Product.id, Product.name)
+        .outerjoin(ProductVariant, ProductVariant.fudo_product_id == FudoProduct.fudo_id)
+        .outerjoin(Product, Product.id == ProductVariant.product_id)
+        .order_by(FudoProduct.name)
+        .all()
+    )
+    return jsonify({'products': [
+        {**fudo.to_dict(), 'product_id': product_id, 'product_name': product_name}
+        for fudo, product_id, product_name in rows
+    ]}), 200
+
+
+def _refresh_active(product):
+    """Un Producto vinculado a Fudo está activo si tiene alguna variante activa."""
+    db.session.flush()
+    product.is_active = product.variants.filter_by(is_active=True).count() > 0
+
+
+@bp.route('/<int:product_id>/variants/attach', methods=['POST'])
+@token_required
+@module_required('Products')
+def attach_fudo_variant(current_user, product_id):
+    product = Product.query.get_or_404(product_id)
+    data = json_object()
+    if data is None:
+        return _bad_body()
+    fudo_id = data.get('fudo_product_id')
+    if not isinstance(fudo_id, str) or not fudo_id.strip():
+        return jsonify({'error': 'fudo_product_id es requerido'}), 400
+    fudo = db.session.get(FudoProduct, fudo_id.strip())
+    if fudo is None:
+        return jsonify({'error': 'Producto de Fudo no encontrado'}), 404
+
+    variant = ProductVariant.query.filter_by(fudo_product_id=fudo.fudo_id).first()
+    if variant is not None and variant.product_id == product.id:
+        return jsonify({'error': 'Ese producto de Fudo ya está en este producto'}), 409
+    if variant is None:
+        db.session.add(ProductVariant(
+            product_id=product.id, name=(fudo.name or 'Sin nombre')[:100], price=fudo.price,
+            fudo_product_id=fudo.fudo_id, is_active=bool(fudo.is_active),
+            fudo_status='ok' if fudo.is_active else 'inactive',
+        ))
+    else:
+        source = db.session.get(Product, variant.product_id)
+        variant.product_id = product.id
+        _refresh_active(source)
+    _refresh_active(product)
+    db.session.commit()
+    return jsonify(product_detail(product)), 200
+
+
+@bp.route('/<int:product_id>/variants/<int:variant_id>/detach', methods=['POST'])
+@token_required
+@module_required('Products')
+def detach_variant(current_user, product_id, variant_id):
+    product = Product.query.get_or_404(product_id)
+    variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
+    if not variant.fudo_product_id:
+        return jsonify({'error': 'Solo se pueden separar variantes vinculadas a Fudo'}), 409
+    if product.variants.count() == 1:
+        return jsonify({'error': 'Es la única variante del producto'}), 409
+
+    new_product = Product(name=variant.name[:200], category_id=product.category_id, is_active=variant.is_active)
+    db.session.add(new_product)
+    db.session.flush()
+    variant.product_id = new_product.id
+    _refresh_active(product)
+    db.session.commit()
+    return jsonify(product_detail(new_product)), 201
