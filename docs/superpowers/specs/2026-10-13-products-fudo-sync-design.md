@@ -1,6 +1,6 @@
 # Sincronización de Productos con Fudo — Diseño
 
-Fecha: 2026-10-13 · Rama: `feature/products-fudo-sync` (sale de `origin/main` @ `890453e`)
+Fecha: 2026-10-13 · Rama: `feature/products-fudo-sync` (sale de `origin/main`; head de migraciones `b2a0_add_cash_registers`)
 
 ## Objetivo
 
@@ -27,7 +27,7 @@ actualice desde Fudo (nombre, categoría, precio, activo), igual que la carta. A
 
 ## Modelo de datos
 
-Migración `b1c1_products_fudo_link` (`down_revision = 'b1b1_add_pos_cash_ui_support'`):
+Migración `b2b0_products_fudo_link` (`down_revision = 'b2a0_add_cash_registers'`):
 
 | Tabla | Columna | Tipo | Notas |
 |---|---|---|---|
