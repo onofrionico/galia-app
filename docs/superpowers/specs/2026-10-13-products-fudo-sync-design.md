@@ -58,7 +58,7 @@ def sync_products_from_cache(raw_categories) -> dict
 - No hace `commit`: lo hace quien lo llama.
 
 `menu_sync_service.sync_fudo_products(client)` lo invoca al final, antes de su `commit`, y suma las estadísticas al
-resultado bajo la clave `products` (`{categories_created, products_created, variants_updated, alerts}`). La
+resultado bajo la clave `catalog` (la clave `products` ya existe: es el conteo de productos de Fudo) (`{categories_created, products_created, variants_updated, alerts}`). La
 protección actual se mantiene: si Fudo no devuelve productos se lanza `ValueError` y no se toca nada.
 
 ### Pasos
@@ -154,9 +154,9 @@ Endpoints nuevos (todos `@token_required` + `@module_required('Products')`, salv
   - Acción "Agregar variante desde Fudo": abre `FudoProductPicker` con los candidatos; los que ya están en otro
     Producto se pueden elegir con la leyenda "se moverá desde «X»" y piden confirmación; los de este Producto quedan
     deshabilitados.
-- `components/menu/FudoProductPicker.jsx`: nuevas props opcionales `takenLabel` (texto de la leyenda, por defecto
-  "ya en la carta"), `emptyLabel` (por defecto el texto actual) y `describe(p)` para devolver una leyenda por
-  producto. La carta no cambia de comportamiento.
+- `components/menu/FudoProductPicker.jsx`: nuevas props opcionales `isDisabled(p)` (reemplaza la regla de
+  "ya en la carta"), `describe(p)` (leyenda por producto o null) y `emptyLabel` (por defecto el texto actual). Sin
+  esas props la carta no cambia de comportamiento.
 - `pages/ProductCategories.jsx`: insignia "Fudo"; nombre y activo bloqueados en las vinculadas.
 
 ## Errores
@@ -179,8 +179,9 @@ Backend (pytest, reutilizando `tests/menu_fakes.py`):
   al mismo Producto (409), ids inexistentes (404), detach y sus 409; `POST /products/sync` con 200 y 502.
 - `tests/test_menu_tasks.py`: el cron cubre los dos módulos.
 
-Frontend (vitest): `ProductDetail` deshabilita los campos bloqueados y no muestra borrar en variantes vinculadas;
-`FudoProductPicker` usa `takenLabel`.
+Frontend (vitest, entorno node sin testing-library, que no se agrega): utilidades puras en `utils/fudoLock.js`
+(campos bloqueados, estado de variante, resumen de sync, leyenda del selector). El comportamiento de las pantallas se
+verifica a mano en el preview del navegador.
 
 ## Puesta en marcha
 
