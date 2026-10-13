@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keysToInvalidate, rememberEventIds, unseenChanges } from './changes'
+import { cashChanged, keysToInvalidate, rememberEventIds, unseenChanges } from './changes'
 
 describe('keysToInvalidate', () => {
   it('sin cambios no invalida nada', () => {
@@ -48,6 +48,15 @@ describe('unseenChanges', () => {
     expect(unseenChanges(reset, new Set([1]))).toBe(reset)
     const legacy = { last_event_id: 9, sales: [{ id: 3, sale_type: 'salon' }] }
     expect(unseenChanges(legacy, new Set([9])).sales.map((s) => s.id)).toEqual([3])
+  })
+})
+
+describe('cashChanged', () => {
+  it('detecta cambios de versión de caja, salvo en la primera lectura', () => {
+    expect(cashChanged(null, 3)).toBe(false)
+    expect(cashChanged(3, 3)).toBe(false)
+    expect(cashChanged(3, 4)).toBe(true)
+    expect(cashChanged(3, undefined)).toBe(false)
   })
 })
 

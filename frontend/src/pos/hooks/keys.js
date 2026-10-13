@@ -12,4 +12,10 @@ export const posKeys = {
   config: ['pos', 'config'],
   salons: ['pos', 'config', 'salons'],
   tables: (salonId) => ['pos', 'config', 'tables', salonId],
+  cash: ['pos', 'cash'],
+  cashRegisters: ['pos', 'cash', 'registers'],
+  cashSession: (id) => ['pos', 'cash', 'session', id],
+  cashSessions: (params) => ['pos', 'cash', 'sessions', params],
+  cashUnassigned: (params) => ['pos', 'cash', 'unassigned', params],
+  expenseCategories: ['pos', 'cash', 'expense-categories'],
 }

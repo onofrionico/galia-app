@@ -32,3 +32,8 @@ export function rememberEventIds(seenIds, eventIds, max = 1000) {
   if (merged.size <= max) return merged
   return new Set([...merged].sort((a, b) => b - a).slice(0, max))
 }
+
+// La caja se refresca cuando cambia `cash_version` (último id de cash_events). La primera lectura no cuenta.
+export function cashChanged(previous, next) {
+  return previous != null && next != null && previous !== next
+}
