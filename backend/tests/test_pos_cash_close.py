@@ -111,6 +111,28 @@ def test_reopen_is_admin_only_and_clears_counts(ctx):
     assert CashEvent.query.order_by(CashEvent.id.desc()).first().kind == 'reopened'
 
 
+def test_reopen_then_close_again_replaces_the_counts(ctx):
+    user, admin, cat, (t1, _t2) = ctx
+    session = cash_service.open_session(user, make_register().id, '100')
+    _paid(user, cat, t1, cat.debito)
+    cash_service.close_session(user, session.id, [
+        {'payment_method_id': cat.efectivo.id, 'counted': 90},
+        {'payment_method_id': cat.debito.id, 'counted': 900},
+    ], 'Faltan 10')
+    cash_service.reopen_session(admin, session.id, 'Faltó un gasto')
+    cash_service.add_movement(user, session.id, 'withdrawal', 10, 'Retiro olvidado')
+    session = cash_service.close_session(user, session.id, [
+        {'payment_method_id': cat.efectivo.id, 'counted': 90},
+        {'payment_method_id': cat.debito.id, 'counted': 900},
+    ], None)
+    assert session.status == 'closed' and session.closing_note is None
+    rows = {c.method_name: (float(c.expected), float(c.counted), float(c.difference)) for c in session.counts}
+    assert rows == {'Efectivo': (90.0, 90.0, 0.0), 'Débito': (900.0, 900.0, 0.0)}
+    assert CashSessionCount.query.count() == 2
+    assert [e.kind for e in CashEvent.query.order_by(CashEvent.id).all()][-3:] == ['reopened', 'movement_added',
+                                                                                 'closed']
+
+
 def test_reopen_conflicts_with_another_open_session(ctx):
     user, admin, cat, _tables = ctx
     register = make_register()

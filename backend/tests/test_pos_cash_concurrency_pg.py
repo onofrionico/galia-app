@@ -7,10 +7,11 @@ from app import create_app
 from app.config import Config, config
 from app.extensions import db
 from app.models import User
-from app.services.pos import cash_service
+from app.models.pos import CashSession, PosPayment
+from app.services.pos import cash_service, payment_service, sale_service
 from app.services.pos.errors import PosError
 from cash_helpers import make_methods, make_register
-from pos_helpers import make_user
+from pos_helpers import make_catalog, make_floor, make_user
 
 PG_URL = os.getenv('POS_PG_TEST_URL')
 pytestmark = pytest.mark.skipif(not PG_URL, reason='POS_PG_TEST_URL no configurada')
@@ -45,7 +46,7 @@ def _parallel(app, fn, workers=2):
         with app.app_context():
             barrier.wait()
             try:
-                results[index] = ('ok', fn())
+                results[index] = ('ok', fn(index))
             except Exception as exc:  # noqa: BLE001 - el test inspecciona el error
                 db.session.rollback()
                 results[index] = ('error', exc)
@@ -71,7 +72,7 @@ def test_two_cashiers_opening_the_same_register(pg_app):
         user_id = make_user('caja@test.com', modules=('POS',)).id
         register_id = make_register().id
 
-    def open_register():
+    def open_register(_index):
         return cash_service.open_session(db.session.get(User, user_id), register_id, 0).id
 
     _single_winner(_parallel(pg_app, open_register))
@@ -84,8 +85,46 @@ def test_two_cashiers_closing_the_same_session(pg_app):
         cash_id = make_methods().efectivo.id
         session_id = cash_service.open_session(user, make_register().id, 0).id
 
-    def close():
+    def close(_index):
         user = db.session.get(User, user_id)
         return cash_service.close_session(user, session_id, [{'payment_method_id': cash_id, 'counted': 0}], None).id
 
     _single_winner(_parallel(pg_app, close))
+
+
+def test_payment_cancellation_while_closing_the_session(pg_app):
+    with pg_app.app_context():
+        user = make_user('caja@test.com', modules=('POS', 'Anular'))
+        user_id = user.id
+        cat = make_catalog()
+        _salon, table, _t2 = make_floor()
+        session_id = cash_service.open_session(user, make_register().id, 0).id
+        sale = sale_service.open_sale(user, 'salon', table_id=table.id, people=1)
+        sale_service.add_item(user, sale.id, cat.unidad.id)
+        sale_service.confirm_batch(user, sale.id)
+        sale_service.request_bill(user, sale.id)
+        sale = payment_service.add_payment(user, sale.id, cat.debito.id, 900)
+        assert sale.status == 'closed'
+        payment_id = sale.payments[0].id
+        cash_id = cat.efectivo.id
+
+    def run(index):
+        user = db.session.get(User, user_id)
+        if index == 0:
+            return cash_service.close_session(user, session_id, [{'payment_method_id': cash_id, 'counted': 0}],
+                                              None).id
+        return payment_service.cancel_payment(user, payment_id, 'Error').id
+
+    close_result, cancel_result = _parallel(pg_app, run)
+    assert cancel_result[0] == 'ok', cancel_result
+    with pg_app.app_context():
+        payment = db.session.get(PosPayment, payment_id)
+        if close_result[0] == 'ok':
+            # La caja cerró primero: la anulación no puede caer en una sesión cerrada.
+            assert payment.cancel_cash_session_id is None
+        else:
+            # La anulación ganó: reabrió la venta y el cierre la vio abierta.
+            error = close_result[1]
+            assert isinstance(error, PosError) and error.status == 409
+            assert payment.cancel_cash_session_id == session_id
+            assert db.session.get(CashSession, session_id).status == 'open'

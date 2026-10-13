@@ -46,8 +46,14 @@ def _require_admin(user, message):
 
 
 def current_session_id():
-    """La única sesión abierta, o None si no hay ninguna o hay más de una (varias cajas abiertas)."""
-    ids = [row.id for row in db.session.query(CashSession.id).filter_by(status='open').limit(2).all()]
+    """La única sesión abierta, o None si no hay ninguna o hay más de una (varias cajas abiertas).
+
+    Toma un lock compartido (FOR SHARE) sobre la sesión: un cierre concurrente (FOR UPDATE) espera a que el cobro
+    o la anulación termine, y si el cierre ganó, la fila se reevalúa ya cerrada y no se adjunta. SQLite lo ignora.
+    """
+    rows = (db.session.query(CashSession.id).filter_by(status='open')
+            .with_for_update(read=True).limit(2).all())
+    ids = [row.id for row in rows]
     return ids[0] if len(ids) == 1 else None
 
 
