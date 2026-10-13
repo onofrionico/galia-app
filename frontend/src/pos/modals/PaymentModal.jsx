@@ -32,8 +32,8 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [cancelling, setCancelling] = useState(null)
   const requestId = useRef(newRequestId())
   const { run, busy } = useSaleMutation()
-  const { register, isLoading: registerLoading } = useMainRegister()
-  const withoutCash = !registerLoading && !register?.open_session
+  const { register, isLoading: registerLoading, isError: registerError } = useMainRegister()
+  const withoutCash = !registerLoading && !registerError && !register?.open_session
   // En el celular se usa el teclado del teléfono (los campos tienen inputMode="decimal").
   const showKeypad = useModalPresentation() !== 'sheet'
 

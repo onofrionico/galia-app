@@ -5,9 +5,10 @@ import { posCashApi } from '@/pos/api/posApi'
 import { posKeys } from '@/pos/hooks/keys'
 import { formatMoney } from '@/pos/utils/money'
 
-const isoDay = (date) => date.toISOString().slice(0, 10)
-const today = () => new Date()
-const daysAgo = (n) => new Date(Date.now() - n * 86_400_000)
+// El backend toma from/to como días de Argentina (sin DST): se formatean en esa zona, no en UTC.
+const argDay = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(date)
+const today = () => argDay(new Date())
+const daysAgo = (n) => argDay(new Date(Date.now() - n * 86_400_000))
 const when = (iso) => (iso ? new Date(/[zZ]$/.test(iso) ? iso : `${iso}Z`).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—')
 
 function Sessions({ params, setPage }) {
@@ -50,8 +51,9 @@ function Sessions({ params, setPage }) {
 }
 
 function Unassigned({ params }) {
-  const { data = [], isLoading } = useQuery({ queryKey: posKeys.cashUnassigned(params), queryFn: () => posCashApi.unassignedPayments(params) })
+  const { data = [], isLoading, isError } = useQuery({ queryKey: posKeys.cashUnassigned(params), queryFn: () => posCashApi.unassignedPayments(params) })
   if (isLoading) return <p className="text-gray-500">Cargando…</p>
+  if (isError) return <p className="text-red-700">No se pudieron cargar los pagos.</p>
   return (
     <table className="w-full rounded-xl bg-white text-sm shadow-sm">
       <thead><tr className="border-b text-left text-gray-500"><th className="p-3">Fecha</th><th>Venta</th><th>Medio</th><th>Monto</th><th>Cobró</th></tr></thead>
@@ -72,8 +74,8 @@ function Unassigned({ params }) {
 }
 
 export default function CashSessions() {
-  const [from, setFrom] = useState(isoDay(daysAgo(6)))
-  const [to, setTo] = useState(isoDay(today()))
+  const [from, setFrom] = useState(daysAgo(6))
+  const [to, setTo] = useState(today())
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState('sessions')
   const range = { from, to }
