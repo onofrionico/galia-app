@@ -8,7 +8,7 @@ import { btn } from '../ui/buttons'
 import { formatMoney } from '../utils/money'
 import { timeLabel } from '../utils/time'
 import CashSummaryCards from './CashSummaryCards'
-import CloseSessionModal from './CloseSessionModal'
+import CloseSessionModal, { CloseSummaryModal } from './CloseSessionModal'
 import MovementList from './MovementList'
 import MovementModal from './MovementModal'
 import OpenSessionModal from './OpenSessionModal'
@@ -30,7 +30,10 @@ export default function CashPage() {
   const { register, openSessionId, isLoading, isError } = useMainRegister()
   const { data: session, isError: sessionError } = useCashSession(openSessionId)
   const [modal, setModal] = useState(null)
+  const [closedResult, setClosedResult] = useState(null)
   const close = () => setModal(null)
+  // El resultado del cierre vive acá: al cerrar, la caja deja de estar abierta y este componente cambia de rama.
+  const closeSummary = closedResult && <CloseSummaryModal result={closedResult} onClose={() => setClosedResult(null)} />
 
   if (isLoading) return <CenteredMessage>Cargando caja…</CenteredMessage>
   if (isError) return <CenteredMessage>No se pudo cargar la caja.</CenteredMessage>
@@ -43,6 +46,7 @@ export default function CashPage() {
         <button type="button" className={btn('primary', 'text-lg')} onClick={() => setModal('open')}>Abrir caja</button>
         <LastClosed registerId={register.id} />
         {modal === 'open' && <OpenSessionModal register={register} onClose={close} />}
+        {closeSummary}
       </div>
     )
   }
@@ -69,7 +73,11 @@ export default function CashPage() {
       <h3 className="font-semibold">Movimientos</h3>
       <MovementList session={session} />
       {['expense', 'withdrawal', 'deposit'].includes(modal) && <MovementModal session={session} kind={modal} onClose={close} />}
-      {modal === 'close' && <CloseSessionModal session={session} onClose={close} />}
+      {modal === 'close' && (
+        <CloseSessionModal session={session} onClose={close}
+          onClosed={(result) => { setClosedResult(result); setModal(null) }} />
+      )}
+      {closeSummary}
     </div>
   )
 }

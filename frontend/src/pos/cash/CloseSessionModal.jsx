@@ -11,13 +11,30 @@ import { formatMoney } from '../utils/money'
 
 const TONES = { missing: 'text-red-700', over: 'text-amber-700', even: 'text-gray-500' }
 
-export default function CloseSessionModal({ session, onClose }) {
+export function CloseSummaryModal({ result, onClose }) {
+  return (
+    <Modal title="Caja cerrada" onClose={onClose} size="sm"
+      footer={<button type="button" className={btn('primary', 'w-full')} onClick={onClose}>Listo</button>}>
+      <ul className="space-y-1 text-sm">
+        {result.counts.map((c) => (
+          <li key={c.payment_method_id} className="flex justify-between">
+            <span>{c.method_name}</span>
+            <span className={TONES[differenceTone(c.difference)]}>
+              {formatMoney(c.counted)}{c.difference !== 0 ? ` (${c.difference > 0 ? '+' : ''}${formatMoney(c.difference)})` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Modal>
+  )
+}
+
+export default function CloseSessionModal({ session, onClose, onClosed }) {
   const methods = session.summary.methods
   const [texts, setTexts] = useState({})
   const [focused, setFocused] = useState(methods.find((m) => m.kind === 'cash')?.payment_method_id ?? null)
   const [fresh, setFresh] = useState(true)
   const [note, setNote] = useState('')
-  const [closed, setClosed] = useState(null)
   const { run, busy } = useCashMutation()
   const validation = closeValidation(methods, texts, note)
 
@@ -26,24 +43,6 @@ export default function CloseSessionModal({ session, onClose }) {
       <Modal title="Cerrar caja" onClose={onClose} size="sm"
         footer={<Link to="/pos" className={btn('primary', 'w-full')}>Ir al plano</Link>}>
         <p>Hay {session.summary.open_sales} ventas abiertas. Cobralas o anulalas antes de cerrar.</p>
-      </Modal>
-    )
-  }
-
-  if (closed) {
-    return (
-      <Modal title="Caja cerrada" onClose={onClose} size="sm"
-        footer={<button type="button" className={btn('primary', 'w-full')} onClick={onClose}>Listo</button>}>
-        <ul className="space-y-1 text-sm">
-          {closed.counts.map((c) => (
-            <li key={c.payment_method_id} className="flex justify-between">
-              <span>{c.method_name}</span>
-              <span className={TONES[differenceTone(c.difference)]}>
-                {formatMoney(c.counted)}{c.difference !== 0 ? ` (${c.difference > 0 ? '+' : ''}${formatMoney(c.difference)})` : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
       </Modal>
     )
   }
@@ -57,7 +56,7 @@ export default function CloseSessionModal({ session, onClose }) {
   const submit = async () => {
     if (!validation.ok) return
     const result = await run(() => posCashApi.close(session.id, { counts: validation.counts, note: note.trim() || null }))
-    if (result) setClosed(result)
+    if (result) onClosed(result)
   }
 
   return (
@@ -82,7 +81,9 @@ export default function CloseSessionModal({ session, onClose }) {
                         onChange={(e) => { setText(m.payment_method_id, e.target.value); setFresh(false) }}
                         className={`w-28 rounded-lg border px-2 py-1 ${focused === m.payment_method_id ? 'border-galia-plum' : 'border-gray-300'}`} />
                     </td>
-                    <td className={TONES[differenceTone(diff)] ?? 'text-gray-400'}>{diff == null ? '—' : formatMoney(diff)}</td>
+                    <td className={TONES[differenceTone(diff)] ?? 'text-gray-400'}>
+                      {diff == null ? '—' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
+                    </td>
                   </tr>
                 )
               })}
