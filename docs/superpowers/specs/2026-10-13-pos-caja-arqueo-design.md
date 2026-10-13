@@ -172,7 +172,7 @@ Blueprint `pos_cash`, con prefijo `/api/v1/pos/cash`. Rutas delgadas, lógica en
 
 | Método y ruta | Permiso | Qué hace |
 |---|---|---|
-| `GET /registers` | `POS` | Cajas activas, cada una con `open_session` (id, `opened_at`, `opened_by`) o nulo |
+| `GET /registers` | `POS` o `Camarero` | Cajas activas, cada una con `open_session` (id, `opened_at`, `opened_by`) o nulo |
 | `POST /sessions` `{register_id, opening_float}` | `POS` | Abrir; devuelve el resumen |
 | `GET /sessions/current?register_id=` | `POS` | Resumen de la sesión abierta de esa caja, o 404 |
 | `GET /sessions/<id>` | `POS` | Resumen, movimientos, conteos y eventos |
