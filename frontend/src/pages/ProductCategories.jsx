@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import productCategoriesService from '../services/productCategoriesService'
+import { FUDO_LOCK_HINT } from '../utils/fudoLock'
 
 const ProductCategories = () => {
   const [categories, setCategories] = useState([])
@@ -125,6 +126,12 @@ const ProductCategories = () => {
               <div className="flex items-center gap-2">
                 <span className="text-3xl">{category.icon || '📦'}</span>
                 <h3 className="font-bold text-lg">{category.name}</h3>
+                {category.fudo_category_id && (
+                  <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Fudo</span>
+                )}
+                {category.fudo_status === 'missing' && (
+                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Ya no existe en Fudo</span>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
@@ -133,12 +140,14 @@ const ProductCategories = () => {
                 >
                   <Edit2 size={18} />
                 </button>
-                <button
-                  onClick={() => handleDelete(category.id)}
-                  className="p-1 hover:bg-red-50 rounded text-red-600"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {!category.fudo_category_id && (
+                  <button
+                    onClick={() => handleDelete(category.id)}
+                    className="p-1 hover:bg-red-50 rounded text-red-600"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             </div>
             {category.description && (
@@ -180,10 +189,15 @@ const ProductCategories = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
                   placeholder="Ej: Cafés"
                   required
+                  disabled={Boolean(editingCategory?.fudo_category_id)}
+                  title={editingCategory?.fudo_category_id ? FUDO_LOCK_HINT : undefined}
                 />
+                {editingCategory?.fudo_category_id && (
+                  <p className="text-xs text-gray-500 mt-1">El nombre se edita en Fudo.</p>
+                )}
               </div>
 
               <div>
