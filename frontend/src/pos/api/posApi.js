@@ -31,6 +31,19 @@ export const posApi = {
   getDiscountTemplates: () => data(api.get('/pos/discount-templates')).then((d) => d.discount_templates),
 }
 
+export const posCashApi = {
+  registers: () => data(api.get('/pos/cash/registers')).then((d) => d.registers),
+  session: (id) => data(api.get(`/pos/cash/sessions/${id}`)),
+  open: (body) => data(api.post('/pos/cash/sessions', body)),
+  addMovement: (id, body) => data(api.post(`/pos/cash/sessions/${id}/movements`, body)),
+  cancelMovement: (movementId, reason) => data(api.post(`/pos/cash/movements/${movementId}/cancel`, { reason })),
+  close: (id, body) => data(api.post(`/pos/cash/sessions/${id}/close`, body)),
+  reopen: (id, reason) => data(api.post(`/pos/cash/sessions/${id}/reopen`, { reason })),
+  listSessions: (params) => data(api.get('/pos/cash/sessions', { params })),
+  unassignedPayments: (params) => data(api.get('/pos/cash/unassigned-payments', { params })).then((d) => d.payments),
+  expenseCategories: () => data(api.get('/pos/cash/expense-categories')).then((d) => d.categories),
+}
+
 // Catálogos simples de /pos/config: recurso de la URL → clave de la respuesta.
 const RESOURCE_KEYS = {
   'payment-methods': 'payment_methods',

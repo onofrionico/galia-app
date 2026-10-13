@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models import Product, ProductCategory
-from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosSaleItem, PosTable,
+from app.models.pos import (ACTIVE_SALE_STATUSES, CancelReason, CashEvent, DiscountTemplate, ModifierGroup, PaymentMethod, PosSale, PosSaleEvent, PosSaleItem, PosTable,
                             ProductModifierGroup, Salon)
 from app.services.pos import waiters
 from app.services.pos.common import display_name
@@ -125,26 +125,32 @@ def changes(current_user):
     Con varios hilos, un evento puede confirmarse después que otro de id mayor. Por eso la ventana
     arranca CHANGES_OVERLAP ids antes de `since`: devuelve también los eventos recientes ya
     informados, con sus ids (`event_ids` en total y por venta), y la UI descarta los que ya vio.
+    `cash_version` es el último id de `cash_events`: la UI refresca la caja cuando cambia.
     """
     last = db.session.query(func.max(PosSaleEvent.id)).scalar() or 0
+    cash_version = db.session.query(func.max(CashEvent.id)).scalar() or 0
+
+    def respond(payload):
+        return jsonify({**payload, 'cash_version': cash_version}), 200
+
     since = request.args.get('since', type=int)
     if since is None:
-        return jsonify({'last_event_id': last, 'sales': []}), 200
+        return respond({'last_event_id': last, 'sales': []})
     if since > last:
-        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+        return respond({'last_event_id': last, 'reset': True, 'sales': []})
     # En la ventana hay a lo sumo CHANGES_OVERLAP ids <= since; si se llena el límite, hay más de
     # CHANGES_LIMIT eventos posteriores a since.
     rows = (db.session.query(PosSaleEvent.id, PosSaleEvent.sale_id)
             .filter(PosSaleEvent.id > max(0, since - CHANGES_OVERLAP)).order_by(PosSaleEvent.id)
             .limit(CHANGES_LIMIT + CHANGES_OVERLAP + 1).all())
     if sum(1 for row in rows if row.id > since) > CHANGES_LIMIT:
-        return jsonify({'last_event_id': last, 'reset': True, 'sales': []}), 200
+        return respond({'last_event_id': last, 'reset': True, 'sales': []})
     if not rows:
-        return jsonify({'last_event_id': since, 'event_ids': [], 'sales': []}), 200
+        return respond({'last_event_id': since, 'event_ids': [], 'sales': []})
     events_by_sale = defaultdict(list)
     for row in rows:
         events_by_sale[row.sale_id].append(row.id)
     sales = (PosSale.query.options(selectinload(PosSale.table))
              .filter(PosSale.id.in_(sorted(events_by_sale))).order_by(PosSale.id).all())
-    return jsonify({'last_event_id': max(since, rows[-1].id), 'event_ids': [row.id for row in rows],
-                    'sales': [_changed_sale(s, events_by_sale[s.id]) for s in sales]}), 200
+    return respond({'last_event_id': max(since, rows[-1].id), 'event_ids': [row.id for row in rows],
+                    'sales': [_changed_sale(s, events_by_sale[s.id]) for s in sales]})

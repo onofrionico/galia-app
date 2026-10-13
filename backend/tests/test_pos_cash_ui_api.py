@@ -126,7 +126,7 @@ def test_changes_without_since_returns_last_event(pos_app):
     _s, t1, _t = make_floor()
     headers = auth_headers(client, waiter)
     empty = client.get('/api/v1/pos/changes', headers=headers).get_json()
-    assert empty == {'last_event_id': 0, 'sales': []}
+    assert empty == {'last_event_id': 0, 'sales': [], 'cash_version': 0}
     sale_service.open_sale(waiter, 'salon', table_id=t1.id, people=2)
     data = client.get('/api/v1/pos/changes', headers=headers).get_json()
     assert data['last_event_id'] > 0 and data['sales'] == []
@@ -197,7 +197,7 @@ def test_changes_resets_when_since_is_ahead(pos_app):
     client = pos_app.test_client()
     cashier = make_user('caja@test.com', modules=('POS',))
     data = client.get('/api/v1/pos/changes?since=500', headers=auth_headers(client, cashier)).get_json()
-    assert data == {'last_event_id': 0, 'reset': True, 'sales': []}
+    assert data == {'last_event_id': 0, 'reset': True, 'sales': [], 'cash_version': 0}
 
 
 def test_changes_requires_pos_or_camarero(pos_app):

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { posApi } from '../api/posApi'
+import { useMainRegister } from '../hooks/useCash'
 import { useLookup } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
 import { useSaleMutation } from '../hooks/useSaleMutation'
@@ -31,6 +32,8 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [cancelling, setCancelling] = useState(null)
   const requestId = useRef(newRequestId())
   const { run, busy } = useSaleMutation()
+  const { register, isLoading: registerLoading, isError: registerError } = useMainRegister()
+  const withoutCash = !registerLoading && !registerError && !register?.open_session
   // En el celular se usa el teclado del teléfono (los campos tienen inputMode="decimal").
   const showKeypad = useModalPresentation() !== 'sheet'
 
@@ -107,6 +110,11 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
 
   return (
     <Modal title={`Cobrar ${saleTitle(sale)}`} onClose={onClose} size="lg">
+      {withoutCash && (
+        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          No hay caja abierta: este pago queda sin caja.
+        </p>
+      )}
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <dl className="space-y-1 text-sm">

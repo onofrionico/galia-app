@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { posApi } from '../api/posApi'
-import { keysToInvalidate, rememberEventIds, unseenChanges } from '../utils/changes'
+import { cashChanged, keysToInvalidate, rememberEventIds, unseenChanges } from '../utils/changes'
 import { posKeys } from './keys'
 
 const POLL_MS = 3000
@@ -15,6 +15,7 @@ export function usePosChanges({ onResult } = {}) {
   const lastId = useRef(null)
   const failed = useRef(false)
   const seen = useRef(new Set())
+  const cashVersion = useRef(null)
   const onResultRef = useRef(onResult)
   onResultRef.current = onResult
 
@@ -30,6 +31,10 @@ export function usePosChanges({ onResult } = {}) {
           keysToInvalidate(unseenChanges(response, seen.current))
             .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
         }
+        if (cashChanged(cashVersion.current, response.cash_version)) {
+          queryClient.invalidateQueries({ queryKey: posKeys.cash })
+        }
+        if (response.cash_version != null) cashVersion.current = response.cash_version
         seen.current = rememberEventIds(seen.current, response.event_ids)
         lastId.current = response.last_event_id
         onResultRef.current?.(true)

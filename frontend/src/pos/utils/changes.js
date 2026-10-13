@@ -10,6 +10,8 @@ export function keysToInvalidate(response) {
   for (const sale of sales) keys.push(posKeys.sale(sale.id), posKeys.events(sale.id))
   if (sales.some((s) => s.sale_type === 'salon')) keys.push(posKeys.floors)
   if (sales.some((s) => s.sale_type === 'counter')) keys.push(posKeys.sales)
+  // Cobros y anulaciones no tocan `cash_version`, pero cambian el resumen de la sesión de caja.
+  keys.push(posKeys.cashSessionAll)
   return keys
 }
 
@@ -31,4 +33,9 @@ export function rememberEventIds(seenIds, eventIds, max = 1000) {
   for (const id of eventIds) merged.add(id)
   if (merged.size <= max) return merged
   return new Set([...merged].sort((a, b) => b - a).slice(0, max))
+}
+
+// La caja se refresca cuando cambia `cash_version` (último id de cash_events). La primera lectura no cuenta.
+export function cashChanged(previous, next) {
+  return previous != null && next != null && previous !== next
 }

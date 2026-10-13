@@ -14,7 +14,10 @@ export function formatMoney(value) {
 
 // Texto tipeado por la caja: los puntos son de miles y la coma es decimal.
 export function parseAmount(text) {
-  const clean = String(text ?? '').replace(/\$/g, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+  const raw = String(text ?? '').replace(/\$/g, '').replace(/\s/g, '')
+  // Un único punto seguido de 1-2 dígitos, sin coma, es decimal ("12.50"); si no, los puntos son de miles.
+  const dotDecimal = /^\d*\.\d{1,2}$/.test(raw)
+  const clean = dotDecimal ? raw : raw.replace(/\./g, '').replace(',', '.')
   if (clean === '') return NaN
   const number = Number(clean)
   return Number.isFinite(number) ? round2(number) : NaN

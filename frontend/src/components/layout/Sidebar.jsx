@@ -29,6 +29,7 @@ import {
   Image as ImageIcon,
   Smartphone,
   Store,
+  Banknote,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -73,6 +74,7 @@ const navGroups = [
       { to: '/pos', icon: Store, label: 'Abrir POS', anyModule: ['POS', 'Camarero'] },
       { to: '/camarero', icon: Smartphone, label: 'Camarero', anyModule: ['POS', 'Camarero'] },
       { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
+      { to: '/cash-sessions', icon: Banknote, label: 'Cajas', module: 'POS' },
       { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
       { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
       { to: '/suppliers', icon: Building2, label: 'Proveedores', module: 'Suppliers' },
