@@ -44,11 +44,13 @@ En Galia, como admin:
 
 En la página de impresión, usar **Imprimir prueba** en cada impresora: tiene que salir un ticket con acentos y ñ legibles. Después, confirmar una tanda de prueba en el POS y verificar que cada estación reciba solo lo suyo.
 
-Para probar sin impresoras, marcar **Modo simulación**: la página muestra en pantalla lo que se habría impreso.
+Para probar sin impresoras, marcar **Modo simulación**: la página muestra en pantalla lo que se habría impreso y marca los trabajos como impresos. No queda guardado: al recargar la página vuelve a imprimir de verdad.
 
 ## Si algo no imprime
 
 - El indicador **Impresión** de la caja se pone rojo y muestra qué falló.
-- "QZ Tray no está abierto": abrir QZ Tray y tocar **Reintentar** en la página de impresión.
+- "QZ Tray no está abierto": abrir QZ Tray. La página se reconecta sola (o tocar **Reintentar**).
+- Si una impresora está apagada, las demás siguen imprimiendo; sus trabajos se reintentan solos al volver.
+- La página puede quedar en una pestaña de fondo mientras se usa la caja en otra: sigue imprimiendo.
 - Impresora de red: verificar que la PC llegue a esa IP (por ejemplo, `ping 192.168.0.50`).
 - Los trabajos quedan en cola: cuando se resuelve, se imprimen solos. Si ya se resolvió a mano, usar **Marcar como impresa**.

@@ -71,7 +71,22 @@ describe('renderText', () => {
   })
 })
 
+describe('caracteres fuera de CP858', () => {
+  it('reemplaza la raya y los emojis, y normaliza acentos descompuestos', () => {
+    const doc = { ...order, header: ['Mozo: —'], lines: [{ qty: '1', text: 'Café 🍰', amount: null, details: ['Nota: sin “azúcar”'], strike: false }] }
+    const lines = renderText(doc, 80)
+    expect(lines).toContain('Mozo: -')
+    expect(lines).toContain('1 x Café')
+    expect(lines).toContain('    Nota: sin "azúcar"')
+  })
+})
+
 describe('renderEscPos', () => {
+  it('parte el título doble a la mitad de columnas sin cortar palabras', () => {
+    const data = renderEscPos({ ...order, title: 'ANULACIÓN · COCINA' }, 58)
+    expect(data).toContain('\x1d!\x11ANULACIÓN ·\nCOCINA\n')
+  })
+
   it('inicializa, usa CP858, título doble, conserva acentos y corta el papel', () => {
     const data = renderEscPos(bill, 80)
     expect(data.startsWith('\x1b@\x1bt\x13')).toBe(true)

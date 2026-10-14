@@ -14,13 +14,23 @@ export function formatTicketMoney(amount) {
   return `${sign}$ ${grouped}${cents === '00' ? '' : `,${cents}`}`
 }
 
+const REPLACEMENTS = [[/[‒-―−]/g, '-'], [/[“”„]/g, '"'], [/[‘’‚]/g, "'"],
+  [/…/g, '...']]
+
+// La impresora usa CP858: acentos compuestos (NFC), comillas y rayas a ASCII, y fuera lo que no existe (emojis).
+export function toCp858(text) {
+  let out = String(text ?? '').normalize('NFC')
+  for (const [pattern, replacement] of REPLACEMENTS) out = out.replace(pattern, replacement)
+  return out.replace(/[^\x20-\x7E -ÿ€]/g, '')
+}
+
 // Corta en palabras sin pasar `cols`; las palabras más largas que el renglón se parten.
 // Los renglones de continuación llevan `indent` y también entran en `cols`.
 function wrap(text, cols, indent = '') {
   const room = cols - indent.length
   const lines = []
   let current = ''
-  for (const word of String(text).split(/\s+/).filter(Boolean)) {
+  for (const word of toCp858(text).split(/\s+/).filter(Boolean)) {
     const pieces = []
     for (let rest = word; rest.length; rest = rest.slice(room)) pieces.push(rest.slice(0, room))
     for (const piece of pieces) {
@@ -84,7 +94,8 @@ export function renderText(doc, width) {
 export function renderEscPos(doc, width) {
   const cols = columnsFor(width)
   let out = `${ESC}@${ESC}t\x13`
-  out += `${ESC}a\x01${GS}!\x11${doc.title ?? ''}\n${GS}!\x00${ESC}a\x00`
+  // El título va a doble ancho: entran la mitad de las columnas.
+  out += `${ESC}a\x01${GS}!\x11${wrap(doc.title ?? '', Math.floor(cols / 2)).join('\n')}\n${GS}!\x00${ESC}a\x00`
   out += `${ESC}E\x01${headerLines(doc, cols).join('\n')}\n${ESC}E\x00`
   out += `${bodyLines(doc, cols).join('\n')}\n\n\n\n${GS}V\x01`
   return out

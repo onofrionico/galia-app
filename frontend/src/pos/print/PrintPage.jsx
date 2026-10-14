@@ -10,10 +10,11 @@ import { errorMessage } from '../utils/errors'
 import { timeLabel } from '../utils/time'
 import { renderEscPos, renderText } from './escpos'
 import { connectQz, printRaw, qzReady } from './qz'
+import { printByPrinter, shouldReconnect } from './printLoop'
 import { jobLabel } from './printStatus'
+import { startTicker } from './ticker'
 
 const POINT_KEY = 'pos.printPoint'
-const SIMULATE_KEY = 'pos.printSimulate'
 const TICK_MS = 2000
 
 const read = (key) => { try { return localStorage.getItem(key) } catch { return null } }
@@ -35,11 +36,13 @@ export default function PrintPage() {
   useWakeLock()
   const toast = useToast()
   const [point, setPoint] = useState(() => read(POINT_KEY) ?? '')
-  const [simulate, setSimulate] = useState(() => read(SIMULATE_KEY) === '1')
+  // La simulación no se guarda: al reabrir la página siempre imprime de verdad.
+  const [simulate, setSimulate] = useState(false)
   const [qzState, setQzState] = useState('idle')
   const [log, setLog] = useState([])
   const [preview, setPreview] = useState(null)
   const busy = useRef(false)
+  const lastAttempt = useRef(0)
   const { data: points = [] } = useQuery({ queryKey: posKeys.printPoints, queryFn: posPrintApi.points })
   const printers = points.find((p) => p.name === point)?.printers ?? []
 
@@ -49,6 +52,7 @@ export default function PrintPage() {
   }, [])
 
   const connect = useCallback(async () => {
+    lastAttempt.current = Date.now()
     setQzState('connecting')
     try {
       await connectQz()
@@ -62,47 +66,48 @@ export default function PrintPage() {
     if (point && !simulate) connect()
   }, [point, simulate, connect])
 
-  const handle = useCallback(async (job) => {
+  const printOne = useCallback(async (job) => {
     const width = job.printer.paper_width
-    try {
-      if (simulate) setPreview({ label: jobLabel(job), text: renderText(job.document, width).join('\n') })
-      else await printRaw(job.printer, renderEscPos(job.document, width))
-      await posPrintApi.done(job.id)
-      addLog(job, true)
-    } catch (error) {
-      const message = String(error?.message ?? error ?? 'Error de impresión').slice(0, 255)
-      addLog(job, false, message)
-      beep()
-      try { await posPrintApi.failed(job.id, message) } catch { /* el backend lo recupera a los 60 s */ }
-    }
+    if (simulate) setPreview({ label: jobLabel(job), text: renderText(job.document, width).join('\n') })
+    else await printRaw(job.printer, renderEscPos(job.document, width))
+    addLog(job, true)
+    // Si avisar falla, el backend lo devuelve a la cola a los 60 s.
+    await posPrintApi.done(job.id).catch(() => {})
   }, [simulate, addLog])
+
+  const onFail = useCallback(async (job, message) => {
+    addLog(job, false, message)
+    beep()
+    try { await posPrintApi.failed(job.id, message) } catch { /* el backend lo recupera a los 60 s */ }
+  }, [addLog])
 
   useEffect(() => {
     if (!point) return undefined
     const tick = async () => {
       if (busy.current) return
       if (!simulate && !qzReady()) {
-        // QZ Tray se cerró después de conectar: se vuelve a mostrar el aviso.
+        // QZ Tray se cerró o todavía no arrancó (por ejemplo al prender la PC): aviso y reintento solo.
         setQzState((state) => (state === 'ready' ? 'error' : state))
+        if (shouldReconnect({ simulate, ready: false, lastAttemptAt: lastAttempt.current, now: Date.now() })) connect()
         return
       }
       busy.current = true
       try {
         const jobs = await posPrintApi.claim(point)
-        for (const job of jobs) await handle(job)
+        await printByPrinter(jobs, printOne, onFail)
       } catch {
         // Sin red o backend caído: se reintenta en el próximo ciclo.
       } finally {
         busy.current = false
       }
     }
-    const id = setInterval(tick, TICK_MS)
+    const stop = startTicker(tick, TICK_MS)
     tick()
-    return () => clearInterval(id)
-  }, [point, simulate, handle])
+    return stop
+  }, [point, simulate, printOne, onFail, connect])
 
   const choosePoint = (value) => { setPoint(value); write(POINT_KEY, value) }
-  const toggleSimulate = (value) => { setSimulate(value); write(SIMULATE_KEY, value ? '1' : '0') }
+  const toggleSimulate = (value) => setSimulate(value)
   const testPrint = (printerId) => posPrintApi.testPrint(printerId)
     .then(() => toast.success('Prueba enviada a la cola'))
     .catch((error) => toast.error(errorMessage(error)))
@@ -129,6 +134,11 @@ export default function PrintPage() {
           {qzState === 'connecting' ? 'Conectando con QZ Tray…' : 'QZ Tray no está abierto.'}{' '}
           <button type="button" className="underline" onClick={connect}>Reintentar</button>{' · '}
           <a className="underline" href="https://qz.io/download/" target="_blank" rel="noreferrer">Descargar QZ Tray</a>
+        </div>
+      )}
+      {simulate && (
+        <div className="rounded-lg bg-red-50 p-4 font-medium text-red-800">
+          Modo simulación: los trabajos se marcan como impresos pero no sale nada por las impresoras.
         </div>
       )}
       {!point && <p className="text-gray-600">Elegí el punto de impresión de esta PC para empezar.</p>}

@@ -3,9 +3,7 @@ import { Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import productCategoriesService from '../services/productCategoriesService'
 import { FUDO_LOCK_HINT } from '../utils/fudoLock'
 import { posPrintApi } from '../pos/api/posApi'
-
-// El select devuelve strings; la API espera el id numérico o null ("Sin comanda").
-const withStation = (data) => ({ ...data, station_id: data.station_id === '' ? null : Number(data.station_id) })
+import { categoryPayload } from '../utils/categoryPayload'
 
 const ProductCategories = () => {
   const [categories, setCategories] = useState([])
@@ -22,6 +20,7 @@ const ProductCategories = () => {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [stations, setStations] = useState([])
+  const [stationTouched, setStationTouched] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -62,6 +61,7 @@ const ProductCategories = () => {
         station_id: '',
       })
     }
+    setStationTouched(false)
     setError('')
     setShowModal(true)
   }
@@ -79,9 +79,10 @@ const ProductCategories = () => {
 
     try {
       if (editingCategory) {
-        await productCategoriesService.updateCategory(editingCategory.id, withStation(formData))
+        await productCategoriesService.updateCategory(editingCategory.id,
+          categoryPayload(formData, editingCategory, { stationTouched }))
       } else {
-        await productCategoriesService.createCategory(withStation(formData))
+        await productCategoriesService.createCategory(categoryPayload(formData, null))
       }
       handleCloseModal()
       fetchCategories()
@@ -262,7 +263,10 @@ const ProductCategories = () => {
                 <label className="block text-sm font-medium mb-1">Estación (comandas)</label>
                 <select
                   value={formData.station_id ?? ''}
-                  onChange={(e) => setFormData({ ...formData, station_id: e.target.value })}
+                  onChange={(e) => {
+                    setStationTouched(true)
+                    setFormData({ ...formData, station_id: e.target.value })
+                  }}
                   className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Sin comanda</option>
