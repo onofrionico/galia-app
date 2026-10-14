@@ -7,10 +7,10 @@ from sqlalchemy.exc import DataError, IntegrityError
 
 from app.extensions import db
 from app.models import Product, Supply
-from app.models.pos import (ACTIVE_SALE_STATUSES, DISCOUNT_KINDS, DISCOUNT_SCOPES, PAYMENT_KINDS, CancelReason,
-                            DiscountTemplate,
-                            ModifierGroup, ModifierOption, PaymentMethod, PosSale, PosTable, ProductModifierGroup,
-                            Salon)
+from app.models.pos import (ACTIVE_SALE_STATUSES, DISCOUNT_KINDS, DISCOUNT_SCOPES, PAPER_WIDTHS, PAYMENT_KINDS,
+                            PRINTER_CONNECTIONS, CancelReason, DiscountTemplate,
+                            ModifierGroup, ModifierOption, PaymentMethod, PosSale, PosTable, PrintPoint, PrintStation,
+                            Printer, ProductModifierGroup, Salon)
 from app.services.pos.pricing import money
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.utils.decorators import admin_required, module_required
@@ -455,4 +455,137 @@ def update_cancel_reason(current_user, reason_id):
         _apply_cancel_reason(reason, _body(), creating=False)
         db.session.flush()
         return reason.to_dict()
+    return _run(action)
+
+
+# Estaciones e impresoras
+
+@bp.route('/print-stations', methods=['GET'])
+@token_required
+@admin_required
+def list_print_stations(current_user):
+    rows = PrintStation.query.order_by(PrintStation.position, PrintStation.id).all()
+    return jsonify({'print_stations': [s.to_dict() for s in rows]}), 200
+
+
+def _apply_station(station, data):
+    if 'name' in data or station.id is None:
+        station.name = _name(data, 60)
+    if 'position' in data:
+        station.position = _int(data['position'], 'El orden')
+    if 'is_active' in data:
+        station.is_active = bool(data['is_active'])
+
+
+@bp.route('/print-stations', methods=['POST'])
+@token_required
+@admin_required
+def create_print_station(current_user):
+    def action():
+        station = PrintStation(position=0, is_active=True)
+        _apply_station(station, _body())
+        db.session.add(station)
+        db.session.flush()
+        return station.to_dict()
+    return _run(action, 201)
+
+
+@bp.route('/print-stations/<int:station_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_print_station(current_user, station_id):
+    def action():
+        station = db.session.get(PrintStation, station_id)
+        if station is None:
+            raise not_found('La estación no existe')
+        _apply_station(station, _body())
+        return station.to_dict()
+    return _run(action)
+
+
+@bp.route('/printers', methods=['GET'])
+@token_required
+@admin_required
+def list_printers(current_user):
+    rows = Printer.query.order_by(Printer.print_point, Printer.name).all()
+    return jsonify({'printers': [p.to_dict() for p in rows]}), 200
+
+
+def _apply_printer(printer, data):
+    creating = printer.id is None
+    if 'name' in data or creating:
+        printer.name = _name(data, 60)
+    if 'connection' in data or creating:
+        if data.get('connection') not in PRINTER_CONNECTIONS:
+            raise bad_request('La conexión tiene que ser de red o USB')
+        printer.connection = data['connection']
+    if 'host' in data:
+        printer.host = clean_str(data['host'], 100)
+    if 'port' in data:
+        printer.port = _int(data['port'], 'El puerto', minimum=1)
+        if printer.port > 65535:
+            raise bad_request('El puerto es inválido')
+    if 'os_name' in data:
+        printer.os_name = clean_str(data['os_name'], 120)
+    if 'paper_width' in data or creating:
+        if data.get('paper_width') not in PAPER_WIDTHS:
+            raise bad_request('El ancho de papel tiene que ser 58 u 80 mm')
+        printer.paper_width = data['paper_width']
+    if 'print_point' in data or creating:
+        printer.print_point = clean_str(data.get('print_point'), 60)
+        if not printer.print_point:
+            raise bad_request('Indicá el punto de impresión')
+    if 'station_id' in data:
+        value = data['station_id']
+        if value in (None, ''):
+            printer.station_id = None
+        else:
+            station = db.session.get(PrintStation, _int(value, 'La estación', minimum=1))
+            if station is None or not station.is_active:
+                raise bad_request('La estación no existe')
+            printer.station_id = station.id
+    for flag in ('is_cashier', 'is_active'):
+        if flag in data:
+            setattr(printer, flag, bool(data[flag]))
+    if printer.connection == 'network' and not printer.host:
+        raise bad_request('Una impresora de red necesita IP')
+    if printer.connection == 'usb' and not printer.os_name:
+        raise bad_request('Una impresora USB necesita el nombre que tiene en Windows')
+    if printer.station_id and printer.is_cashier:
+        raise bad_request('Una impresora de estación no puede ser la de caja')
+    others = Printer.query.filter(Printer.is_active.is_(True))
+    if printer.id is not None:
+        others = others.filter(Printer.id != printer.id)
+    if printer.is_active and printer.is_cashier and others.filter(Printer.is_cashier.is_(True)).first():
+        raise bad_request('Ya hay una impresora de caja activa')
+    if printer.is_active and printer.station_id and others.filter(Printer.station_id == printer.station_id).first():
+        raise bad_request('Esa estación ya tiene una impresora activa')
+    if db.session.get(PrintPoint, printer.print_point) is None:
+        db.session.add(PrintPoint(name=printer.print_point))
+
+
+@bp.route('/printers', methods=['POST'])
+@token_required
+@admin_required
+def create_printer(current_user):
+    def action():
+        printer = Printer(port=9100, is_cashier=False, is_active=True)
+        _apply_printer(printer, _body())
+        db.session.add(printer)
+        db.session.flush()
+        return printer.to_dict()
+    return _run(action, 201)
+
+
+@bp.route('/printers/<int:printer_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_printer(current_user, printer_id):
+    def action():
+        printer = db.session.get(Printer, printer_id)
+        if printer is None:
+            raise not_found('La impresora no existe')
+        with db.session.no_autoflush:
+            _apply_printer(printer, _body())
+        return printer.to_dict()
     return _run(action)
