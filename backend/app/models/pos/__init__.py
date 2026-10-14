@@ -8,6 +8,8 @@ from app.models.pos.events import PosSaleEvent
 from app.models.pos.cancel_reasons import CancelReason
 from app.models.pos.cash import (CASH_MOVEMENT_KINDS, CASH_SESSION_STATUSES, CashEvent, CashMovement, CashRegister,
                                  CashSession, CashSessionCount)
+from app.models.pos.printing import (PAPER_WIDTHS, PRINT_JOB_KINDS, PRINT_JOB_STATUSES, PRINTER_CONNECTIONS,
+                                     PrintJob, PrintPoint, PrintStation, Printer)
 
 __all__ = [
     'Salon', 'PosTable', 'ModifierGroup', 'ModifierOption', 'ProductModifierGroup',
@@ -17,4 +19,6 @@ __all__ = [
     'ITEM_STATUSES', 'PosSaleEvent', 'CancelReason',
     'CashRegister', 'CashSession', 'CashMovement', 'CashSessionCount', 'CashEvent',
     'CASH_MOVEMENT_KINDS', 'CASH_SESSION_STATUSES',
+    'PrintStation', 'Printer', 'PrintJob', 'PrintPoint', 'PRINT_JOB_KINDS', 'PRINT_JOB_STATUSES',
+    'PRINTER_CONNECTIONS', 'PAPER_WIDTHS',
 ]

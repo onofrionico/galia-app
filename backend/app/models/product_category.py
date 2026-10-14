@@ -12,6 +12,8 @@ class ProductCategory(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     fudo_category_id = db.Column(db.String(20), unique=True, nullable=True)
     fudo_status = db.Column(db.String(20), nullable=True)  # None | 'missing'
+    # Estación de producción (comandas). Campo de Galia: la sincronización con Fudo no lo toca.
+    station_id = db.Column(db.Integer, db.ForeignKey('print_stations.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -27,6 +29,7 @@ class ProductCategory(db.Model):
             'is_active': self.is_active,
             'fudo_category_id': self.fudo_category_id,
             'fudo_status': self.fudo_status,
+            'station_id': self.station_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }
