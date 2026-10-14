@@ -70,6 +70,16 @@ class PrintJob(db.Model):
     station = db.relationship('PrintStation')
 
 
+class QzSigningKey(db.Model):
+    """Par de claves con el que Galia firma los pedidos a QZ Tray. Una sola fila (id=1), generada sola."""
+    __tablename__ = 'qz_signing_keys'
+
+    id = db.Column(db.Integer, primary_key=True)
+    certificate = db.Column(db.Text, nullable=False)
+    private_key = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+
+
 class PrintPoint(db.Model):
     """Punto de impresión (una PC con la página /pos/impresion). Se crea al configurar impresoras."""
     __tablename__ = 'print_points'

@@ -87,5 +87,6 @@ export const posPrintApi = {
   testPrint: (printerId) => data(api.post(`/pos/print/printers/${printerId}/test`)),
   qzCertificate: () => data(api.get('/pos/print/qz-certificate')).then((d) => d.certificate),
   qzSign: (request) => data(api.post('/pos/print/qz-sign', { request })).then((d) => d.signature),
+  qzSetup: () => data(api.get('/pos/print/qz-setup', { responseType: 'blob' })),
   stations: () => data(api.get('/pos/print/stations')).then((d) => d.stations),
 }

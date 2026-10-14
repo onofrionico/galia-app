@@ -3,8 +3,6 @@
 Las funciones de creación (jobs_for_batch, jobs_for_void, add_job) no hacen commit: corren dentro de la
 transacción de la venta. Las acciones de la cola hacen commit.
 """
-import base64
-import os
 from collections import OrderedDict
 from datetime import timedelta
 
@@ -271,26 +269,3 @@ def print_points():
     for printer in printers:
         grouped.setdefault(printer.print_point, []).append(printer.to_dict())
     return [{'name': name, 'printers': items} for name, items in grouped.items()]
-
-
-def _env_pem(name):
-    value = os.getenv(name)
-    if not value:
-        raise not_found('La firma de QZ Tray no está configurada')
-    return value.replace('\\n', '\n')
-
-
-def qz_certificate():
-    return _env_pem('QZ_CERTIFICATE')
-
-
-def sign_qz(message):
-    """Firma el pedido de QZ Tray con RSA y SHA-512 (lo que espera qz.security con setSignatureAlgorithm('SHA512'))."""
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import padding
-
-    key_pem = _env_pem('QZ_PRIVATE_KEY')
-    if not isinstance(message, str) or not message:
-        raise bad_request('Falta el texto a firmar')
-    key = serialization.load_pem_private_key(key_pem.encode(), password=None)
-    return base64.b64encode(key.sign(message.encode(), padding.PKCS1v15(), hashes.SHA512())).decode()

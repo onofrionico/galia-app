@@ -108,6 +108,17 @@ export default function PrintPage() {
 
   const choosePoint = (value) => { setPoint(value); write(POINT_KEY, value) }
   const toggleSimulate = (value) => setSimulate(value)
+  // Descarga el .bat que instala el certificado de Galia en QZ Tray (el mismo para todas las PCs).
+  const downloadSetup = () => posPrintApi.qzSetup()
+    .then((blob) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'preparar-impresion-galia.bat'
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    })
+    .catch((error) => toast.error(errorMessage(error)))
   const testPrint = (printerId) => posPrintApi.testPrint(printerId)
     .then(() => toast.success('Prueba enviada a la cola'))
     .catch((error) => toast.error(errorMessage(error)))
@@ -126,14 +137,31 @@ export default function PrintPage() {
           <input type="checkbox" checked={simulate} onChange={(e) => toggleSimulate(e.target.checked)} />
           Modo simulación (sin impresoras)
         </label>
-        <Link to="/pos" className="ml-auto text-sm underline">Volver al POS</Link>
+        <button type="button" className="ml-auto text-sm underline" onClick={downloadSetup}
+          title="Instala el certificado de Galia en QZ Tray para imprimir sin confirmaciones">
+          Preparar esta PC
+        </button>
+        <Link to="/pos" className="text-sm underline">Volver al POS</Link>
       </header>
 
       {!simulate && point && qzState !== 'ready' && (
-        <div className="rounded-lg bg-amber-50 p-4 text-amber-900">
-          {qzState === 'connecting' ? 'Conectando con QZ Tray…' : 'QZ Tray no está abierto.'}{' '}
-          <button type="button" className="underline" onClick={connect}>Reintentar</button>{' · '}
-          <a className="underline" href="https://qz.io/download/" target="_blank" rel="noreferrer">Descargar QZ Tray</a>
+        <div className="space-y-2 rounded-lg bg-amber-50 p-4 text-amber-900">
+          <p>
+            {qzState === 'connecting' ? 'Conectando con QZ Tray…' : 'QZ Tray no está abierto.'}{' '}
+            <button type="button" className="underline" onClick={connect}>Reintentar</button>
+          </p>
+          <p className="text-sm">¿PC nueva? Es una sola vez:</p>
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <li>
+              Instalá QZ Tray:{' '}
+              <a className="underline" href="https://qz.io/download/" target="_blank" rel="noreferrer">descargar</a>.
+            </li>
+            <li>
+              Tocá <button type="button" className="font-semibold underline" onClick={downloadSetup}>Preparar esta PC</button>,
+              abrí el archivo descargado y aceptá el permiso de Windows.
+            </li>
+            <li>Esta página se conecta sola en unos segundos.</li>
+          </ol>
         </div>
       )}
       {simulate && (

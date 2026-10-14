@@ -8,8 +8,8 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.x509.oid import NameOID
 
 from app.extensions import db
-from app.models.pos import PrintJob, PrintPoint
-from app.services.pos import payment_service, print_service, sale_service
+from app.models.pos import PrintJob, PrintPoint, QzSigningKey
+from app.services.pos import payment_service, print_service, qz_signing, sale_service
 from app.services.pos.errors import PosError
 from pos_helpers import make_catalog, make_floor, make_user, pos_app  # noqa: F401
 from print_helpers import make_printer, make_station
@@ -175,15 +175,25 @@ def _key_pair():
     return cert, cert.public_bytes(serialization.Encoding.PEM).decode(), key_pem
 
 
-def test_qz_signing(pos_app, monkeypatch):
+def test_qz_keys_are_generated_once_and_persisted(pos_app, monkeypatch):
     monkeypatch.delenv('QZ_CERTIFICATE', raising=False)
     monkeypatch.delenv('QZ_PRIVATE_KEY', raising=False)
-    with pytest.raises(PosError) as error:
-        print_service.qz_certificate()
-    assert error.value.status == 404
+    cert_pem = qz_signing.qz_certificate()
+    assert cert_pem.startswith('-----BEGIN CERTIFICATE-----')
+    assert QzSigningKey.query.count() == 1
+    db.session.expire_all()
+    assert qz_signing.qz_certificate() == cert_pem
+    cert = x509.load_pem_x509_certificate(cert_pem.encode())
+    assert cert.not_valid_after.year >= datetime.utcnow().year + 9
+    signature = base64.b64decode(qz_signing.sign_qz('mensaje de QZ'))
+    cert.public_key().verify(signature, b'mensaje de QZ', padding.PKCS1v15(), hashes.SHA512())
+
+
+def test_qz_env_keys_take_precedence(pos_app, monkeypatch):
+    qz_signing.qz_certificate()  # ya hay un par generado en la base
     cert, cert_pem, key_pem = _key_pair()
     monkeypatch.setenv('QZ_CERTIFICATE', cert_pem.replace('\n', '\\n'))
     monkeypatch.setenv('QZ_PRIVATE_KEY', key_pem.replace('\n', '\\n'))
-    assert print_service.qz_certificate() == cert_pem
-    signature = base64.b64decode(print_service.sign_qz('mensaje de QZ'))
+    assert qz_signing.qz_certificate() == cert_pem
+    signature = base64.b64decode(qz_signing.sign_qz('mensaje de QZ'))
     cert.public_key().verify(signature, b'mensaje de QZ', padding.PKCS1v15(), hashes.SHA512())

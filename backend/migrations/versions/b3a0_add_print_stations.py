@@ -1,4 +1,4 @@
-"""add print stations, printers, print jobs and points; station on product categories
+"""add print stations, printers, print jobs, points and QZ keys; station on product categories
 
 Revision ID: b3a0_add_print_stations
 Revises: b2b0_products_fudo_link
@@ -71,6 +71,14 @@ def upgrade():
         sa.Column('last_seen_at', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('name'),
     )
+    op.create_table(
+        'qz_signing_keys',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('certificate', sa.Text(), nullable=False),
+        sa.Column('private_key', sa.Text(), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+    )
     with op.batch_alter_table('product_categories') as batch:
         batch.add_column(sa.Column('station_id', sa.Integer(), nullable=True))
         batch.create_foreign_key('fk_product_categories_station_id', 'print_stations', ['station_id'], ['id'])
@@ -80,6 +88,7 @@ def downgrade():
     with op.batch_alter_table('product_categories') as batch:
         batch.drop_constraint('fk_product_categories_station_id', type_='foreignkey')
         batch.drop_column('station_id')
+    op.drop_table('qz_signing_keys')
     op.drop_table('print_points')
     op.drop_index('ix_print_jobs_printer_status', table_name='print_jobs')
     op.drop_index('ix_print_jobs_sale_id', table_name='print_jobs')

@@ -55,7 +55,7 @@ def test_queue_flow_through_the_api(pos_app):
     assert client.post(f'{BASE}/print/claim', json={}, headers=headers).status_code == 400
 
 
-def test_receipt_conflict_and_qz_not_configured(pos_app, monkeypatch):
+def test_receipt_conflict_and_qz_signing(pos_app, monkeypatch):
     monkeypatch.delenv('QZ_CERTIFICATE', raising=False)
     monkeypatch.delenv('QZ_PRIVATE_KEY', raising=False)
     client = pos_app.test_client()
@@ -65,8 +65,30 @@ def test_receipt_conflict_and_qz_not_configured(pos_app, monkeypatch):
     sale = _billed_sale(client, headers, t1, cat)
     response = client.post(f"{BASE}/sales/{sale['id']}/print/receipt", headers=headers)
     assert response.status_code == 409
-    assert client.get(f'{BASE}/print/qz-certificate', headers=headers).status_code == 404
-    assert client.post(f'{BASE}/print/qz-sign', json={'request': 'x'}, headers=headers).status_code == 404
+    certificate = client.get(f'{BASE}/print/qz-certificate', headers=headers)
+    assert certificate.status_code == 200 and 'BEGIN CERTIFICATE' in certificate.get_json()['certificate']
+    assert client.post(f'{BASE}/print/qz-sign', json={'request': 'x'}, headers=headers).status_code == 200
+    assert client.post(f'{BASE}/print/qz-sign', json={}, headers=headers).status_code == 400
+
+
+def test_qz_setup_script_installs_the_certificate(pos_app, monkeypatch):
+    monkeypatch.delenv('QZ_CERTIFICATE', raising=False)
+    monkeypatch.delenv('QZ_PRIVATE_KEY', raising=False)
+    client = pos_app.test_client()
+    waiter = auth_headers(client, make_user('mozo@test.com', modules=('Camarero',)))
+    assert client.get(f'{BASE}/print/qz-setup', headers=waiter).status_code == 403
+    headers = auth_headers(client, make_user('caja@test.com', modules=('POS',)))
+    response = client.get(f'{BASE}/print/qz-setup', headers=headers)
+    assert response.status_code == 200
+    assert 'attachment' in response.headers['Content-Disposition']
+    assert 'preparar-impresion-galia.bat' in response.headers['Content-Disposition']
+    script = response.get_data(as_text=True)
+    certificate = client.get(f'{BASE}/print/qz-certificate', headers=headers).get_json()['certificate']
+    # Cada renglón del certificado se escribe en override.crt, y el script usa fin de línea de Windows.
+    for line in certificate.strip().splitlines():
+        assert f'echo {line}' in script
+    assert 'override.crt' in script and '-Verb RunAs' in script and 'qz-tray.exe' in script
+    assert '\r\n' in script and '\n' not in script.replace('\r\n', '')
 
 
 def test_stations_lookup_for_products_users(pos_app):
