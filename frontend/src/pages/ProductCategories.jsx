@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import productCategoriesService from '../services/productCategoriesService'
 import { FUDO_LOCK_HINT } from '../utils/fudoLock'
+import { posPrintApi } from '../pos/api/posApi'
+
+// El select devuelve strings; la API espera el id numérico o null ("Sin comanda").
+const withStation = (data) => ({ ...data, station_id: data.station_id === '' ? null : Number(data.station_id) })
 
 const ProductCategories = () => {
   const [categories, setCategories] = useState([])
@@ -13,12 +17,15 @@ const ProductCategories = () => {
     description: '',
     color: '#16a34a',
     icon: '☕',
+    station_id: '',
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [stations, setStations] = useState([])
 
   useEffect(() => {
     fetchCategories()
+    posPrintApi.stations().then(setStations).catch(() => setStations([]))
   }, [])
 
   const fetchCategories = async () => {
@@ -42,6 +49,8 @@ const ProductCategories = () => {
         description: category.description || '',
         color: category.color || '#16a34a',
         icon: category.icon || '☕',
+        // Una estación desactivada ya no imprime: se muestra (y guarda) como "Sin comanda".
+        station_id: stations.some((s) => s.id === category.station_id) ? category.station_id : '',
       })
     } else {
       setEditingCategory(null)
@@ -50,6 +59,7 @@ const ProductCategories = () => {
         description: '',
         color: '#16a34a',
         icon: '☕',
+        station_id: '',
       })
     }
     setError('')
@@ -69,9 +79,9 @@ const ProductCategories = () => {
 
     try {
       if (editingCategory) {
-        await productCategoriesService.updateCategory(editingCategory.id, formData)
+        await productCategoriesService.updateCategory(editingCategory.id, withStation(formData))
       } else {
-        await productCategoriesService.createCategory(formData)
+        await productCategoriesService.createCategory(withStation(formData))
       }
       handleCloseModal()
       fetchCategories()
@@ -160,6 +170,9 @@ const ProductCategories = () => {
               />
               <span className="text-xs text-gray-500">{category.color}</span>
             </div>
+            <p className="mt-1 text-xs text-gray-600">
+              Comanda: {stations.find((s) => s.id === category.station_id)?.name ?? 'sin comanda'}
+            </p>
           </div>
         ))}
       </div>
@@ -242,6 +255,21 @@ const ProductCategories = () => {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Puedes pegar cualquier emoji aquí
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Estación (comandas)</label>
+                <select
+                  value={formData.station_id ?? ''}
+                  onChange={(e) => setFormData({ ...formData, station_id: e.target.value })}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Sin comanda</option>
+                  {stations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Los productos de esta categoría salen en la comanda de esa estación.
                 </p>
               </div>
 
