@@ -16,6 +16,7 @@ from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption,
 from app.services.pos import audit, pricing, projection, stock_hooks
 from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos import waiters
+from app.services.pos import print_service
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_status)
@@ -163,6 +164,7 @@ def confirm_pending(sale, user):
         item.confirmed_at = timestamp
     stock_hooks.consume(pending)
     audit.record(sale, user, 'batch_confirmed', batch=batch, item_ids=[i.id for i in pending])
+    print_service.jobs_for_batch(sale, pending, user)
     return pending
 
 
@@ -221,6 +223,7 @@ def cancel_item(user, sale_id, item_id, reason, reason_id=None):
     if item.status == 'cancelled':
         raise PosError('El ítem ya está anulado')
     _cancel_item_row(item, user, reason, reason_id)
+    print_service.jobs_for_void(sale, [item], user, reason)
     stock_hooks.restore([item])
     recalc(sale)
     if sale.total < sale.paid_total:
@@ -243,6 +246,7 @@ def cancel_sale_rows(sale, user, reason, reason_id=None):
             discount.cancelled_at = now()
             discount.cancelled_by = user.id
     stock_hooks.restore(confirmed)
+    print_service.jobs_for_void(sale, confirmed, user, reason)
     sale.status = 'cancelled'
     sale.cancelled_at = now()
     sale.cancelled_by = user.id
