@@ -24,6 +24,13 @@ describe('posPermissions', () => {
 })
 
 describe('saleActions', () => {
+  it('ofrece imprimir precuenta con ítems confirmados y ticket con la venta cerrada', () => {
+    const open = saleActions(sale({ status: 'open', items: [{ id: 1, status: 'confirmed' }] }), cashier)
+    expect(open).toMatchObject({ printBill: true, printReceipt: false })
+    expect(saleActions(sale({ status: 'open', items: [{ id: 1, status: 'pending' }] }), cashier).printBill).toBe(false)
+    expect(saleActions(sale({ status: 'closed', items: [{ id: 1, status: 'confirmed' }] }), cashier))
+      .toMatchObject({ printBill: false, printReceipt: true })
+  })
   it('venta de salón abierta con pendientes', () => {
     const actions = saleActions(sale(), cashier)
     expect(actions).toMatchObject({
@@ -52,9 +59,10 @@ describe('saleActions', () => {
     expect(actions.move).toBe(false)
     expect(actions.pay).toBe(true)
   })
-  it('una venta cerrada solo permite anular pagos', () => {
+  it('una venta cerrada solo permite anular pagos e imprimir el ticket', () => {
     const actions = saleActions(sale({ status: 'closed', balance: 0, paid_total: 1000 }), cashier)
-    expect(Object.entries(actions).filter(([, v]) => v).map(([k]) => k).sort()).toEqual(['cancelPayment', 'history'])
+    expect(Object.entries(actions).filter(([, v]) => v).map(([k]) => k).sort())
+      .toEqual(['cancelPayment', 'history', 'printReceipt'])
   })
 })
 

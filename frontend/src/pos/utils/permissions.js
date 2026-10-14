@@ -41,6 +41,8 @@ export function saleActions(sale, perms) {
     changeWaiter: perms.pos && active,
     history: perms.pos,
     cancelPayment: perms.cancel && ['billing', 'closed'].includes(sale.status),
+    printBill: active && confirmed > 0,
+    printReceipt: sale.status === 'closed',
   }
 }
 

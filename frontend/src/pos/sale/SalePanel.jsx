@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { posApi } from '../api/posApi'
+import { posApi, posPrintApi } from '../api/posApi'
 import { posKeys } from '../hooks/keys'
 import { useSale } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
@@ -12,7 +12,9 @@ import DiscountModal from '../modals/DiscountModal'
 import PaymentModal from '../modals/PaymentModal'
 import SplitModal from '../modals/SplitModal'
 import WaiterModal from '../modals/WaiterModal'
+import PrintJobsList from '../print/PrintJobsList'
 import { useToast } from '../ui/Toasts'
+import { errorMessage } from '../utils/errors'
 import { saleActions, saleCounts } from '../utils/permissions'
 import SaleFooter from './SaleFooter'
 import SaleHeader from './SaleHeader'
@@ -72,12 +74,24 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
     return Boolean(result)
   }
 
+  // Imprimir no cambia la venta: solo se avisa y se refresca la pestaña "Impresiones".
+  const sendToPrinter = (request, message) => request(sale.id)
+    .then(() => {
+      toast.success(message)
+      queryClient.invalidateQueries({ queryKey: posKeys.printSaleJobs(sale.id) })
+    })
+    .catch((error) => toast.error(errorMessage(error)))
+
   const handlers = {
     add: () => setModal({ type: 'add' }),
     confirm: () => run(sale.id, () => posApi.confirm(sale.id)),
     requestBill: async () => {
-      if (await confirmPendingFirst()) await run(sale.id, () => posApi.requestBill(sale.id))
+      if (!(await confirmPendingFirst())) return
+      const billed = await run(sale.id, () => posApi.requestBill(sale.id))
+      if (billed) toast.info('Cuenta pedida', { label: 'Imprimir precuenta', onClick: handlers.printBill })
     },
+    printBill: () => sendToPrinter(posPrintApi.printBill, 'Precuenta enviada a imprimir'),
+    printReceipt: () => sendToPrinter(posPrintApi.printReceipt, 'Ticket enviado a imprimir'),
     reopen: () => run(sale.id, () => posApi.reopen(sale.id)),
     pay: async () => {
       if (sale.sale_type === 'salon' && sale.status === 'open') {
@@ -120,16 +134,19 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
           ))}
         </div>
       )}
-      {actions.history && (
-        <div className="flex border-b">
-          <button type="button" className={tabClass(tab === 'ticket')} onClick={() => setTab('ticket')}>Ticket</button>
+      <div className="flex border-b">
+        <button type="button" className={tabClass(tab === 'ticket')} onClick={() => setTab('ticket')}>Ticket</button>
+        {actions.history && (
           <button type="button" className={tabClass(tab === 'history')} onClick={() => setTab('history')}>Historial</button>
-        </div>
-      )}
+        )}
+        <button type="button" className={tabClass(tab === 'prints')} onClick={() => setTab('prints')}>Impresiones</button>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {tab === 'history' && actions.history
-          ? <SaleHistory saleId={sale.id} />
-          : <Ticket sale={sale} perms={perms} handlers={itemHandlers} busy={busy} />}
+        {tab === 'history' && actions.history && <SaleHistory saleId={sale.id} />}
+        {tab === 'prints' && <PrintJobsList saleId={sale.id} />}
+        {(tab === 'ticket' || (tab === 'history' && !actions.history)) && (
+          <Ticket sale={sale} perms={perms} handlers={itemHandlers} busy={busy} />
+        )}
       </div>
       <div className="bg-gray-50 pb-[env(safe-area-inset-bottom)]">
         <SaleFooter sale={sale} actions={actions} handlers={handlers} busy={busy} />

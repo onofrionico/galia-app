@@ -17,7 +17,7 @@ export function ToastProvider({ children }) {
   }, [dismiss])
   const toast = useMemo(() => ({
     error: (message, action) => show('error', message, action),
-    info: (message) => show('info', message),
+    info: (message, action) => show('info', message, action),
     success: (message) => show('success', message),
   }), [show])
 
