@@ -80,7 +80,12 @@ export default function PrintPage() {
   useEffect(() => {
     if (!point) return undefined
     const tick = async () => {
-      if (busy.current || (!simulate && !qzReady())) return
+      if (busy.current) return
+      if (!simulate && !qzReady()) {
+        // QZ Tray se cerró después de conectar: se vuelve a mostrar el aviso.
+        setQzState((state) => (state === 'ready' ? 'error' : state))
+        return
+      }
       busy.current = true
       try {
         const jobs = await posPrintApi.claim(point)

@@ -9,6 +9,12 @@ import { errorMessage } from '../utils/errors'
 import { elapsedLabel } from '../utils/time'
 import { jobLabel, printHealth } from './printStatus'
 
+// La cola se mide en segundos: "hace 0 min" se lee como un error.
+const ago = (iso) => {
+  const label = elapsedLabel(iso)
+  return label === '0 min' ? 'menos de 1 min' : label
+}
+
 const TONES = {
   alert: 'bg-red-600 text-white',
   busy: 'bg-amber-200 text-amber-900',
@@ -43,7 +49,7 @@ export default function PrintStatusBadge() {
           <ul className="mb-2">
             {points.map((p) => (
               <li key={p.name} className={p.down ? 'text-red-700' : 'text-green-700'}>
-                {p.name} · {p.down ? (p.last_seen_at ? `sin señal hace ${elapsedLabel(p.last_seen_at)}` : 'nunca se conectó') : 'conectado'}
+                {p.name} · {p.down ? (p.last_seen_at ? `sin señal hace ${ago(p.last_seen_at)}` : 'nunca se conectó') : 'conectado'}
               </li>
             ))}
             {points.length === 0 && <li className="text-gray-500">No hay impresoras configuradas.</li>}
@@ -52,7 +58,7 @@ export default function PrintStatusBadge() {
           <ul className="divide-y">
             {problems.map((job) => (
               <li key={job.id} className="py-2">
-                <p>{jobLabel(job)} · hace {elapsedLabel(job.created_at)}{job.error ? ` · ${job.error}` : ''}</p>
+                <p>{jobLabel(job)} · hace {ago(job.created_at)}{job.error ? ` · ${job.error}` : ''}</p>
                 <div className="mt-1 flex gap-3">
                   <button type="button" className="text-galia-plum underline" disabled={action.isPending}
                     onClick={() => action.mutate({ fn: posPrintApi.retry, id: job.id })}>Reintentar</button>

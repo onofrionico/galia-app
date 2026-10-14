@@ -1,12 +1,14 @@
 import qz from 'qz-tray'
 import { posPrintApi } from '../api/posApi'
 
-let securityReady = false
+let setupDone = false
+let connected = false
+let connecting = null
 
 // Firma los pedidos con el certificado del backend: sin certificado, QZ pide permiso en cada impresión.
-function setupSecurity() {
-  if (securityReady) return
-  securityReady = true
+function setup() {
+  if (setupDone) return
+  setupDone = true
   qz.security.setCertificatePromise((resolve) => {
     posPrintApi.qzCertificate().then(resolve).catch(() => resolve())
   })
@@ -14,13 +16,22 @@ function setupSecurity() {
   qz.security.setSignaturePromise((toSign) => (resolve) => {
     posPrintApi.qzSign(toSign).then(resolve).catch(() => resolve())
   })
+  qz.websocket.setClosedCallbacks(() => { connected = false })
 }
 
-export const qzReady = () => qz.websocket.isActive()
+// qz.websocket.isActive() también da true mientras se está conectando: solo se imprime con la conexión hecha.
+export const qzReady = () => connected && qz.websocket.isActive()
 
-export async function connectQz() {
-  setupSecurity()
-  if (!qz.websocket.isActive()) await qz.websocket.connect({ retries: 1, delay: 1 })
+// Un solo intento a la vez: QZ rechaza un segundo connect mientras el primero no terminó.
+export function connectQz() {
+  setup()
+  if (qzReady()) return Promise.resolve()
+  if (!connecting) {
+    connecting = qz.websocket.connect({ retries: 1, delay: 1 })
+      .then(() => { connected = true })
+      .finally(() => { connecting = null })
+  }
+  return connecting
 }
 
 // printer: { connection, host, port, os_name } tal como llega en el trabajo.
