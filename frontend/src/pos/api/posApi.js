@@ -49,6 +49,8 @@ const RESOURCE_KEYS = {
   'payment-methods': 'payment_methods',
   'discount-templates': 'discount_templates',
   'cancel-reasons': 'cancel_reasons',
+  'print-stations': 'print_stations',
+  printers: 'printers',
 }
 
 export const posConfigApi = {
@@ -68,4 +70,22 @@ export const posConfigApi = {
   listResource: (resource) => data(api.get(`/pos/config/${resource}`)).then((d) => d[RESOURCE_KEYS[resource]]),
   createResource: (resource, body) => data(api.post(`/pos/config/${resource}`, body)),
   updateResource: (resource, id, body) => data(api.put(`/pos/config/${resource}/${id}`, body)),
+}
+
+export const posPrintApi = {
+  printBill: (saleId) => data(api.post(`/pos/sales/${saleId}/print/bill`)),
+  printReceipt: (saleId) => data(api.post(`/pos/sales/${saleId}/print/receipt`)),
+  reprint: (jobId) => data(api.post(`/pos/print/jobs/${jobId}/reprint`)),
+  saleJobs: (saleId) => data(api.get(`/pos/sales/${saleId}/print-jobs`)).then((d) => d.jobs),
+  claim: (point) => data(api.post('/pos/print/claim', { print_point: point })).then((d) => d.jobs),
+  done: (jobId) => data(api.post(`/pos/print/jobs/${jobId}/done`)),
+  failed: (jobId, error) => data(api.post(`/pos/print/jobs/${jobId}/failed`, { error })),
+  retry: (jobId) => data(api.post(`/pos/print/jobs/${jobId}/retry`)),
+  markPrinted: (jobId) => data(api.post(`/pos/print/jobs/${jobId}/mark-printed`)),
+  status: () => data(api.get('/pos/print/status')),
+  points: () => data(api.get('/pos/print/points')).then((d) => d.points),
+  testPrint: (printerId) => data(api.post(`/pos/print/printers/${printerId}/test`)),
+  qzCertificate: () => data(api.get('/pos/print/qz-certificate')).then((d) => d.certificate),
+  qzSign: (request) => data(api.post('/pos/print/qz-sign', { request })).then((d) => d.signature),
+  stations: () => data(api.get('/pos/print/stations')).then((d) => d.stations),
 }

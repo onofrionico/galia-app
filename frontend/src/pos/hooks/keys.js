@@ -19,4 +19,9 @@ export const posKeys = {
   cashSessions: (params) => ['pos', 'cash', 'sessions', params],
   cashUnassigned: (params) => ['pos', 'cash', 'unassigned', params],
   expenseCategories: ['pos', 'cash', 'expense-categories'],
+  print: ['pos', 'print'],
+  printStatus: ['pos', 'print', 'status'],
+  printSaleJobs: (id) => ['pos', 'print', 'sale', id],
+  printPoints: ['pos', 'print', 'points'],
+  printStations: ['pos', 'print', 'stations'],
 }
