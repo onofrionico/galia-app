@@ -47,6 +47,8 @@ import PosSettings from './pages/admin/PosSettings'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import PosLayout from './pos/layout/PosLayout'
+import PrintPage from './pos/print/PrintPage'
+import { ToastProvider } from './pos/ui/Toasts'
 import PosRoute from './pos/layout/PosRoute'
 import PosHome from './pos/layout/PosHome'
 import SalonPage from './pos/floor/SalonPage'
@@ -63,6 +65,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/pos/impresion" element={<ProtectedRoute><PosRoute require="pos"><ToastProvider><PrintPage /></ToastProvider></PosRoute></ProtectedRoute>} />
           <Route path="/pos" element={<ProtectedRoute><PosRoute><PosLayout /></PosRoute></ProtectedRoute>}>
             <Route index element={<PosHome />} />
             <Route path="salon/:salonId" element={<SalonPage />} />
