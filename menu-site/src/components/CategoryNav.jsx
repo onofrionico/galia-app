@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { activeSectionIndex } from '../lib/activeSection'
+import { centeredScrollLeft } from '../lib/chipScroll'
 
 const CLICK_LOCK_MS = 700
 
@@ -38,8 +39,18 @@ export default function CategoryNav({ entries }) {
     }
   }, [entries])
 
+  // Centra el chip activo moviendo solo la barra. No usar scrollIntoView: en iPhone también mueve la página
+  // (calcula la posición de la barra sticky como si no estuviera pegada) y no deja volver al principio.
   useEffect(() => {
-    chipRefs.current[activeSlug]?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+    const nav = navRef.current
+    const chip = chipRefs.current[activeSlug]
+    if (!nav || !chip) return
+    nav.scrollTo({
+      left: centeredScrollLeft({
+        chipLeft: chip.offsetLeft, chipWidth: chip.offsetWidth, navWidth: nav.clientWidth, scrollWidth: nav.scrollWidth,
+      }),
+      behavior: 'smooth',
+    })
   }, [activeSlug])
 
   const onChipClick = (slug) => {
@@ -48,7 +59,7 @@ export default function CategoryNav({ entries }) {
   }
 
   return (
-    <nav ref={navRef} aria-label="Categorías" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+    <nav ref={navRef} aria-label="Categorías" className="no-scrollbar relative -mx-4 flex gap-2 overflow-x-auto px-4">
       {entries.map((e) => (
         <a
           key={e.slug}
