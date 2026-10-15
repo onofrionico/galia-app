@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MoreHorizontal, Plus } from 'lucide-react'
+import InvoiceTag from '../fiscal/InvoiceTag'
 import { btn } from '../ui/buttons'
 import { formatMoney } from '../utils/money'
 import { saleCounts } from '../utils/permissions'
@@ -10,11 +11,19 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
 
   if (!['open', 'billing'].includes(sale.status)) {
     return (
-      <div className="flex items-center justify-between gap-2 border-t bg-gray-50 px-4 py-3 text-sm text-gray-700">
-        <span>{sale.status === 'closed' ? `Cerrada · cobrado ${formatMoney(sale.paid_total)}` : `Anulada: ${sale.cancel_reason ?? ''}`}</span>
-        {actions.printReceipt && (
-          <button type="button" className={btn('secondary', 'min-h-[40px]')} onClick={handlers.printReceipt}>Imprimir ticket</button>
-        )}
+      <div className="space-y-2 border-t bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <div className="flex items-center justify-between gap-2">
+          <span>{sale.status === 'closed' ? `Cerrada · cobrado ${formatMoney(sale.paid_total)}` : `Anulada: ${sale.cancel_reason ?? ''}`}</span>
+          <div className="flex gap-2">
+            {actions.invoice && (
+              <button type="button" className={btn('secondary', 'min-h-[40px]')} onClick={handlers.invoice}>Facturar</button>
+            )}
+            {actions.printReceipt && (
+              <button type="button" className={btn('secondary', 'min-h-[40px]')} onClick={handlers.printReceipt}>Imprimir ticket</button>
+            )}
+          </div>
+        </div>
+        {actions.invoiceActions && <InvoiceTag sale={sale} canCancel={actions.cancelInvoice} />}
       </div>
     )
   }
