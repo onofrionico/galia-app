@@ -17,6 +17,7 @@ from app.services.pos import audit, pricing, projection, stock_hooks
 from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos import waiters
 from app.services.pos import print_service
+from app.services.fiscal import guard
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_status)
@@ -258,6 +259,7 @@ def cancel_sale_rows(sale, user, reason, reason_id=None):
 def cancel_sale(user, sale_id, reason, reason_id=None):
     reason, reason_id = resolve_reason(reason_id, reason)
     sale = load_sale(sale_id)
+    guard.ensure_sale_can_be_cancelled(sale)
     require_status(sale, tuple(ACTIVE_SALE_STATUSES) + ('closed',),
                    'Solo se anula una venta abierta, en cobro o cerrada sin pagos')
     if active_payments(sale):

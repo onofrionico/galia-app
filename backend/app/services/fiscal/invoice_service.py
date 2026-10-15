@@ -17,7 +17,7 @@ from app.services.fiscal import settings as fiscal_settings
 from app.services.fiscal.arca import ArcaRejected, ArcaUnavailable, wsfe
 from app.services.fiscal.invoice_documents import invoice_document
 from app.services.pos import print_documents, print_service
-from app.services.pos.common import load_sale, now, parse_id
+from app.services.pos.common import load_sale, now, parse_id, require_module
 from app.services.pos.errors import PosError, not_found
 from app.utils.timezone_utils import get_current_date_argentina
 
@@ -256,6 +256,41 @@ def issue(user, sale_id, customer_data):
         db.session.rollback()
         raise PosError(f'ARCA rechazó el pedido: {exc.errors[0]["msg"]}')
     return _request_cae(invoice, settings, gateway, user)
+
+
+def cancel(user, invoice_id):
+    """'Anular factura': nota de crédito por el total de una factura vigente."""
+    require_module(user, 'Anular', 'No tenés permiso para anular facturas')
+    settings = fiscal_settings.get_settings()
+    fiscal_settings.require_ready(settings)
+    gateway = _gateway_or_error(settings)
+    try:
+        settings = fiscal_settings.get_settings(lock=True)
+        invoice = _load_invoice(invoice_id)
+        if invoice.kind != 'invoice' or invoice.status != 'authorized' or _authorized_credit_note(invoice):
+            raise PosError('Solo se anula una factura vigente')
+        if Invoice.query.filter_by(related_invoice_id=invoice.id, status='pending').first():
+            raise PosError('Hay una nota de crédito sin confirmar para esta factura: verificala antes')
+        if invoice.environment != settings.environment:
+            raise PosError('La factura es de otro entorno: cambiá el entorno en Ajustes → Facturación')
+        voucher_type = receivers.voucher_type_for(settings.iva_condition, invoice.receiver_iva_condition,
+                                                  credit_note=True)
+        receiver = {'doc_type_code': invoice.receiver_doc_type, 'doc_number': invoice.receiver_doc_number,
+                    'name': invoice.receiver_name, 'iva_condition': invoice.receiver_iva_condition,
+                    'address': invoice.receiver_address}
+        customer = db.session.get(FiscalCustomer, invoice.customer_id) if invoice.customer_id else None
+        credit = _reserve(user, settings, gateway, invoice.sale, 'credit_note', voucher_type, receiver,
+                          invoice.detail_mode, invoice.lines, Decimal(invoice.total),
+                          [(p.payment_id, p.amount) for p in invoice.payments], related=invoice,
+                          customer=customer)
+    except ArcaUnavailable as exc:
+        db.session.rollback()
+        logger.warning('ARCA sin respuesta al reservar la nota de crédito: %s', exc)
+        raise PosError(UNAVAILABLE)
+    except ArcaRejected as exc:
+        db.session.rollback()
+        raise PosError(f'ARCA rechazó el pedido: {exc.errors[0]["msg"]}')
+    return _request_cae(credit, settings, gateway, user)
 
 
 def _load_invoice(invoice_id):
