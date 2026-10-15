@@ -4,17 +4,19 @@ import { Plus } from 'lucide-react'
 import { posConfigApi } from '@/pos/api/posApi'
 import { errorMessage } from '@/pos/utils/errors'
 
-// fields: [{ key, label, type: 'text' | 'number' | 'select' | 'checkbox', options?: [[value, label]] }]
+// fields: [{ key, label, type: 'text' | 'number' | 'select' | 'checkbox', options?: [[value, label]], numeric?: true }]
+// numeric: el select manda un número (o null si queda vacío) en lugar del string del <option>.
 const toValue = (field, value) => {
   if (field.type === 'number') return Number(value)
   if (field.type === 'checkbox') return Boolean(value)
   if (field.type === 'text') return String(value ?? '').trim()
+  if (field.type === 'select' && field.numeric) return value === '' || value == null ? null : Number(value)
   return value
 }
 
 const display = (field, value) => {
   if (field.type === 'checkbox') return value ? 'Sí' : 'No'
-  if (field.type === 'select') return field.options.find(([v]) => v === value)?.[1] ?? value
+  if (field.type === 'select') return field.options.find(([v]) => String(v) === String(value ?? ''))?.[1] ?? value
   return value
 }
 
@@ -46,7 +48,7 @@ export default function CatalogEditor({ resource, fields, emptyItem }) {
     }
     if (field.type === 'select') {
       return (
-        <select value={value} onChange={(e) => set(e.target.value)} className="w-full rounded border px-2 py-1.5">
+        <select value={value ?? ''} onChange={(e) => set(e.target.value)} className="w-full rounded border px-2 py-1.5">
           {field.options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
         </select>
       )

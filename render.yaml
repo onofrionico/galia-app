@@ -22,7 +22,12 @@ services:
         value: http://localhost:5173,https://galia-frontend.onrender.com
       - key: MENU_PUBLIC_BASE_URL
         sync: false
-    
+      # Opcional: par propio para firmar QZ Tray. Sin estas, Galia genera y guarda uno solo (docs/pos/impresion-qz.md)
+      - key: QZ_CERTIFICATE
+        sync: false
+      - key: QZ_PRIVATE_KEY
+        sync: false
+
   # Frontend React Static Site
   - type: web
     name: galia-frontend

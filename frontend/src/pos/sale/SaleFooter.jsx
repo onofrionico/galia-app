@@ -10,14 +10,18 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
 
   if (!['open', 'billing'].includes(sale.status)) {
     return (
-      <div className="border-t bg-gray-50 px-4 py-3 text-sm text-gray-700">
-        {sale.status === 'closed' ? `Cerrada · cobrado ${formatMoney(sale.paid_total)}` : `Anulada: ${sale.cancel_reason ?? ''}`}
+      <div className="flex items-center justify-between gap-2 border-t bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <span>{sale.status === 'closed' ? `Cerrada · cobrado ${formatMoney(sale.paid_total)}` : `Anulada: ${sale.cancel_reason ?? ''}`}</span>
+        {actions.printReceipt && (
+          <button type="button" className={btn('secondary', 'min-h-[40px]')} onClick={handlers.printReceipt}>Imprimir ticket</button>
+        )}
       </div>
     )
   }
 
   const more = [
     actions.discount && ['Descuento a la venta', handlers.discount],
+    actions.printBill && ['Precuenta', handlers.printBill],
     actions.move && ['Mover de mesa', handlers.move],
     actions.split && ['Dividir la cuenta', handlers.split],
     actions.close && ['Cerrar con saldo 0', handlers.close],

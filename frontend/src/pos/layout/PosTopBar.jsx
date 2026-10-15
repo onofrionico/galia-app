@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useFloor } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
 import CashStatusBadge from '../cash/CashStatusBadge'
+import PrintStatusBadge from '../print/PrintStatusBadge'
 
 const tabClass = ({ isActive }) =>
   `flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-4 font-medium ${
@@ -34,6 +35,7 @@ export default function PosTopBar() {
         </NavLink>
       )}
       <CashStatusBadge />
+      {perms.pos && <PrintStatusBadge />}
       <span className="hidden px-2 text-sm text-galia-cream/80 md:block">{user?.email}</span>
       <Link to="/dashboard" className="flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm hover:bg-white/10">
         <LogOut size={16} /> Salir a Galia

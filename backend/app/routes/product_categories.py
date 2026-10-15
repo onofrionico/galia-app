@@ -6,8 +6,21 @@ from app.utils.decorators import module_required, authenticated_only
 from app.utils.validation import clean_str, json_object
 from sqlalchemy.exc import IntegrityError
 from app.services.product_fudo_info import FUDO_LOCKED_ERROR, LOCKED_CATEGORY_FIELDS, changes_locked
+from app.models.pos import PrintStation
 
 bp = Blueprint('product_categories', __name__, url_prefix='/api/v1/product-categories')
+
+
+def _station_id(value):
+    """None o el id de una estación activa. ValueError si no es válida (la ruta responde 400)."""
+    if value in (None, ''):
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError('La estación es inválida')
+    station = db.session.get(PrintStation, value)
+    if station is None or not station.is_active:
+        raise ValueError('La estación no existe')
+    return station.id
 
 
 @bp.route('', methods=['GET'])
@@ -37,12 +50,13 @@ def create_category(current_user):
         description = clean_str(data.get('description'))
         color = clean_str(data.get('color'), 20)
         icon = clean_str(data.get('icon'), 10)
+        station_id = _station_id(data.get('station_id'))
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     if not name:
         return jsonify({'error': 'El nombre de la categoría es requerido'}), 400
 
-    category = ProductCategory(name=name, description=description, color=color, icon=icon)
+    category = ProductCategory(name=name, description=description, color=color, icon=icon, station_id=station_id)
 
     db.session.add(category)
     try:
@@ -84,6 +98,8 @@ def update_category(current_user, category_id):
         for field, max_len in limits.items():
             if field in data:
                 updates[field] = clean_str(data[field], max_len)
+        if 'station_id' in data:
+            updates['station_id'] = _station_id(data['station_id'])
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     for field, value in updates.items():

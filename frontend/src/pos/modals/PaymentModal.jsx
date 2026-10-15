@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
-import { posApi } from '../api/posApi'
+import { posApi, posPrintApi } from '../api/posApi'
 import { useMainRegister } from '../hooks/useCash'
 import { useLookup } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
@@ -8,7 +8,9 @@ import { useSaleMutation } from '../hooks/useSaleMutation'
 import Modal from '../ui/Modal'
 import { useModalPresentation } from '../ui/ModalPresentation'
 import { btn } from '../ui/buttons'
+import { useToast } from '../ui/Toasts'
 import { changeFor, quickTenders } from '../utils/change'
+import { errorMessage } from '../utils/errors'
 import { newRequestId } from '../utils/ids'
 import { applyKey } from '../utils/keypad'
 import { amountToText, formatMoney, parseAmount } from '../utils/money'
@@ -21,6 +23,7 @@ const inputClass = (focused) =>
 
 export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const perms = usePosPermissions()
+  const toast = useToast()
   const { data: methods = [] } = useLookup('payment-methods')
   const [methodId, setMethodId] = useState(null)
   const [amountText, setAmountText] = useState(amountToText(sale.balance))
@@ -93,7 +96,14 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   if (closedChange !== null) {
     return (
       <Modal title="Venta cerrada" onClose={onSaleClosed} size="sm"
-        footer={<button type="button" className={btn('primary', 'w-full')} onClick={onSaleClosed}>Listo</button>}>
+        footer={(
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" className={btn('secondary')} onClick={() => posPrintApi.printReceipt(sale.id)
+              .then(() => toast.success('Ticket enviado a imprimir'))
+              .catch((printError) => toast.error(errorMessage(printError)))}>Imprimir ticket</button>
+            <button type="button" className={btn('primary')} onClick={onSaleClosed}>Listo</button>
+          </div>
+        )}>
         <div className="py-6 text-center">
           {closedChange > 0 ? (
             <>

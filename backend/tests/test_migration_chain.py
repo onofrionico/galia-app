@@ -50,3 +50,7 @@ def test_pos_cash_ui_support_is_head():
 
 def test_cash_registers_follows_cash_ui_support():
     assert _revisions()['b2a0_add_cash_registers'] == ['b1b1_add_pos_cash_ui_support']
+
+
+def test_print_stations_follows_products_fudo_link():
+    assert _revisions()['b3a0_add_print_stations'] == ['b2b0_products_fudo_link']
