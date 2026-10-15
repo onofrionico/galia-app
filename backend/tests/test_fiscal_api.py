@@ -41,7 +41,8 @@ def test_invoice_flow_through_the_api(ctx):
     assert client.post(f'{BASE}/invoices/{invoice_id}/reprint', headers=headers).status_code == 200
     listed = client.get(f'{BASE}/invoices', headers=headers).get_json()
     assert listed['total'] == 1 and listed['environment'] == 'homologacion'
-    assert client.get(f'{BASE}/invoices/{invoice_id}', headers=headers).get_json()['cae']
+    detail = client.get(f'{BASE}/invoices/{invoice_id}', headers=headers).get_json()
+    assert detail['cae'] and detail['sale_link'] == f'/pos/salon/{t1.salon_id}?sale={sale.id}'
     cancelled = client.post(f'{BASE}/invoices/{invoice_id}/cancel', headers=headers)
     assert cancelled.status_code == 201 and cancelled.get_json()['kind'] == 'credit_note'
     filtered = client.get(f'{BASE}/invoices?kind=credit_note', headers=headers).get_json()

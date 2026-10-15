@@ -329,9 +329,19 @@ def reprint(user, invoice_id):
     return invoice
 
 
+def _sale_link(sale):
+    """Ruta del POS que abre la venta (salón o mostrador), para el listado de comprobantes."""
+    if sale is None:
+        return None
+    if sale.table is not None:
+        return f'/pos/salon/{sale.table.salon_id}?sale={sale.id}'
+    return f'/pos/mostrador?sale={sale.id}'
+
+
 def invoice_to_dict(invoice):
     credit_note = _authorized_credit_note(invoice) if invoice.kind == 'invoice' else None
     return {
+        'sale_link': _sale_link(invoice.sale),
         'id': invoice.id, 'kind': invoice.kind, 'voucher_type': invoice.voucher_type, 'letter': invoice.letter,
         'label': invoice.label, 'environment': invoice.environment, 'point_of_sale': invoice.point_of_sale,
         'number': invoice.number, 'sale_id': invoice.sale_id,

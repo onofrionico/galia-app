@@ -10,6 +10,8 @@ import TimeTracking from './pages/TimeTracking'
 import Sales from './pages/Sales'
 import Expenses from './pages/Expenses'
 import CashSessions from './pages/CashSessions'
+import Invoices from './pages/Invoices'
+import FiscalSettings from './pages/admin/FiscalSettings'
 import CashSessionDetail from './pages/CashSessionDetail'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
@@ -89,6 +91,7 @@ function App() {
             <Route path="/sales" element={<RoleProtectedRoute moduleName="Sales"><Sales /></RoleProtectedRoute>} />
             <Route path="/expenses" element={<RoleProtectedRoute moduleName="Expenses"><Expenses /></RoleProtectedRoute>} />
             <Route path="/cash-sessions" element={<RoleProtectedRoute moduleName="POS"><CashSessions /></RoleProtectedRoute>} />
+            <Route path="/fiscal/invoices" element={<RoleProtectedRoute moduleName="POS"><Invoices /></RoleProtectedRoute>} />
             <Route path="/cash-sessions/:id" element={<RoleProtectedRoute moduleName="POS"><CashSessionDetail /></RoleProtectedRoute>} />
             <Route path="/expense-categories" element={<RoleProtectedRoute moduleName="Expenses"><ExpenseCategories /></RoleProtectedRoute>} />
             <Route path="/reports" element={<RoleProtectedRoute moduleName="Reports"><Reports /></RoleProtectedRoute>} />
@@ -122,6 +125,7 @@ function App() {
             <Route path="/permissions" element={<RoleProtectedRoute adminOnly><Permissions /></RoleProtectedRoute>} />
             <Route path="/admin/branding" element={<RoleProtectedRoute adminOnly><BrandingConfig /></RoleProtectedRoute>} />
             <Route path="/admin/pos-settings" element={<RoleProtectedRoute adminOnly><PosSettings /></RoleProtectedRoute>} />
+            <Route path="/admin/fiscal" element={<RoleProtectedRoute adminOnly><FiscalSettings /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
