@@ -211,11 +211,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       <aside className={`fixed md:static top-0 left-0 z-40 w-64 bg-galia-plum-dark text-galia-cream border-r border-white/10 min-h-screen transition-transform duration-300 transform ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] pl-[calc(1rem+env(safe-area-inset-left))] space-y-1">
           <button
             onClick={onClose}
             aria-label="Cerrar menú"
-            className="md:hidden absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="md:hidden absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X className="h-6 w-6 text-galia-cream" />
           </button>

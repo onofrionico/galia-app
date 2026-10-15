@@ -39,13 +39,14 @@ const Navbar = ({ onMenuClick }) => {
   }
 
   return (
-    <nav className="bg-galia-cream border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-galia-cream border-b border-gray-200 sticky top-0 z-50 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 md:space-x-4">
             <button
               onClick={onMenuClick}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Abrir menú"
+              className="md:hidden p-2.5 -ml-1 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <Menu className="h-6 w-6 text-gray-600" />
             </button>
