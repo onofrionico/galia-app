@@ -12,6 +12,7 @@ import DiscountModal from '../modals/DiscountModal'
 import PaymentModal from '../modals/PaymentModal'
 import SplitModal from '../modals/SplitModal'
 import WaiterModal from '../modals/WaiterModal'
+import InvoiceModal from '../fiscal/InvoiceModal'
 import PrintJobsList from '../print/PrintJobsList'
 import { useToast } from '../ui/Toasts'
 import { errorMessage } from '../utils/errors'
@@ -108,6 +109,7 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
     split: () => setModal({ type: 'split' }),
     cancelSale: () => setModal({ type: 'cancel-sale' }),
     changeWaiter: () => setModal({ type: 'waiter' }),
+    invoice: () => setModal({ type: 'invoice' }),
   }
 
   const itemHandlers = {
@@ -165,6 +167,7 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
         }} />
       )}
       {modal?.type === 'waiter' && <WaiterModal sale={sale} onClose={closeModal} />}
+      {modal?.type === 'invoice' && <InvoiceModal saleId={sale.id} onClose={closeModal} />}
       {modal?.type === 'cancel-item' && (
         <CancelReasonModal title={`Anular ${modal.item.product_name}`} busy={busy} onClose={closeModal}
           onConfirm={async (body) => {

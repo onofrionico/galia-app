@@ -32,8 +32,10 @@ from app.models.site_config import SiteConfig
 from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, ProductModifierGroup,
                             PaymentMethod, DiscountTemplate, PosPayment, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosSaleEvent, CancelReason)
+from app.models.fiscal import ArcaToken, FiscalCustomer, FiscalSettings, Invoice, InvoicePayment
 
 __all__ = [
+    'ArcaToken', 'FiscalCustomer', 'FiscalSettings', 'Invoice', 'InvoicePayment',
     'User',
     'Employee',
     'JobPosition',

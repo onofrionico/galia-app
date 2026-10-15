@@ -90,3 +90,20 @@ export const posPrintApi = {
   qzSetup: () => data(api.get('/pos/print/qz-setup', { responseType: 'blob' })),
   stations: () => data(api.get('/pos/print/stations')).then((d) => d.stations),
 }
+
+export const posFiscalApi = {
+  preview: (saleId) => data(api.get(`/fiscal/sales/${saleId}/preview`)),
+  issue: (saleId, customer) => data(api.post(`/fiscal/sales/${saleId}/invoice`, { customer })),
+  saleInvoices: (saleId) => data(api.get(`/fiscal/sales/${saleId}/invoices`)).then((d) => d.invoices),
+  verify: (id) => data(api.post(`/fiscal/invoices/${id}/verify`)),
+  cancel: (id) => data(api.post(`/fiscal/invoices/${id}/cancel`)),
+  reprint: (id) => data(api.post(`/fiscal/invoices/${id}/reprint`)),
+  list: (params) => data(api.get('/fiscal/invoices', { params })),
+  get: (id) => data(api.get(`/fiscal/invoices/${id}`)),
+  customers: (q) => data(api.get('/fiscal/customers', { params: { q } })).then((d) => d.customers),
+  settings: () => data(api.get('/fiscal/settings')),
+  saveSettings: (body) => data(api.put('/fiscal/settings', body)),
+  generateCsr: (env) => data(api.post(`/fiscal/settings/${env}/csr`)).then((d) => d.csr),
+  saveCertificate: (env, certificate) => data(api.put(`/fiscal/settings/${env}/certificate`, { certificate })),
+  testConnection: () => data(api.post('/fiscal/settings/test')),
+}

@@ -1,3 +1,4 @@
+from app.services.fiscal import guard
 from app.services.pos.common import display_name
 
 
@@ -83,4 +84,5 @@ def sale_to_dict(sale, include_items=True):
         data['items'] = [item_to_dict(i) for i in sale.items]
         data['discounts'] = [discount_to_dict(d) for d in sale.discounts]
         data['payments'] = [payment_to_dict(p) for p in sale.payments]
+        data['invoice'] = guard.sale_invoice_summary(sale.id)
     return data

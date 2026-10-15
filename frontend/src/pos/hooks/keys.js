@@ -24,4 +24,9 @@ export const posKeys = {
   printSaleJobs: (id) => ['pos', 'print', 'sale', id],
   printPoints: ['pos', 'print', 'points'],
   printStations: ['pos', 'print', 'stations'],
+  fiscal: ['pos', 'fiscal'],
+  fiscalPreview: (id) => ['pos', 'fiscal', 'preview', id],
+  fiscalSaleInvoices: (id) => ['pos', 'fiscal', 'sale', id],
+  fiscalInvoices: (params) => ['pos', 'fiscal', 'list', params],
+  fiscalSettings: ['pos', 'fiscal', 'settings'],
 }

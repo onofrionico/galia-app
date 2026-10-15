@@ -52,6 +52,12 @@ def _details(item):
     return details
 
 
+def item_description(item):
+    """Texto del ítem con sus modificadores, para comprobantes fiscales."""
+    modifiers = [modifier.option_name for modifier in item.modifiers]
+    return f'{_text(item)} ({", ".join(modifiers)})' if modifiers else _text(item)
+
+
 def _line(item, amount=None, strike=False):
     return {'qty': _qty(item.quantity), 'text': _text(item), 'amount': amount, 'details': _details(item),
             'strike': strike}

@@ -14,6 +14,7 @@ import { errorMessage } from '../utils/errors'
 import { newRequestId } from '../utils/ids'
 import { applyKey } from '../utils/keypad'
 import { amountToText, formatMoney, parseAmount } from '../utils/money'
+import InvoiceModal from '../fiscal/InvoiceModal'
 import CancelReasonModal from './CancelReasonModal'
 import NumericKeypad from './NumericKeypad'
 import { saleTitle } from './AddProductsModal'
@@ -31,6 +32,7 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [field, setField] = useState('amount')
   const [fresh, setFresh] = useState(true)
   const [error, setError] = useState('')
+  const [invoicing, setInvoicing] = useState(false)
   const [closedChange, setClosedChange] = useState(null)
   const [cancelling, setCancelling] = useState(null)
   const requestId = useRef(newRequestId())
@@ -94,13 +96,15 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   }
 
   if (closedChange !== null) {
+    if (invoicing) return <InvoiceModal saleId={sale.id} onClose={onSaleClosed} />
     return (
       <Modal title="Venta cerrada" onClose={onSaleClosed} size="sm"
         footer={(
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`grid gap-2 ${perms.pos ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <button type="button" className={btn('secondary')} onClick={() => posPrintApi.printReceipt(sale.id)
               .then(() => toast.success('Ticket enviado a imprimir'))
               .catch((printError) => toast.error(errorMessage(printError)))}>Imprimir ticket</button>
+            {perms.pos && <button type="button" className={btn('secondary')} onClick={() => setInvoicing(true)}>Facturar</button>}
             <button type="button" className={btn('primary')} onClick={onSaleClosed}>Listo</button>
           </div>
         )}>

@@ -11,10 +11,13 @@ class PaymentMethod(db.Model):
     kind = db.Column(db.String(20), nullable=False)
     position = db.Column(db.Integer, nullable=False, default=0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # Si este medio ya lo factura otro sistema (MercadoPago, terminal): Galia no lo incluye en sus facturas.
+    invoiced_externally = db.Column(db.Boolean, nullable=False,
+                                    default=lambda ctx: ctx.get_current_parameters().get('kind') != 'cash')
 
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'kind': self.kind, 'position': self.position,
-                'is_active': self.is_active}
+                'is_active': self.is_active, 'invoiced_externally': self.invoiced_externally}
 
 
 class PosPayment(db.Model):

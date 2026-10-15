@@ -313,6 +313,10 @@ def _apply_payment_method(method, data, creating):
         method.position = _int(data['position'], 'La posición')
     if 'is_active' in data:
         method.is_active = bool(data['is_active'])
+    if 'invoiced_externally' in data:
+        method.invoiced_externally = bool(data['invoiced_externally'])
+    elif creating:
+        method.invoiced_externally = method.kind != 'cash'
 
 
 @bp.route('/payment-methods', methods=['GET'])

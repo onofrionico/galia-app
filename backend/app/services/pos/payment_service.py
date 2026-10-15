@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models.pos import PaymentMethod, PosPayment
+from app.services.fiscal import guard
 from app.services.pos import audit, pricing, projection
 from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos.cash_service import current_session_id
@@ -101,6 +102,7 @@ def cancel_payment(user, payment_id, reason, reason_id=None):
     db.session.refresh(payment)
     if payment.cancelled_at is not None:
         raise PosError('El pago ya está anulado')
+    guard.ensure_payment_can_be_cancelled(payment)
     if sale.status not in ('billing', 'closed'):
         raise PosError('Solo se anulan pagos de una venta en cobro o cerrada')
     payment.cancelled_at = now()
