@@ -208,7 +208,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <aside className={`fixed md:static top-0 left-0 z-40 w-64 bg-galia-plum-dark text-galia-cream border-r border-white/10 min-h-screen transition-transform duration-300 transform ${
+      <aside className={`fixed md:static top-0 left-0 z-[60] w-64 bg-galia-plum-dark text-galia-cream border-r border-white/10 min-h-screen transition-transform duration-300 transform ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <nav className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] pl-[calc(1rem+env(safe-area-inset-left))] space-y-1">
@@ -310,7 +310,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[55] md:hidden"
           onClick={onClose}
         />
       )}
