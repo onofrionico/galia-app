@@ -1,4 +1,4 @@
-const KIND_LABELS = { order: 'Comanda', void: 'Anulación', bill: 'Precuenta', receipt: 'Ticket', test: 'Prueba' }
+const KIND_LABELS = { order: 'Comanda', void: 'Anulación', bill: 'Precuenta', receipt: 'Ticket', test: 'Prueba', invoice: 'Factura' }
 
 // Estado del indicador de impresión de la caja.
 export function printHealth(status) {

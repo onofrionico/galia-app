@@ -88,7 +88,17 @@ function bodyLines(doc, cols) {
 
 export function renderText(doc, width) {
   const cols = columnsFor(width)
-  return [...wrap(doc.title ?? '', cols).map((t) => center(t, cols)), ...headerLines(doc, cols), ...bodyLines(doc, cols)]
+  const lines = [...wrap(doc.title ?? '', cols).map((t) => center(t, cols)), ...headerLines(doc, cols), ...bodyLines(doc, cols)]
+  if (doc.qr) lines.push('', ...wrap(`QR: ${doc.qr}`, cols))
+  return lines
+}
+
+// QR de ARCA (modelo 2, módulo 6, corrección M): guardar los datos y después imprimirlos.
+export function qrCommand(data) {
+  const len = data.length + 3
+  return `${GS}(k\x04\x001A2\x00` + `${GS}(k\x03\x001C\x06` + `${GS}(k\x03\x001E1`
+    + `${GS}(k${String.fromCharCode(len % 256)}${String.fromCharCode(Math.floor(len / 256))}1P0${data}`
+    + `${GS}(k\x03\x001Q0`
 }
 
 export function renderEscPos(doc, width) {
@@ -97,6 +107,8 @@ export function renderEscPos(doc, width) {
   // El título va a doble ancho: entran la mitad de las columnas.
   out += `${ESC}a\x01${GS}!\x11${wrap(doc.title ?? '', Math.floor(cols / 2)).join('\n')}\n${GS}!\x00${ESC}a\x00`
   out += `${ESC}E\x01${headerLines(doc, cols).join('\n')}\n${ESC}E\x00`
-  out += `${bodyLines(doc, cols).join('\n')}\n\n\n\n${GS}V\x01`
+  out += `${bodyLines(doc, cols).join('\n')}\n`
+  if (doc.qr) out += `${ESC}a\x01${qrCommand(doc.qr)}\n${ESC}a\x00`
+  out += `\n\n\n${GS}V\x01`
   return out
 }

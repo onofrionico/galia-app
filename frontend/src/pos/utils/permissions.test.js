@@ -59,10 +59,19 @@ describe('saleActions', () => {
     expect(actions.move).toBe(false)
     expect(actions.pay).toBe(true)
   })
-  it('una venta cerrada solo permite anular pagos e imprimir el ticket', () => {
+  it('una venta cerrada solo permite anular pagos, facturar e imprimir el ticket', () => {
     const actions = saleActions(sale({ status: 'closed', balance: 0, paid_total: 1000 }), cashier)
     expect(Object.entries(actions).filter(([, v]) => v).map(([k]) => k).sort())
-      .toEqual(['cancelPayment', 'history', 'printReceipt'])
+      .toEqual(['cancelPayment', 'history', 'invoice', 'printReceipt'])
+  })
+  it('ofrece facturar una venta cerrada sin factura y anularla con Anular', () => {
+    const closed = sale({ status: 'closed', balance: 0, paid_total: 1000, invoice: null })
+    expect(saleActions(closed, cashier)).toMatchObject({ invoice: true, invoiceActions: false, cancelInvoice: false })
+    const invoiced = { ...closed, invoice: { id: 1, label: 'Factura C 00005-00000001', status: 'authorized', is_active: true } }
+    expect(saleActions(invoiced, cashier)).toMatchObject({ invoice: false, invoiceActions: true, cancelInvoice: true })
+    expect(saleActions(invoiced, waiter)).toMatchObject({ invoice: false, invoiceActions: false, cancelInvoice: false })
+    const pending = { ...closed, invoice: { id: 2, label: 'x', status: 'pending', is_active: false } }
+    expect(saleActions(pending, cashier)).toMatchObject({ invoice: false, invoiceActions: true, cancelInvoice: false })
   })
 })
 

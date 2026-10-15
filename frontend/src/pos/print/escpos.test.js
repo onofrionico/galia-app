@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnsFor, formatTicketMoney, renderEscPos, renderText } from './escpos'
+import { columnsFor, formatTicketMoney, qrCommand, renderEscPos, renderText } from './escpos'
 
 const order = {
   title: 'COCINA',
@@ -93,5 +93,20 @@ describe('renderEscPos', () => {
     expect(data).toContain('\x1d!\x11PRECUENTA')
     expect(data).toContain('Medialuña')
     expect(data.endsWith('\x1dV\x01')).toBe(true)
+  })
+})
+
+describe('QR de ARCA', () => {
+  it('arma la secuencia GS ( k con el largo correcto y muestra la URL en simulación', () => {
+    const url = 'https://www.afip.gob.ar/fe/qr/?p=abc'
+    const cmd = qrCommand(url)
+    expect(cmd.startsWith('\x1d(k\x04\x001A2\x00')).toBe(true)
+    const len = url.length + 3
+    expect(cmd).toContain(`\x1d(k${String.fromCharCode(len % 256)}${String.fromCharCode(Math.floor(len / 256))}1P0${url}`)
+    expect(cmd.endsWith('\x1d(k\x03\x001Q0')).toBe(true)
+    const doc = { ...bill, qr: url }
+    expect(renderEscPos(doc, 80)).toContain(cmd)
+    expect(renderText(doc, 80).join('')).toContain('afip.gob.ar/fe/qr')
+    expect(renderEscPos(bill, 80)).not.toContain('\x1d(k')
   })
 })
