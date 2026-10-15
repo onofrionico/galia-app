@@ -352,3 +352,66 @@ def invoice_to_dict(invoice):
         'credit_note_label': credit_note.label if credit_note else None,
         'print_warning': getattr(invoice, 'print_warning', None),
     }
+
+
+LIST_PAGE_SIZE = 50
+
+
+def list_invoices(date_from=None, date_to=None, kind=None, status=None, page=1):
+    """Comprobantes del entorno activo, más nuevos primero. Fechas por día de comprobante (Argentina)."""
+    settings = fiscal_settings.get_settings()
+    environment = settings.environment if settings else 'homologacion'
+    query = Invoice.query.filter_by(environment=environment)
+    if date_from:
+        query = query.filter(Invoice.voucher_date >= date_from)
+    if date_to:
+        query = query.filter(Invoice.voucher_date <= date_to)
+    if kind in ('invoice', 'credit_note'):
+        query = query.filter_by(kind=kind)
+    if status in ('pending', 'authorized', 'rejected'):
+        query = query.filter_by(status=status)
+    total = query.count()
+    rows = query.order_by(Invoice.id.desc()).offset((page - 1) * LIST_PAGE_SIZE).limit(LIST_PAGE_SIZE).all()
+    return {'invoices': [invoice_to_dict(i) for i in rows], 'page': page,
+            'pages': max(1, -(-total // LIST_PAGE_SIZE)), 'total': total, 'environment': environment}
+
+
+def sale_invoices(sale_id):
+    rows = Invoice.query.filter_by(sale_id=parse_id(sale_id, 'La venta')).order_by(Invoice.id).all()
+    return [invoice_to_dict(i) for i in rows]
+
+
+def get_invoice(invoice_id):
+    return invoice_to_dict(_load_invoice(invoice_id))
+
+
+def search_customers(q):
+    """Hasta 10 clientes: por número de documento si se escribieron solo números, si no por nombre."""
+    text = (q or '').strip()
+    if len(text) < 2:
+        return []
+    digits = ''.join(ch for ch in text if ch.isdigit())
+    query = FiscalCustomer.query
+    if digits and len(digits) == len(text.replace('-', '').replace('.', '')):
+        query = query.filter(FiscalCustomer.doc_number.startswith(digits))
+    else:
+        query = query.filter(FiscalCustomer.name.ilike(f'%{text}%'))
+    return [c.to_dict() for c in query.order_by(FiscalCustomer.name).limit(10)]
+
+
+def test_connection():
+    """Para Ajustes → Facturación: estado del servicio y último comprobante del punto de venta."""
+    settings = fiscal_settings.get_settings()
+    fiscal_settings.require_ready(settings)
+    gateway = _gateway_or_error(settings)
+    voucher_type = receivers.voucher_type_for(settings.iva_condition, 'consumidor_final')
+    try:
+        gateway.dummy()
+        last = gateway.last_authorized(settings.point_of_sale, voucher_type)
+    except ArcaUnavailable:
+        raise PosError(UNAVAILABLE)
+    except ArcaRejected as exc:
+        raise PosError(f'ARCA respondió: {exc.errors[0]["msg"]}')
+    letter = VOUCHER_TYPES[voucher_type][1]
+    return {'ok': True, 'last_number': last,
+            'label': f'Último comprobante: {letter} {settings.point_of_sale:05d}-{last:08d}'}
