@@ -52,6 +52,25 @@ def test_credentials_are_cached_until_near_expiry(pos_app):
     assert ArcaToken.query.count() == 1
 
 
+def test_already_authenticated_reuses_the_stored_ticket(pos_app):
+    settings = configure_fiscal()
+    db_token = ArcaToken(service='wsfe', environment='homologacion', token='VIGENTE', sign='S',
+                         expires_at=datetime.utcnow() + timedelta(minutes=5))
+    from app.extensions import db
+    db.session.add(db_token)
+    db.session.commit()
+
+    def login(cms):
+        raise ArcaRejected([{'code': wsaa.ALREADY_AUTHENTICATED, 'msg': 'ya posee un TA valido'}])
+
+    # Faltan 5 minutos (ventana de renovación): ARCA no da otro, se sigue usando el guardado.
+    assert wsaa.credentials(settings, login=login) == ('VIGENTE', 'S')
+    db_token.expires_at = datetime.utcnow() - timedelta(minutes=1)
+    db.session.commit()
+    with pytest.raises(ArcaRejected):
+        wsaa.credentials(settings, login=login)
+
+
 def test_build_detail_for_invoice_and_credit_note():
     fields = {'number': 42, 'voucher_date': date(2026, 10, 14), 'doc_type_code': 99,
               'doc_number': '0', 'total': Decimal('1800.00'), 'net': Decimal('1800.00'), 'iva': Decimal('0.00'),

@@ -54,9 +54,18 @@ def normalize_receiver(data, total, threshold, emitter_condition):
             'iva_condition': condition, 'address': address}
 
 
+CREDIT_NOTE_FOR = {11: 13, 1: 3, 6: 8}
+
+
 def voucher_type_for(emitter_condition, receiver_condition, credit_note=False):
     if emitter_condition == 'monotributo':
         return 13 if credit_note else 11
-    if receiver_condition == 'responsable_inscripto':
+    # Responsable inscripto: Factura A a responsables inscriptos y monotributistas (RG 5003), B al resto.
+    if receiver_condition in ('responsable_inscripto', 'monotributo'):
         return 3 if credit_note else 1
     return 8 if credit_note else 6
+
+
+def credit_note_type_for(invoice_type):
+    """La nota de crédito sigue a la factura que anula (aunque después haya cambiado la condición del emisor)."""
+    return CREDIT_NOTE_FOR[invoice_type]

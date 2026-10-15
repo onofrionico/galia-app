@@ -42,6 +42,18 @@ def test_credit_note_cancels_invoice_and_allows_reinvoicing(ctx):
     assert again.status == 'authorized' and again.number == 2
 
 
+def test_credit_note_keeps_original_type_after_switching_condition(ctx):
+    user, cat, t1, _t2 = ctx
+    invoice = invoice_service.issue(user, closed_sale(user, cat, t1).id, None)
+    from app.services.fiscal import settings as fs
+    settings = fs.get_settings()
+    settings.iva_condition = 'responsable_inscripto'
+    db.session.commit()
+    credit = invoice_service.cancel(user, invoice.id)
+    assert credit.voucher_type == 13 and credit.iva == invoice.iva and credit.net == invoice.net
+    assert 'Iva' not in credit.request
+
+
 def test_credit_note_requires_anular(ctx):
     user, cat, t1, _t2 = ctx
     invoice = invoice_service.issue(user, closed_sale(user, cat, t1).id, None)

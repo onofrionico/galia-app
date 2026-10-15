@@ -1,5 +1,9 @@
+from datetime import datetime, timedelta
+
 import pytest
 
+from app.extensions import db
+from app.models import Invoice
 from app.services.fiscal import arca
 from app.services.fiscal.arca.fake import FakeArca
 from fiscal_helpers import closed_sale, configure_fiscal, make_key_and_cert
@@ -62,6 +66,11 @@ def test_pending_and_rejected_status_codes(ctx):
     pending = client.post(f'{BASE}/sales/{closed_sale(user, cat, t2).id}/invoice', json={}, headers=headers)
     assert pending.status_code == 202 and pending.get_json()['status'] == 'pending'
     FakeArca.mode = 'approve'
+    recent = client.post(f"{BASE}/invoices/{pending.get_json()['id']}/verify", headers=headers)
+    assert recent.status_code == 200 and recent.get_json()['status'] == 'pending'
+    invoice = db.session.get(Invoice, pending.get_json()['id'])
+    invoice.created_at = datetime.utcnow() - timedelta(seconds=121)
+    db.session.commit()
     verified = client.post(f"{BASE}/invoices/{pending.get_json()['id']}/verify", headers=headers)
     assert verified.status_code == 200 and verified.get_json()['status'] == 'rejected'
 

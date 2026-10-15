@@ -50,4 +50,12 @@ def test_voucher_type_matrix():
     assert voucher_type_for('monotributo', 'consumidor_final', credit_note=True) == 13
     assert voucher_type_for('responsable_inscripto', 'responsable_inscripto') == 1
     assert voucher_type_for('responsable_inscripto', 'consumidor_final') == 6
-    assert voucher_type_for('responsable_inscripto', 'monotributo', credit_note=True) == 8
+    # Desde la RG 5003, un responsable inscripto le emite Factura A a un monotributista.
+    assert voucher_type_for('responsable_inscripto', 'monotributo') == 1
+    assert voucher_type_for('responsable_inscripto', 'monotributo', credit_note=True) == 3
+    assert voucher_type_for('responsable_inscripto', 'exento', credit_note=True) == 8
+
+
+def test_credit_note_type_follows_the_original_invoice():
+    from app.services.fiscal.receivers import credit_note_type_for
+    assert [credit_note_type_for(t) for t in (11, 1, 6)] == [13, 3, 8]

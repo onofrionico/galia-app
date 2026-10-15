@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 PENDING_GRACE = timedelta(seconds=120)
 UNAVAILABLE = 'ARCA no responde, probá en unos minutos'
 NOT_CONFIRMED = 'No pudimos confirmar con ARCA. Tocá Verificar en unos segundos'
+STILL_PROCESSING = 'Todavía no aparece en ARCA: probá Verificar de nuevo en un minuto'
+PRINT_FAILED = 'La factura se emitió, pero no se pudo mandar a imprimir: reimprimila'
 
 
 def _external_ids():
@@ -46,10 +48,6 @@ def active_invoice(sale_id):
 
 def pending_invoice(sale_id):
     return Invoice.query.filter_by(sale_id=sale_id, status='pending').order_by(Invoice.id.desc()).first()
-
-
-def _discriminated(settings):
-    return settings.iva_condition == 'responsable_inscripto'
 
 
 def preview(sale_id):
@@ -94,18 +92,29 @@ def _save_customer(receiver):
     return customer
 
 
+def _discriminates_iva(voucher_type):
+    """A y B discriminan IVA; C no. Depende del comprobante, no de la configuración actual."""
+    return VOUCHER_TYPES[voucher_type][1] != 'C'
+
+
 def _detail_fields(invoice, settings, associated=None):
     return {'number': invoice.number, 'voucher_date': invoice.voucher_date,
             'doc_type_code': invoice.receiver_doc_type, 'doc_number': invoice.receiver_doc_number,
             'total': invoice.total, 'net': invoice.net, 'iva': invoice.iva, 'iva_rate': invoice.iva_rate,
-            'discriminated': _discriminated(settings),
+            'discriminated': _discriminates_iva(invoice.voucher_type),
             'receiver_iva_id': receivers.RECEIVER_IVA_IDS[invoice.receiver_iva_condition], 'associated': associated}
 
 
 def resolve(invoice, gateway):
-    """Decide un 'pending' preguntándole a ARCA si ese número quedó autorizado. No hace commit."""
+    """Decide un 'pending' preguntándole a ARCA si ese número quedó autorizado. No hace commit.
+
+    Si ARCA todavía no lo tiene y el pedido es reciente, sigue 'pending': ARCA puede estar procesándolo
+    aunque nuestro pedido haya dado timeout. Recién pasado PENDING_GRACE se da por no recibido."""
     found = gateway.query(invoice.voucher_type, invoice.point_of_sale, invoice.number)
     if found is None:
+        if invoice.created_at > now() - PENDING_GRACE:
+            invoice.error = STILL_PROCESSING
+            return invoice
         invoice.status = 'rejected'
         invoice.error = 'No llegó a ARCA'
         return invoice
@@ -135,7 +144,13 @@ def print_invoice(invoice, user, settings=None):
         invoice.print_warning = 'No hay impresora de caja configurada'
         return invoice.print_warning
     author = user or SimpleNamespace(id=invoice.created_by)  # add_job solo usa user.id
-    print_service.add_job('invoice', printer, author, invoice_document(invoice, settings), invoice.sale)
+    try:
+        document = invoice_document(invoice, settings)
+        print_service.add_job('invoice', printer, author, document, invoice.sale)
+    except Exception:  # la impresión nunca deshace una factura autorizada
+        logger.exception('No se pudo encolar la impresión de %s', invoice.label)
+        invoice.print_warning = PRINT_FAILED
+        return invoice.print_warning
     invoice.print_warning = None
     return None
 
@@ -153,11 +168,17 @@ def _resolve_stale(settings, voucher_type, gateway):
 
 def _reserve(user, settings, gateway, sale, kind, voucher_type, receiver, mode, lines, total, payments,
              related=None, customer=None):
-    """Fase 1: número de ARCA + comprobante 'pending' con el pedido completo. Hace commit."""
+    """Fase 1: número de ARCA + comprobante 'pending' con el pedido completo. Hace commit.
+
+    Una nota de crédito copia neto, IVA y alícuota de la factura que anula."""
     _resolve_stale(settings, voucher_type, gateway)
     number = gateway.last_authorized(settings.point_of_sale, voucher_type) + 1
-    rate = Decimal(settings.default_iva_rate) if _discriminated(settings) else Decimal('0')
-    net, iva = amounts.split_iva(total, rate, _discriminated(settings))
+    if related is not None:
+        net, iva, rate = related.net, related.iva, related.iva_rate
+    else:
+        discriminated = _discriminates_iva(voucher_type)
+        rate = Decimal(settings.default_iva_rate) if discriminated else Decimal('0')
+        net, iva = amounts.split_iva(total, rate, discriminated)
     invoice = Invoice(kind=kind, voucher_type=voucher_type, environment=settings.environment,
                       point_of_sale=settings.point_of_sale, number=number, sale_id=sale.id if sale else None,
                       related_invoice_id=related.id if related else None,
@@ -202,7 +223,7 @@ def _request_cae(invoice, settings, gateway, user):
         invoice.cae_due = result.cae_due
         invoice.authorized_at = now()
         invoice.error = None
-        db.session.flush()
+        db.session.commit()  # la autorización queda guardada antes de imprimir
         print_invoice(invoice, user, settings)
     else:
         invoice.status = 'rejected'
@@ -273,8 +294,7 @@ def cancel(user, invoice_id):
             raise PosError('Hay una nota de crédito sin confirmar para esta factura: verificala antes')
         if invoice.environment != settings.environment:
             raise PosError('La factura es de otro entorno: cambiá el entorno en Ajustes → Facturación')
-        voucher_type = receivers.voucher_type_for(settings.iva_condition, invoice.receiver_iva_condition,
-                                                  credit_note=True)
+        voucher_type = receivers.credit_note_type_for(invoice.voucher_type)
         receiver = {'doc_type_code': invoice.receiver_doc_type, 'doc_number': invoice.receiver_doc_number,
                     'name': invoice.receiver_name, 'iva_condition': invoice.receiver_iva_condition,
                     'address': invoice.receiver_address}
@@ -305,6 +325,9 @@ def verify(user, invoice_id):
     if invoice.status != 'pending':
         return invoice
     settings = fiscal_settings.get_settings()
+    if invoice.environment != settings.environment:
+        # Consultar en otro entorno daría "no existe" y rechazaría un comprobante que sí está autorizado.
+        raise PosError('El comprobante es de otro entorno: cambiá el entorno en Ajustes → Facturación')
     gateway = _gateway_or_error(settings)
     try:
         resolve(invoice, gateway)
@@ -312,9 +335,10 @@ def verify(user, invoice_id):
         db.session.rollback()
         logger.warning('No se pudo verificar %s: %s', invoice.label, exc)
         raise PosError(UNAVAILABLE)
+    db.session.commit()  # la autorización queda guardada antes de imprimir
     if invoice.status == 'authorized':
         print_invoice(invoice, user, settings)
-    db.session.commit()
+        db.session.commit()
     return invoice
 
 

@@ -17,6 +17,7 @@ export default function InvoiceTag({ sale, canCancel }) {
     try {
       const result = await fn()
       if (result?.status === 'rejected') toast.error(result.error)
+      else if (result?.status === 'pending') toast.info(result.error ?? 'Todavía sin confirmar')
       else if (result?.print_warning) toast.error(result.print_warning)
       else toast.success(typeof success === 'function' ? success(result) : success)
       queryClient.invalidateQueries({ queryKey: posKeys.sale(sale.id) })

@@ -85,6 +85,8 @@ def test_timeout_leaves_pending_and_verify_rejects_when_arca_never_got_it(ctx):
     assert 'emitiéndose' in error.value.message
     db.session.rollback()
     FakeArca.mode = 'approve'
+    invoice.created_at = datetime.utcnow() - timedelta(seconds=121)
+    db.session.commit()
     resolved = invoice_service.verify(user, invoice.id)
     assert resolved.status == 'rejected' and resolved.error == 'No llegó a ARCA'
 
@@ -104,6 +106,47 @@ def test_timeout_after_arca_issued_resolves_to_authorized(ctx):
     assert invoice.status == 'authorized' and invoice.cae == FakeArca.issued[(5, 11)][1]['cae']
     assert nxt.number == 2 and nxt.status == 'authorized'
     assert PrintJob.query.filter_by(kind='invoice').count() == 2
+
+
+def test_verify_keeps_recent_pending_until_arca_had_time(ctx):
+    user, cat, t1, _t2, _s, _p = ctx
+    FakeArca.reset('timeout')
+    sale = closed_sale(user, cat, t1)
+    invoice = invoice_service.issue(user, sale.id, None)
+    FakeArca.mode = 'approve'
+    # Recién emitida: ARCA puede seguir procesándola, no se la da por rechazada.
+    still = invoice_service.verify(user, invoice.id)
+    assert still.status == 'pending' and 'Todavía no aparece en ARCA' in still.error
+    invoice.created_at = datetime.utcnow() - timedelta(seconds=121)
+    db.session.commit()
+    assert invoice_service.verify(user, invoice.id).status == 'rejected'
+
+
+def test_verify_refuses_pending_from_another_environment(ctx):
+    user, cat, t1, _t2, settings, _p = ctx
+    FakeArca.reset('timeout')
+    invoice = invoice_service.issue(user, closed_sale(user, cat, t1).id, None)
+    invoice.environment = 'produccion'
+    db.session.commit()
+    with pytest.raises(PosError) as error:
+        invoice_service.verify(user, invoice.id)
+    assert 'otro entorno' in error.value.message
+    db.session.rollback()
+    assert invoice.status == 'pending'
+
+
+def test_print_failure_after_authorization_keeps_the_invoice(ctx, monkeypatch):
+    user, cat, t1, _t2, _s, _p = ctx
+
+    def broken(*args, **kwargs):
+        raise RuntimeError('cola de impresión caída')
+
+    monkeypatch.setattr(invoice_service, 'invoice_document', broken)
+    invoice = invoice_service.issue(user, closed_sale(user, cat, t1).id, None)
+    db.session.expire_all()
+    assert invoice.status == 'authorized' and invoice.cae
+    assert invoice_service.invoice_to_dict(invoice)['print_warning'] == \
+        'La factura se emitió, pero no se pudo mandar a imprimir: reimprimila'
 
 
 def test_cannot_invoice_open_sale_external_only_or_unconfigured(ctx):

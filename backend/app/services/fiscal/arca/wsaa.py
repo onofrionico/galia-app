@@ -16,6 +16,8 @@ from app.utils.timezone_utils import ARGENTINA_TZ
 
 SERVICE = 'wsfe'
 RENEW_BEFORE = timedelta(minutes=10)
+STILL_USABLE = timedelta(seconds=30)
+ALREADY_AUTHENTICATED = 'already_authenticated'
 URLS = {'homologacion': 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms?wsdl',
         'produccion': 'https://wsaa.afip.gov.ar/ws/services/LoginCms?wsdl'}
 
@@ -61,9 +63,7 @@ def _soap_login(environment):
         except Fault as fault:
             message = str(fault.message or fault)
             if 'alreadyAuthenticated' in message or 'ya posee un TA valido' in message:
-                raise ArcaRejected([{'code': 'wsaa', 'msg': (
-                    'ARCA ya entregó un acceso a este certificado que Galia no tiene guardado; '
-                    'esperá unos minutos (hasta 12 h) o generá otro certificado')}])
+                raise ArcaRejected([{'code': ALREADY_AUTHENTICATED, 'msg': message}])
             raise ArcaRejected([{'code': 'wsaa', 'msg': message}])
         except Exception as exc:  # red, timeout, WSDL
             raise ArcaUnavailable(str(exc))
@@ -78,7 +78,21 @@ def credentials(settings, login=None):
         return row.token, row.sign
     cert_pem, key_pem = fiscal_settings.active_credentials(settings)
     cms = sign_tra(build_tra(SERVICE, datetime.utcnow()), cert_pem, key_pem)
-    token, sign, expires = parse_login((login or _soap_login(environment))(cms))
+    try:
+        response = (login or _soap_login(environment))(cms)
+    except ArcaRejected as exc:
+        if exc.errors and exc.errors[0]['code'] == ALREADY_AUTHENTICATED:
+            # ARCA no entrega otro ticket mientras el anterior siga vigente (renovación anticipada, u otro
+            # proceso que lo pidió al mismo tiempo): se usa el guardado mientras sirva.
+            db.session.rollback()
+            row = ArcaToken.query.filter_by(service=SERVICE, environment=environment).first()
+            if row is not None and row.expires_at - STILL_USABLE > datetime.utcnow():
+                return row.token, row.sign
+            raise ArcaRejected([{'code': ALREADY_AUTHENTICATED, 'msg': (
+                'ARCA ya entregó un acceso a este certificado que Galia no tiene guardado: '
+                'se libera solo cuando vence (como máximo 12 h)')}])
+        raise
+    token, sign, expires = parse_login(response)
     if row is None:
         row = ArcaToken(service=SERVICE, environment=environment, token=token, sign=sign, expires_at=expires)
         db.session.add(row)
