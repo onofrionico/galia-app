@@ -150,8 +150,10 @@ Migración `b4a0_add_fiscal_invoicing`, con `down_revision = 'b3a0_add_print_sta
 | Emisor | Receptor | Factura | Nota de crédito |
 |---|---|---|---|
 | Monotributo | cualquiera | C (11) | C (13) |
-| Responsable Inscripto | responsable inscripto | A (1) | A (3) |
-| Responsable Inscripto | otro | B (6) | B (8) |
+| Responsable Inscripto | responsable inscripto o monotributo (RG 5003) | A (1) | A (3) |
+| Responsable Inscripto | consumidor final o exento | B (6) | B (8) |
+
+La nota de crédito sigue siempre el tipo de la factura que anula (11→13, 1→3, 6→8) y copia su neto, IVA y alícuota, aunque después haya cambiado la configuración.
 
 ### Receptor
 
@@ -182,7 +184,9 @@ Migración `b4a0_add_fiscal_invoicing`, con `down_revision = 'b3a0_add_print_sta
 
 - `wsfe.query(type, pos, number)`.
   - Si existe: compara importe total y documento del receptor con el pedido guardado. Si coinciden, `authorized` con el CAE devuelto. Si no coinciden, `rejected` con "ARCA tiene otro comprobante con ese número". Ese caso se registra en el log y aparece en Comprobantes para revisarlo.
-  - Si no existe: `rejected` con "No llegó a ARCA".
+  - Si no existe y el pedido tiene menos de 120 s: sigue `pending` ("Todavía no aparece en ARCA: probá Verificar de nuevo en un minuto"), porque ARCA puede seguir procesándolo después de nuestro timeout.
+  - Si no existe y pasaron 120 s: `rejected` con "No llegó a ARCA".
+  - Solo se verifica en el entorno del comprobante: si el entorno activo es otro, se responde un error en lugar de consultar.
 - Se dispara con "Verificar" (`POST /fiscal/invoices/<id>/verify`) o automáticamente en la fase 1 de la siguiente emisión, si el `pending` tiene más de 120 s.
 
 ### Nota de crédito (`invoice_service.cancel`)
