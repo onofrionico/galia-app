@@ -54,3 +54,7 @@ def test_cash_registers_follows_cash_ui_support():
 
 def test_print_stations_follows_products_fudo_link():
     assert _revisions()['b3a0_add_print_stations'] == ['b2b0_products_fudo_link']
+
+
+def test_fiscal_invoicing_follows_print_stations():
+    assert _revisions()['b4a0_add_fiscal_invoicing'] == ['b3a0_add_print_stations']

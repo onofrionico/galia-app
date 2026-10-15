@@ -1,6 +1,6 @@
 from app.extensions import db
 
-PRINT_JOB_KINDS = ('order', 'void', 'bill', 'receipt', 'test')
+PRINT_JOB_KINDS = ('order', 'void', 'bill', 'receipt', 'test', 'invoice')
 PRINT_JOB_STATUSES = ('pending', 'printing', 'printed', 'failed')
 PRINTER_CONNECTIONS = ('network', 'usb')
 PAPER_WIDTHS = (58, 80)
