@@ -1,4 +1,5 @@
 from app.services.fiscal import guard
+from app.services.mercadopago import summary as mp_summary
 from app.services.pos.common import display_name
 
 
@@ -85,4 +86,5 @@ def sale_to_dict(sale, include_items=True):
         data['discounts'] = [discount_to_dict(d) for d in sale.discounts]
         data['payments'] = [payment_to_dict(p) for p in sale.payments]
         data['invoice'] = guard.sale_invoice_summary(sale.id)
+        data['point_order'] = mp_summary.active_point_order(sale.id)
     return data
