@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 200
 LINK_COUNTERS = ('suppliers_created', 'suppliers_linked', 'categories_created', 'categories_linked')
+# Campos de enriquecimiento: si Fudo no los manda (None) se conserva lo que ya había (p. ej. lo del CSV).
+KEEP_WHEN_MISSING = ('caja', 'de_caja', 'medio_pago', 'tipo_comprobante', 'numero_comprobante',
+                     'numero_fiscal', 'proveedor')
 
 
 def sync_expenses(client, start_date, end_date):
@@ -44,14 +47,17 @@ def _upsert(parsed, linker, stats):
 
     expense = Expense.query.filter_by(external_id=parsed.external_id).first()
     if expense is None:
+        fields = {k: v for k, v in parsed.fields.items() if not (k in KEEP_WHEN_MISSING and v is None)}
         db.session.add(Expense(external_id=parsed.external_id, source='fudo', creado_por='Fudo Sync',
-                               supplier_id=supplier_id, category_id=category.id, **parsed.fields))
+                               supplier_id=supplier_id, category_id=category.id, **fields))
         db.session.flush()
         stats['created'] += 1
         return
 
     changed = False
     for field, value in parsed.fields.items():
+        if value is None and field in KEEP_WHEN_MISSING:
+            continue
         if getattr(expense, field) != value:
             setattr(expense, field, value)
             changed = True

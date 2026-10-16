@@ -167,3 +167,31 @@ def test_commits_in_batches(menu_app, monkeypatch):
     _sync([fudo_expense(i) for i in range(1, 6)])
 
     assert len(commits) == 3  # tras el 2, tras el 4 y el final
+
+
+def test_resync_keeps_existing_values_when_fudo_does_not_send_them(menu_app):
+    category = ExpenseCategory(name='Sin categoría')
+    db.session.add(category)
+    db.session.flush()
+    db.session.add(Expense(external_id=101, fecha=date(2026, 10, 1), importe=Decimal('1'), category_id=category.id,
+                           source='fudo', caja='Caja principal', de_caja=True, medio_pago='Efectivo',
+                           tipo_comprobante='Factura A', numero_comprobante='0001-1', numero_fiscal='30712345678',
+                           proveedor='Molino Sur'))
+    db.session.commit()
+
+    _sync([fudo_expense(101, amount='1')], included=[])
+
+    expense = Expense.query.filter_by(external_id=101).one()
+    assert expense.caja == 'Caja principal'
+    assert expense.de_caja is True
+    assert expense.medio_pago == 'Efectivo'
+    assert expense.tipo_comprobante == 'Factura A'
+    assert expense.numero_comprobante == '0001-1'
+    assert expense.numero_fiscal == '30712345678'
+    assert expense.proveedor == 'Molino Sur'
+
+
+def test_new_expense_without_cash_flag_defaults_to_false(menu_app):
+    _sync([fudo_expense(101)], included=[])
+
+    assert Expense.query.filter_by(external_id=101).one().de_caja is False

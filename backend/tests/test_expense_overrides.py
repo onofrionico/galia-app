@@ -93,3 +93,38 @@ def test_unlink_fudo_category(menu_client, admin_headers):
                            json={'fudo_category_id': None}).get_json()
 
     assert data['fudo_category_id'] is None
+
+
+def test_put_keeps_inactive_category_when_unchanged(menu_client, admin_headers):
+    first, _, _, _ = _setup()
+    expense = _expense('fudo', first)
+    first.is_active = False
+    db.session.commit()
+
+    response = menu_client.put(f'/api/v1/expenses/{expense.id}', headers=admin_headers,
+                               json={'category_id': str(first.id), 'comentario': 'nota'})
+
+    assert response.status_code == 200
+    assert response.get_json()['comentario'] == 'nota'
+    assert response.get_json()['category_overridden'] is False
+
+
+def test_put_same_category_as_string_does_not_mark(menu_client, admin_headers):
+    first, _, _, _ = _setup()
+    expense = _expense('fudo', first)
+
+    data = menu_client.put(f'/api/v1/expenses/{expense.id}', headers=admin_headers,
+                           json={'category_id': str(first.id)}).get_json()
+
+    assert data['category_overridden'] is False
+
+
+def test_put_changed_category_as_string_marks_and_saves_int(menu_client, admin_headers):
+    first, second, _, _ = _setup()
+    expense = _expense('fudo', first)
+
+    data = menu_client.put(f'/api/v1/expenses/{expense.id}', headers=admin_headers,
+                           json={'category_id': str(second.id)}).get_json()
+
+    assert data['category_id'] == second.id
+    assert data['category_overridden'] is True

@@ -108,3 +108,22 @@ def test_list_runs_newest_first(menu_client, admin_headers):
 
 def test_get_unknown_run_is_404(menu_client, admin_headers):
     assert menu_client.get('/api/v1/fudo/sync/runs/999', headers=admin_headers).status_code == 404
+
+
+def test_get_reports_stale_running_run_as_abandoned(menu_client, admin_headers):
+    stale = fudo_sync_runs.start_run('expenses', {}, now=datetime.utcnow() - timedelta(minutes=31))
+
+    run = menu_client.get(f'/api/v1/fudo/sync/runs/{stale.id}', headers=admin_headers).get_json()
+    listed = menu_client.get('/api/v1/fudo/sync/runs?kind=expenses', headers=admin_headers).get_json()['runs']
+
+    assert run['status'] == 'error'
+    assert 'abandonada' in run['error']
+    assert listed[0]['status'] == 'error'
+
+
+def test_get_keeps_recent_running_run(menu_client, admin_headers):
+    recent = fudo_sync_runs.start_run('expenses', {})
+
+    run = menu_client.get(f'/api/v1/fudo/sync/runs/{recent.id}', headers=admin_headers).get_json()
+
+    assert run['status'] == 'running'

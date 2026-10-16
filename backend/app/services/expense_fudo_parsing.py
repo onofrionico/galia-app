@@ -126,7 +126,7 @@ def parse_expense(raw, index):
         'comentario': _text(attrs.get(ATTR['description'])),
         'estado_pago': STATUS_MAP.get(status, 'Pendiente'),
         'cancelado': status in CANCELLED_STATUSES,
-        'de_caja': bool(attrs.get(ATTR['from_cash'])),
+        'de_caja': bool(attrs[ATTR['from_cash']]) if attrs.get(ATTR['from_cash']) is not None else None,
         'caja': _text(cash_attrs.get('name')),
         'medio_pago': _text(method_attrs.get('name')),
         'tipo_comprobante': _text(receipt_attrs.get('name')),

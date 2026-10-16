@@ -271,12 +271,17 @@ def update_expense(current_user, expense_id):
     if 'category_id' in data:
         category_id = data['category_id']
         if category_id:
-            category = ExpenseCategory.query.get(category_id)
-            if not category or not category.is_active:
+            try:
+                category_id = int(category_id)
+            except (TypeError, ValueError):
                 return jsonify({'error': 'Categoría inválida o inactiva'}), 400
-            if category_id != expense.category_id and expense.source == 'fudo':
-                expense.category_overridden = True
-            expense.category_id = category_id
+            if category_id != expense.category_id:
+                category = ExpenseCategory.query.get(category_id)
+                if not category or not category.is_active:
+                    return jsonify({'error': 'Categoría inválida o inactiva'}), 400
+                if expense.source == 'fudo':
+                    expense.category_overridden = True
+                expense.category_id = category_id
         else:
             return jsonify({'error': 'La categoría es requerida'}), 400
     

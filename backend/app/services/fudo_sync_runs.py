@@ -17,14 +17,22 @@ class SyncInProgress(Exception):
         self.run = run
 
 
-def start_run(kind, params, user_id=None, now=None):
+def expire_stale(kind, now=None):
+    """Marca como abandonadas las corridas `running` de más de 30 min (su hilo murió). No commitea."""
     now = now or datetime.utcnow()
     for running in FudoSyncRun.query.filter_by(kind=kind, status='running').all():
-        if now - running.started_at < STALE_AFTER:
-            raise SyncInProgress(running)
-        running.status = 'error'
-        running.finished_at = now
-        running.error = 'Corrida abandonada (no terminó en 30 minutos)'
+        if now - running.started_at >= STALE_AFTER:
+            running.status = 'error'
+            running.finished_at = now
+            running.error = 'Corrida abandonada (no terminó en 30 minutos)'
+
+
+def start_run(kind, params, user_id=None, now=None):
+    now = now or datetime.utcnow()
+    expire_stale(kind, now)
+    running = FudoSyncRun.query.filter_by(kind=kind, status='running').first()
+    if running:
+        raise SyncInProgress(running)
     run = FudoSyncRun(kind=kind, status='running', started_at=now, params=params, triggered_by=user_id)
     db.session.add(run)
     db.session.commit()

@@ -27,6 +27,18 @@ def upgrade():
         batch.add_column(sa.Column('category_overridden', sa.Boolean(), nullable=False, server_default=sa.false()))
         batch.add_column(sa.Column('supplier_overridden', sa.Boolean(), nullable=False, server_default=sa.false()))
     op.execute("UPDATE expenses SET source = 'fudo' WHERE external_id IS NOT NULL")
+    # Lo importado antes de esta migración ya tiene clasificación (mapeo del modal viejo, "Clasificar Gastos")
+    # y proveedor puesto a mano (ni el CSV ni la sync vieja asignaban supplier_id): se congela para que la
+    # primera sync no lo pise. Los que siguen en "Sin categoría" quedan libres para que la sync los clasifique.
+    op.execute(
+        "UPDATE expenses SET supplier_overridden = true "
+        "WHERE external_id IS NOT NULL AND supplier_id IS NOT NULL"
+    )
+    op.execute(
+        "UPDATE expenses SET category_overridden = true "
+        "WHERE external_id IS NOT NULL AND category_id IS NOT NULL AND category_id NOT IN "
+        "(SELECT id FROM expense_categories WHERE name = 'Sin categoría')"
+    )
     op.create_table(
         'fudo_sync_runs',
         sa.Column('id', sa.Integer(), primary_key=True),

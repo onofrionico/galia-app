@@ -235,6 +235,8 @@ def get_sync_run(current_user, run_id):
     run = db.session.get(FudoSyncRun, run_id)
     if run is None:
         return jsonify({'error': 'Corrida no encontrada'}), 404
+    fudo_sync_runs.expire_stale(run.kind)
+    db.session.commit()
     return jsonify(run.to_dict()), 200
 
 
@@ -243,6 +245,8 @@ def get_sync_run(current_user, run_id):
 @admin_required
 def list_sync_runs(current_user):
     kind = request.args.get('kind', 'expenses')
+    fudo_sync_runs.expire_stale(kind)
+    db.session.commit()
     try:
         limit = max(1, min(int(request.args.get('limit', 5)), 50))
     except ValueError:
