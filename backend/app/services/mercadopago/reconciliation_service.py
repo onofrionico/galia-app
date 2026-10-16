@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytz
 
 from app.extensions import db
-from app.models import MpFetchDay, MpMovement, MpPointOrder, MpReconciliation, PaymentMethod, PosPayment
+from app.models import MpFetchDay, MpMovement, MpPointOrder, MpReconciliation, PaymentMethod, PosPayment, PosSale
 from app.models.mercadopago import RESOLUTION_KINDS
 from app.services import mercadopago
 from app.services.mercadopago import MpRejected, MpUnavailable
@@ -179,9 +179,15 @@ def day(day):
         'only_galia': _money(sum((p.amount for p in only_galia), ZERO)),
         'by_channel': {channel: _money(amount) for channel, amount in by_channel.items()},
     }
+    methods = PaymentMethod.query.filter_by(is_mercadopago=True, is_active=True).order_by(PaymentMethod.position)
+    # Ventas del día que todavía aceptan un pago (para "Crear pago en una venta").
+    billing = PosSale.query.filter_by(business_date=day, status='billing').order_by(PosSale.number)
     return {'day': day.isoformat(), 'status': status, 'pending': pending, 'matched': matched,
             'only_mp': only_mp_rows, 'only_galia': [_payment_row(p) for p in only_galia],
-            'rejected': [_movement_row(m) for m in rejected], 'totals': totals}
+            'rejected': [_movement_row(m) for m in rejected], 'totals': totals,
+            'payment_methods': [{'id': m.id, 'name': m.name} for m in methods],
+            'billing_sales': [{'id': s.id, 'number': s.number, 'balance': _money(s.balance),
+                               'label': s.table.label if s.table is not None else 'Mostrador'} for s in billing]}
 
 
 def summary(date_from, date_to):

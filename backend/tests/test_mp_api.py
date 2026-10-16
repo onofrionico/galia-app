@@ -94,6 +94,7 @@ def test_reconciliation_api(ctx):
     assert client.post('/api/v1/mp/reconciliation/2026-10-15/fetch', headers=concilia).get_json()['fetched'] == 1
     day = client.get('/api/v1/mp/reconciliation/2026-10-15', headers=concilia).get_json()
     movement_id = day['only_mp'][0]['movement_id']
+    assert [m['name'] for m in day['payment_methods']] == ['MercadoPago Point']
     resolved = client.post('/api/v1/mp/reconciliation/resolutions', json={
         'kind': 'not_a_sale', 'movement_id': movement_id, 'note': 'Aporte del dueño'}, headers=concilia)
     assert resolved.status_code == 201

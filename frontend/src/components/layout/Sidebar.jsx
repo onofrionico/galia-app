@@ -30,6 +30,8 @@ import {
   Smartphone,
   Store,
   Banknote,
+  Scale,
+  CreditCard,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -76,6 +78,7 @@ const navGroups = [
       { to: '/sales', icon: ShoppingCart, label: 'Ventas', module: 'Sales' },
       { to: '/cash-sessions', icon: Banknote, label: 'Cajas', module: 'POS' },
       { to: '/fiscal/invoices', icon: FileText, label: 'Comprobantes', module: 'POS' },
+      { to: '/mp/reconciliation', icon: Scale, label: 'Conciliación MP', module: 'Conciliar' },
       { to: '/expenses', icon: Receipt, label: 'Gastos', module: 'Expenses' },
       { to: '/expense-categories', icon: Tag, label: 'Categorías de Gastos', subItem: true, module: 'Expenses' },
       { to: '/suppliers', icon: Building2, label: 'Proveedores', module: 'Suppliers' },
@@ -130,6 +133,7 @@ const navGroups = [
       { to: '/admin/branding', icon: ImageIcon, label: 'Branding', adminOnly: true },
       { to: '/admin/pos-settings', icon: Store, label: 'Ajustes del POS', adminOnly: true },
       { to: '/admin/fiscal', icon: Receipt, label: 'Facturación', adminOnly: true },
+      { to: '/admin/mercadopago', icon: CreditCard, label: 'MercadoPago', adminOnly: true },
     ],
   },
 ]

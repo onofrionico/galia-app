@@ -17,7 +17,7 @@ from pos_helpers import make_catalog, make_floor, make_user, pos_app  # noqa: F4
 TODAY = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).date()
 
 
-def _mp_payment(pid, amount, minutes_ago=1, status='approved', ptype='account_money', poi='INSTORE', ref=None):
+def _mp_payment(pid, amount, minutes_ago=0, status='approved', ptype='account_money', poi='INSTORE', ref=None):
     moment = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
     return {'id': pid, 'date_created': moment.isoformat(timespec='milliseconds'), 'transaction_amount': amount,
             'status': status, 'status_detail': 'accredited', 'payment_type_id': ptype, 'payment_method_id': 'qr',
@@ -76,6 +76,9 @@ def test_only_lists_and_suggestions(ctx):
     assert only_mp['556']['suggestions'] == [] and only_mp['556']['channel'] == 'transfer'
     assert len(data['only_galia']) == 1 and data['status'] == 'con_diferencias' and data['pending'] == 3
     assert data['totals']['only_mp'] == '6800.00'
+    assert data['billing_sales'] == []  # la venta quedó cerrada con el pago de débito
+    other = billing_sale(user, cat, _t2)
+    assert [s['id'] for s in rs.day(other.business_date)['billing_sales']] == [other.id]
 
 
 def test_resolutions_and_undo(ctx):
