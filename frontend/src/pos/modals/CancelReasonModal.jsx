@@ -5,10 +5,12 @@ import Modal from '../ui/Modal'
 import { btn } from '../ui/buttons'
 
 // Devuelve {reason_id, reason}: un motivo del catálogo, texto libre o ambos.
-export default function CancelReasonModal({ title, busy, onConfirm, onClose }) {
+// Con `refundable` (pago cobrado con el Point) suma refund_mp: devolver también en MercadoPago o no.
+export default function CancelReasonModal({ title, busy, onConfirm, onClose, refundable = false }) {
   const { data: reasons = [], isLoading } = useLookup('cancel-reasons')
   const [reasonId, setReasonId] = useState(null)
   const [text, setText] = useState('')
+  const [refund, setRefund] = useState(true)
   const [error, setError] = useState('')
 
   const submit = () => {
@@ -17,7 +19,7 @@ export default function CancelReasonModal({ title, busy, onConfirm, onClose }) {
       return
     }
     setError('')
-    onConfirm({ reason_id: reasonId, reason: text.trim() || null })
+    onConfirm({ reason_id: reasonId, reason: text.trim() || null, ...(refundable ? { refund_mp: refund } : {}) })
   }
 
   const footer = (
@@ -47,6 +49,19 @@ export default function CancelReasonModal({ title, busy, onConfirm, onClose }) {
         <textarea value={text} onChange={(e) => { setText(e.target.value); setError('') }} rows={2} maxLength={200}
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-galia-plum focus:outline-none" />
       </label>
+      {refundable && (
+        <fieldset className="mt-4 space-y-2 text-sm">
+          <legend className="font-medium text-gray-700">Cobrado con el Point</legend>
+          <label className="flex items-center gap-2">
+            <input type="radio" name="refund" checked={refund} onChange={() => setRefund(true)} />
+            Devolver también en MercadoPago
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="radio" name="refund" checked={!refund} onChange={() => setRefund(false)} />
+            Solo anular en Galia
+          </label>
+        </fieldset>
+      )}
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
     </Modal>
   )

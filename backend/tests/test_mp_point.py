@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.extensions import db
+from app.models.pos import PosSaleEvent
 from app.services import mercadopago
 from app.services.mercadopago import point_service
 from app.services.mercadopago.fake import FakeMercadoPago
@@ -96,6 +97,8 @@ def test_rejected_and_retry(ctx):
     FakeMercadoPago().simulate(order.mp_order_id, 'rejected')
     order = point_service.apply(order.id)
     assert order.status == 'failed' and 'rechazado' in order.error
+    events = PosSaleEvent.query.filter_by(sale_id=sale.id, event_type='point_order_finished').all()
+    assert len(events) == 1  # el feed de cambios avisa a las otras pantallas
     again = point_service.start(user, sale.id, Decimal('1800'))
     assert again.status == 'created'
 

@@ -186,6 +186,10 @@ def apply(order_id):
         order.error = 'Se canceló el cobro' if state['status'] == 'canceled' else 'El cobro venció sin pagarse'
     elif order.status != 'canceling':
         order.status = state['status']
+    if order.status in FINAL_STATUSES:
+        # Evento en la venta: el feed de cambios refresca el aviso "Cobro en Point pendiente" en las pantallas.
+        audit.record(order.sale, db.session.get(User, order.created_by), 'point_order_finished',
+                     order_id=order.id, status=order.status)
     db.session.commit()
     return order
 

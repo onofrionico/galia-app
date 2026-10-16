@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { posApi, posPrintApi } from '../api/posApi'
+import { posApi, posMpApi, posPrintApi } from '../api/posApi'
+import { posKeys } from '../hooks/keys'
 import { useMainRegister } from '../hooks/useCash'
 import { useLookup } from '../hooks/usePosQueries'
 import { usePosPermissions } from '../hooks/usePosPermissions'
@@ -15,6 +17,7 @@ import { newRequestId } from '../utils/ids'
 import { applyKey } from '../utils/keypad'
 import { amountToText, formatMoney, parseAmount } from '../utils/money'
 import InvoiceModal from '../fiscal/InvoiceModal'
+import PointWait from '../mercadopago/PointWait'
 import CancelReasonModal from './CancelReasonModal'
 import NumericKeypad from './NumericKeypad'
 import { saleTitle } from './AddProductsModal'
@@ -35,6 +38,11 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [invoicing, setInvoicing] = useState(false)
   const [closedChange, setClosedChange] = useState(null)
   const [cancelling, setCancelling] = useState(null)
+  const [pointOrderId, setPointOrderId] = useState(sale.point_order?.id ?? null)
+  const [sendingPoint, setSendingPoint] = useState(false)
+  const { data: pointConfig } = useQuery({
+    queryKey: posKeys.mpPointConfig, queryFn: posMpApi.pointConfig, staleTime: 60_000, retry: false,
+  })
   const requestId = useRef(newRequestId())
   const { run, busy } = useSaleMutation()
   const { register, isLoading: registerLoading, isError: registerError } = useMainRegister()
@@ -44,6 +52,7 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
 
   const method = methods.find((m) => m.id === methodId) ?? methods[0] ?? null
   const isCash = method?.kind === 'cash'
+  const isPoint = Boolean(pointConfig?.enabled && method && method.id === pointConfig.payment_method_id)
   const amount = parseAmount(amountText)
   const tendered = parseAmount(tenderedText)
   const change = isCash ? changeFor(amount, tendered) : null
@@ -74,6 +83,7 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
     if (amount > sale.balance) return setError(`El monto no puede superar el saldo (${formatMoney(sale.balance)})`)
     if (isCash && tenderedText && !(tendered >= amount)) return setError('Lo recibido no alcanza para el monto')
     setError('')
+    if (isPoint) return sendToPoint()
     const body = { payment_method_id: method.id, amount, client_request_id: requestId.current }
     if (isCash && tenderedText) body.tendered = tendered
     const result = await run(sale.id, () => posApi.addPayment(sale.id, body))
@@ -85,6 +95,31 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
       return
     }
     resetForNext(result)
+  }
+
+  const sendToPoint = async () => {
+    setSendingPoint(true)
+    try {
+      const order = await posMpApi.startPoint(sale.id, amount)
+      if (order.status === 'failed') setError(order.error)
+      else setPointOrderId(order.id)
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setSendingPoint(false)
+    }
+  }
+
+  const pointDone = async (order) => {
+    setPointOrderId(null)
+    if (order.status !== 'approved') return
+    try {
+      const updated = await posApi.getSale(sale.id)
+      if (updated.status === 'closed') setClosedChange(0)
+      else resetForNext(updated)
+    } catch {
+      onClose()
+    }
   }
 
   const cancelPayment = async (body) => {
@@ -118,6 +153,14 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
             <p className="text-lg">Cobro completo.</p>
           )}
         </div>
+      </Modal>
+    )
+  }
+
+  if (pointOrderId) {
+    return (
+      <Modal title={`Cobrar ${saleTitle(sale)} · Point`} onClose={onClose} size="sm">
+        <PointWait orderId={pointOrderId} saleId={sale.id} onDone={pointDone} />
       </Modal>
     )
   }
@@ -191,14 +234,15 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
           )}
           {showKeypad && <div className="mt-3"><NumericKeypad onKey={onKey} /></div>}
           {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-          <button type="button" className={btn('primary', 'mt-3 w-full text-lg')} disabled={busy} onClick={submit}>
-            {amount >= sale.balance ? 'Registrar pago y cerrar' : 'Registrar pago'}
+          <button type="button" className={btn('primary', 'mt-3 w-full text-lg')} disabled={busy || sendingPoint} onClick={submit}>
+            {isPoint ? 'Enviar al Point' : amount >= sale.balance ? 'Registrar pago y cerrar' : 'Registrar pago'}
           </button>
         </div>
       </div>
 
       {cancelling && (
         <CancelReasonModal title={`Anular pago de ${formatMoney(cancelling.amount)}`} busy={busy}
+          refundable={Boolean(cancelling.refundable_mp)}
           onClose={() => setCancelling(null)} onConfirm={cancelPayment} />
       )}
     </Modal>
