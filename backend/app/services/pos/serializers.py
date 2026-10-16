@@ -49,6 +49,7 @@ def payment_to_dict(payment):
         'amount': _money(payment.amount), 'tendered': _money(payment.tendered), 'change': _money(payment.change),
         'is_active': payment.cancelled_at is None, 'cancel_reason': payment.cancel_reason,
         'cancel_reason_id': payment.cancel_reason_id, 'mp_payment_id': payment.mp_payment_id,
+        'refundable_mp': mp_summary.refundable(payment),
         'created_at': _iso(payment.created_at),
     }
 

@@ -9,3 +9,11 @@ def active_point_order(sale_id):
     if order is None:
         return None
     return {'id': order.id, 'status': order.status, 'amount': f'{order.amount:.2f}'}
+
+
+def refundable(payment):
+    """El pago vino de un cobro con el Point que todavía no se devolvió."""
+    if payment.id is None or payment.cancelled_at is not None:
+        return False
+    order = MpPointOrder.query.filter_by(payment_id=payment.id).first()
+    return order is not None and order.refunded_at is None

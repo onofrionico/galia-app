@@ -176,6 +176,10 @@ def add_payment(current_user, sale_id):
 def cancel_payment(current_user, payment_id):
     def action():
         data = _body()
+        if data.get('refund_mp'):
+            from app.services.mercadopago import refund_service
+            return refund_service.cancel_with_refund(current_user, payment_id, data.get('reason'),
+                                                     reason_id=data.get('reason_id'))
         return payment_service.cancel_payment(current_user, payment_id, data.get('reason'),
                                               reason_id=data.get('reason_id'))
     return _respond(action)
