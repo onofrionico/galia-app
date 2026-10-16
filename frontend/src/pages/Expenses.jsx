@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Upload, Download, Plus, Search, Filter, X, ChevronLeft, ChevronRight,
   FileText, AlertCircle, CheckCircle, DollarSign, TrendingDown, Building2,
-  CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet, Tag
+  CreditCard, Eye, Edit2, Trash2, RefreshCw, Wallet, Tag, Cloud
 } from 'lucide-react';
 import api from '../services/api';
 import suppliersService from '@/services/suppliersService';
 import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
+import FudoSyncExpensesModal from '../components/fudo/FudoSyncExpensesModal';
 import MoneyFormat from '../components/MoneyFormat';
 
 const Expenses = () => {
@@ -62,6 +63,7 @@ const Expenses = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showClassifierModal, setShowClassifierModal] = useState(false);
+  const [showFudoSyncModal, setShowFudoSyncModal] = useState(false);
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
@@ -342,6 +344,14 @@ const Expenses = () => {
             Clasificar Gastos
           </button>
           <button
+            onClick={() => setShowFudoSyncModal(true)}
+            className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+            title="Sincronizar desde Fudo"
+          >
+            <Cloud className="w-4 h-4 mr-1" />
+            Sync Fudo
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
           >
@@ -549,7 +559,14 @@ const Expenses = () => {
                       {formatDate(expense.fecha)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {expense.proveedor || '-'}
+                      <div className="flex items-center gap-1">
+                        <span>{expense.proveedor || '-'}</span>
+                        {expense.source === 'fudo' && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700" title="Importado desde Fudo">
+                            Fudo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-1">
@@ -987,6 +1004,11 @@ const Expenses = () => {
         isOpen={showClassifierModal}
         onClose={() => setShowClassifierModal(false)}
         onClassified={handleClassified}
+      />
+      <FudoSyncExpensesModal
+        isOpen={showFudoSyncModal}
+        onClose={() => setShowFudoSyncModal(false)}
+        onSuccess={fetchExpenses}
       />
     </div>
   );

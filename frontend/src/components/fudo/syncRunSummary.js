@@ -26,4 +26,5 @@ export const validateRange = (start, end) => {
   return null;
 };
 
-export const formatRunDate = (iso) => (iso ? new Date(`${iso}Z`).toLocaleString('es-AR') : '-');
+export const formatRunDate = (iso) =>
+  (iso ? new Date(`${iso}Z`).toLocaleString('es-AR', { hourCycle: 'h23' }) : '-');

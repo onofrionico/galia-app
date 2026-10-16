@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
+import { formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
 
 describe('validateRange', () => {
   it('requires both dates', () => {
@@ -38,5 +38,18 @@ describe('summarizeRun', () => {
   });
   it('handles a run without stats', () => {
     expect(summarizeRun({ stats: null }).every((r) => r.value === 0)).toBe(true);
+  });
+});
+
+describe('formatRunDate', () => {
+  it('shows the local time on a 24-hour clock', () => {
+    const iso = '2026-10-16T02:28:02.866373';
+    const hours = String(new Date(`${iso}Z`).getHours()).padStart(2, '0');
+    const formatted = formatRunDate(iso);
+    expect(formatted).not.toMatch(/[ap]\.?\s?m\.?/i);
+    expect(formatted).toContain(`${hours}:28`);
+  });
+  it('returns a dash without a date', () => {
+    expect(formatRunDate(null)).toBe('-');
   });
 });
