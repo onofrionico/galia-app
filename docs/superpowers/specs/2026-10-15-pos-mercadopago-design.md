@@ -58,7 +58,7 @@ Conciliación ──▶ reconciliation_service ──▶ mp_client.search_paymen
 
 ## Datos
 
-Migración `b5a0_add_mercadopago` (`down_revision = 'b4a0_add_fiscal_invoicing'`).
+Migración `b5b0_add_mercadopago` (`down_revision = 'b5a0_expenses_fudo_link'`, reencadenada al mergear el PR #19).
 
 ### `mp_settings` (una sola fila, `id = 1`)
 

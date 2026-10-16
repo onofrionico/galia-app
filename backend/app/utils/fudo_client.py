@@ -180,51 +180,51 @@ class FudoClient:
         
         return self._make_request('/expenses', params)
     
-    def get_all_expenses(self, 
-                         start_date: Optional[str] = None,
-                         end_date: Optional[str] = None) -> List[Dict]:
+    def get_all_expenses_with_included(self,
+                                       start_date: Optional[str] = None,
+                                       end_date: Optional[str] = None) -> Dict[str, List[Dict]]:
         """
-        Get all expenses from Fudo API with pagination
-        
+        Get all expenses with their JSON:API `included` resources (provider, category, payment method...).
+
         Args:
             start_date: Start date in format YYYY-MM-DD
             end_date: End date in format YYYY-MM-DD
-        
+
         Returns:
-            List of all expenses
+            {'data': [...expenses], 'included': [...related resources, deduplicated by (type, id)]}
         """
-        all_expenses = []
-        page_number = 1
-        page_size = 500
-        
-        # Use API date filters if provided
         filters = {}
         if start_date and end_date:
-            # Format: and(gte.2024-01-01,lte.2024-01-31)
             filters['date'] = f'and(gte.{start_date},lte.{end_date})'
         elif start_date:
-            # Format: gte.2024-01-01
             filters['date'] = f'gte.{start_date}'
         elif end_date:
-            # Format: lte.2024-01-31
             filters['date'] = f'lte.{end_date}'
-        
+
+        all_expenses = []
+        included = {}
+        page_number = 1
+        page_size = 500
         while True:
             response = self.get_expenses(page_size=page_size, page_number=page_number, filters=filters)
             expenses_data = response.get('data', [])
-            
+            for item in response.get('included', []) or []:
+                included.setdefault((item.get('type'), str(item.get('id'))), item)
             if not expenses_data:
                 break
-            
             all_expenses.extend(expenses_data)
-            
             if len(expenses_data) < page_size:
                 break
-            
             page_number += 1
-        
-        return all_expenses
-    
+
+        return {'data': all_expenses, 'included': list(included.values())}
+
+    def get_all_expenses(self,
+                         start_date: Optional[str] = None,
+                         end_date: Optional[str] = None) -> List[Dict]:
+        """Get all expenses (without included resources)."""
+        return self.get_all_expenses_with_included(start_date=start_date, end_date=end_date)['data']
+
     def get_expense_categories(self, page_size: int = 500, page_number: int = 1) -> Dict:
         """Get expense categories from Fudo API"""
         params = {

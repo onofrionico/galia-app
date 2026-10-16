@@ -8,6 +8,7 @@ from app.models.time_tracking import TimeTracking
 from app.models.sale import Sale
 from app.models.supplier import Supplier
 from app.models.expense import Expense, ExpenseCategory
+from app.models.fudo_sync_run import FudoSyncRun
 from app.models.supply import Supply, SupplyPrice
 from app.models.product_category import ProductCategory
 from app.models.product import Product
@@ -48,6 +49,7 @@ __all__ = [
     'Sale',
     'Supplier',
     'Expense',
+    'FudoSyncRun',
     'ExpenseCategory',
     'Supply',
     'SupplyPrice',

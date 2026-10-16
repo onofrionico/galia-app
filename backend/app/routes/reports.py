@@ -994,6 +994,16 @@ def update_expense_category(current_user, category_id):
         category.expense_type = data['expense_type']
     if 'is_active' in data:
         category.is_active = data['is_active']
+    if 'fudo_category_id' in data:
+        raw = data['fudo_category_id']
+        fudo_category_id = str(raw).strip() if raw not in (None, '') else None
+        if fudo_category_id:
+            previous = ExpenseCategory.query.filter(ExpenseCategory.fudo_category_id == fudo_category_id,
+                                                    ExpenseCategory.id != category.id).first()
+            if previous:
+                previous.fudo_category_id = None
+                db.session.flush()
+        category.fudo_category_id = fudo_category_id
     
     db.session.commit()
     return jsonify(category.to_dict()), 200

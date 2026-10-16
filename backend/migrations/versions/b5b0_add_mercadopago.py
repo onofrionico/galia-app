@@ -1,7 +1,7 @@
 """add MercadoPago settings, Point orders, movements, reconciliations; payment flags; Conciliar module
 
-Revision ID: b5a0_add_mercadopago
-Revises: b4a0_add_fiscal_invoicing
+Revision ID: b5b0_add_mercadopago
+Revises: b5a0_expenses_fudo_link
 Create Date: 2026-10-15 12:00:00.000000
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = 'b5a0_add_mercadopago'
-down_revision = 'b4a0_add_fiscal_invoicing'
+revision = 'b5b0_add_mercadopago'
+down_revision = 'b5a0_expenses_fudo_link'
 branch_labels = None
 depends_on = None
 
