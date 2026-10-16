@@ -26,16 +26,20 @@ const fudoService = {
     return response.data;
   },
 
-  syncExpenses: async (startDate, endDate, categoryMapping, updateExisting = false) => {
-    const params = new URLSearchParams();
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-    if (updateExisting) params.append('update_existing', 'true');
-    
-    const response = await api.post(`/fudo/sync/expenses?${params.toString()}`, {
-      category_mapping: categoryMapping
-    });
+  syncExpenses: async (startDate, endDate) => {
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    const response = await api.post(`/fudo/sync/expenses?${params.toString()}`);
     return response.data;
+  },
+
+  getSyncRun: async (runId) => {
+    const response = await api.get(`/fudo/sync/runs/${runId}`);
+    return response.data;
+  },
+
+  getSyncRuns: async (kind = 'expenses', limit = 1) => {
+    const response = await api.get('/fudo/sync/runs', { params: { kind, limit } });
+    return response.data.runs;
   }
 };
 

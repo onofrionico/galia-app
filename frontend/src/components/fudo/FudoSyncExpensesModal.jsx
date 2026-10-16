@@ -1,264 +1,182 @@
 import { useState, useEffect } from 'react';
-import { X, RefreshCw, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { X, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import fudoService from '../../services/fudoService';
+import { formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
+
+const POLL_MS = 2000;
 
 const FudoSyncExpensesModal = ({ isOpen, onClose, onSuccess }) => {
-  const [loading, setLoading] = useState(false);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState(null);
-  const [fudoCategories, setFudoCategories] = useState([]);
-  const [galiaCategories, setGaliaCategories] = useState([]);
-  const [categoryMapping, setCategoryMapping] = useState({});
-  const [syncConfig, setSyncConfig] = useState({
-    startDate: '',
-    endDate: '',
-    updateExisting: false
-  });
-  const [syncResults, setSyncResults] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [run, setRun] = useState(null);
+  const [lastRun, setLastRun] = useState(null);
   const [error, setError] = useState(null);
+  const [starting, setStarting] = useState(false);
+
+  const running = run && !isRunFinished(run);
 
   useEffect(() => {
-    if (isOpen) {
-      loadCategories();
-    }
+    if (!isOpen) return;
+    setRun(null);
+    setError(null);
+    fudoService.getSyncRuns('expenses', 1)
+      .then((runs) => {
+        const latest = runs[0] || null;
+        setLastRun(latest);
+        if (latest && !isRunFinished(latest)) setRun(latest);
+      })
+      .catch(() => setLastRun(null));
   }, [isOpen]);
 
-  const loadCategories = async () => {
-    try {
-      const data = await fudoService.getCategories();
-      console.log('Categorías de Fudo recibidas:', data.fudo_categories);
-      console.log('Categorías de Galia recibidas:', data.galia_categories);
-      setFudoCategories(data.fudo_categories || []);
-      setGaliaCategories(data.galia_categories || []);
-    } catch (err) {
-      console.error('Error cargando categorías:', err);
-      setError('Error al cargar categorías: ' + (err.response?.data?.error || err.message));
-    }
-  };
-
-  const testConnection = async () => {
-    setTestingConnection(true);
-    setConnectionStatus(null);
-    try {
-      const result = await fudoService.testConnection();
-      setConnectionStatus({ success: true, message: result.message });
-    } catch (err) {
-      setConnectionStatus({ 
-        success: false, 
-        message: err.response?.data?.message || 'Error al conectar con Fudo'
-      });
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
-  const handleMappingChange = (fudoId, galiaId) => {
-    setCategoryMapping(prev => ({
-      ...prev,
-      [fudoId]: galiaId ? parseInt(galiaId) : null
-    }));
-  };
+  useEffect(() => {
+    if (!running) return undefined;
+    const timer = setInterval(async () => {
+      try {
+        const updated = await fudoService.getSyncRun(run.id);
+        setRun(updated);
+        if (isRunFinished(updated)) {
+          setLastRun(updated);
+          if (updated.status === 'ok') onSuccess?.();
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || 'No se pudo consultar el estado de la sincronización');
+      }
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [running, run?.id, onSuccess]);
 
   const handleSync = async () => {
-    const mappedCategories = Object.fromEntries(
-      Object.entries(categoryMapping).filter(([_, value]) => value !== null)
-    );
-
-    // Allow sync without category mapping - expenses will have category_id = None
-
-    setLoading(true);
+    const rangeError = validateRange(startDate, endDate);
+    if (rangeError) {
+      setError(rangeError);
+      return;
+    }
+    setStarting(true);
     setError(null);
-    setSyncResults(null);
-
     try {
-      const result = await fudoService.syncExpenses(
-        syncConfig.startDate,
-        syncConfig.endDate,
-        mappedCategories,
-        syncConfig.updateExisting
-      );
-      setSyncResults(result.results);
-      if (result.results.imported > 0 || result.results.updated > 0) {
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 2000);
-      }
+      const { run_id: runId } = await fudoService.syncExpenses(startDate, endDate);
+      setRun({ id: runId, status: 'running' });
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al sincronizar gastos');
+      if (err.response?.status === 409 && err.response.data?.run_id) {
+        setError('Ya hay una sincronización en curso; te muestro su avance.');
+        setRun({ id: err.response.data.run_id, status: 'running' });
+      } else {
+        setError(err.response?.data?.error || 'Error al iniciar la sincronización');
+      }
     } finally {
-      setLoading(false);
+      setStarting(false);
     }
   };
 
   if (!isOpen) return null;
 
+  const shown = run && isRunFinished(run) ? run : null;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-semibold">Sincronizar Gastos desde Fudo</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-lg font-semibold">Sincronizar gastos desde Fudo</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Connection Test */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-900">Estado de Conexión</h3>
-              <button
-                onClick={testConnection}
-                disabled={testingConnection}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${testingConnection ? 'animate-spin' : ''}`} />
-                Probar Conexión
-              </button>
-            </div>
-            {connectionStatus && (
-              <div className={`flex items-center gap-2 mt-2 p-2 rounded ${
-                connectionStatus.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-              }`}>
-                {connectionStatus.success ? (
-                  <CheckCircle className="w-4 h-4" />
-                ) : (
-                  <AlertCircle className="w-4 h-4" />
-                )}
-                <span className="text-sm">{connectionStatus.message}</span>
-              </div>
-            )}
-          </div>
+          <p className="text-sm text-gray-600">
+            Trae los gastos del rango elegido. Los proveedores y categorías se vinculan solos con los de Galia
+            (o se crean si no existen). Si corregiste a mano la categoría o el proveedor de un gasto, se respeta.
+          </p>
 
-          {/* Date Range */}
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Rango de Fechas</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={syncConfig.startDate}
-                  onChange={(e) => setSyncConfig(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={syncConfig.endDate}
-                  onChange={(e) => setSyncConfig(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 mt-3">
-              <input
-                type="checkbox"
-                checked={syncConfig.updateExisting}
-                onChange={(e) => setSyncConfig(prev => ({ ...prev, updateExisting: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Actualizar gastos existentes</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="block text-sm font-medium text-gray-700 mb-1">Desde</span>
+              <input type="date" value={startDate} disabled={running}
+                     onChange={(e) => setStartDate(e.target.value)}
+                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-medium text-gray-700 mb-1">Hasta</span>
+              <input type="date" value={endDate} disabled={running}
+                     onChange={(e) => setEndDate(e.target.value)}
+                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
             </label>
           </div>
 
-          {/* Category Mapping */}
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Mapeo de Categorías</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Relaciona las categorías de Fudo con las categorías de Galia. Solo se sincronizarán los gastos de las categorías mapeadas.
-            </p>
-            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
-              {fudoCategories.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No hay categorías de Fudo disponibles</p>
-              ) : (
-                fudoCategories.map((fudoCat) => (
-                  <div key={fudoCat.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {fudoCat.name || `Categoría ${fudoCat.id}`}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">ID: {fudoCat.id}</span>
-                        {!fudoCat.active && <span className="ml-2 text-orange-600">(Inactiva)</span>}
-                      </p>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                    <select
-                      value={categoryMapping[fudoCat.id] || ''}
-                      onChange={(e) => handleMappingChange(fudoCat.id, e.target.value)}
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Sin mapear</option>
-                      {galiaCategories.map((galiaCat) => (
-                        <option key={galiaCat.id} value={galiaCat.id}>
-                          {galiaCat.name} ({galiaCat.expense_type === 'directo' ? 'Directo' : 'Indirecto'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
-          {/* Sync Results */}
-          {syncResults && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-3">Resultados de la Sincronización</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-white rounded p-2 text-center">
-                  <div className="text-2xl font-bold text-blue-900">{syncResults.total_fetched}</div>
-                  <div className="text-xs text-blue-600">Obtenidos</div>
-                </div>
-                <div className="bg-white rounded p-2 text-center">
-                  <div className="text-2xl font-bold text-green-900">{syncResults.imported}</div>
-                  <div className="text-xs text-green-600">Importados</div>
-                </div>
-                <div className="bg-white rounded p-2 text-center">
-                  <div className="text-2xl font-bold text-yellow-900">{syncResults.updated}</div>
-                  <div className="text-xs text-yellow-600">Actualizados</div>
-                </div>
-                <div className="bg-white rounded p-2 text-center">
-                  <div className="text-2xl font-bold text-gray-900">{syncResults.no_category_mapping || 0}</div>
-                  <div className="text-xs text-gray-600">Sin mapear</div>
-                </div>
+          {running && (
+            <div className="flex items-center gap-2 text-sm text-blue-800 bg-blue-50 rounded-lg p-3">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Sincronizando… podés cerrar esta ventana, sigue en segundo plano.
+            </div>
+          )}
+
+          {shown && shown.status === 'error' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              La sincronización falló: {shown.error}
+            </div>
+          )}
+
+          {shown && shown.status === 'ok' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 text-green-900 font-medium">
+                <CheckCircle className="w-5 h-5" /> Sincronización terminada
               </div>
-              {syncResults.errors && syncResults.errors.length > 0 && (
-                <div className="mt-3 text-sm text-red-600">
-                  {syncResults.errors.length} errores encontrados
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {summarizeRun(shown).map(({ key, label, value }) => (
+                  <div key={key} className="bg-white rounded p-2 text-center">
+                    <div className="text-xl font-bold text-gray-900">{value}</div>
+                    <div className="text-xs text-gray-600">{label}</div>
+                  </div>
+                ))}
+              </div>
+              {shown.stats?.warnings?.length > 0 && (
+                <details className="text-sm text-amber-800">
+                  <summary>{shown.stats.warnings.length} avisos</summary>
+                  <ul className="list-disc ml-5 mt-1">
+                    {shown.stats.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                  </ul>
+                </details>
+              )}
+              {shown.stats?.errors?.length > 0 && (
+                <details className="text-sm text-red-700">
+                  <summary>{shown.stats.errors.length} gastos no se pudieron importar</summary>
+                  <ul className="list-disc ml-5 mt-1">
+                    {shown.stats.errors.map((item) => (
+                      <li key={item.expense_id}>Gasto {item.expense_id}: {item.error}</li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           )}
+
+          {!run && lastRun && (
+            <p className="text-xs text-gray-500">
+              Última sincronización: {formatRunDate(lastRun.started_at)} ·{' '}
+              {lastRun.status === 'ok' ? 'OK' : lastRun.status === 'error' ? 'con error' : 'en curso'}
+              {lastRun.params && ` · ${lastRun.params.start_date} a ${lastRun.params.end_date}`}
+            </p>
+          )}
         </div>
 
-        {/* Actions */}
         <div className="p-4 border-t bg-gray-50 flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-          >
+          <button onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
             Cerrar
           </button>
           <button
             onClick={handleSync}
-            disabled={loading}
+            disabled={starting || running}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Sincronizando...' : 'Sincronizar Gastos'}
+            <RefreshCw className={`w-4 h-4 ${starting || running ? 'animate-spin' : ''}`} />
+            {running ? 'Sincronizando…' : 'Sincronizar gastos'}
           </button>
         </div>
       </div>

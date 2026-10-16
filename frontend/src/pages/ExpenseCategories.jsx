@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Tag, Save, X, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import fudoService from '../services/fudoService';
 
 const ExpenseCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -10,10 +11,12 @@ const ExpenseCategories = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    expense_type: 'indirecto'
+    expense_type: 'indirecto',
+    fudo_category_id: ''
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [fudoCategories, setFudoCategories] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -38,17 +41,24 @@ const ExpenseCategories = () => {
       setFormData({
         name: category.name,
         description: category.description || '',
-        expense_type: category.expense_type
+        expense_type: category.expense_type,
+        fudo_category_id: category.fudo_category_id || ''
       });
     } else {
       setEditingCategory(null);
       setFormData({
         name: '',
         description: '',
-        expense_type: 'indirecto'
+        expense_type: 'indirecto',
+        fudo_category_id: ''
       });
     }
     setError('');
+    if (fudoCategories === null) {
+      fudoService.getCategories()
+        .then((data) => setFudoCategories(data.fudo_categories || []))
+        .catch(() => setFudoCategories(null));
+    }
     setShowModal(true);
   };
 
@@ -58,7 +68,8 @@ const ExpenseCategories = () => {
     setFormData({
       name: '',
       description: '',
-      expense_type: 'indirecto'
+      expense_type: 'indirecto',
+      fudo_category_id: ''
     });
     setError('');
   };
@@ -69,10 +80,11 @@ const ExpenseCategories = () => {
     setSaving(true);
 
     try {
+      const payload = { ...formData, fudo_category_id: formData.fudo_category_id || null };
       if (editingCategory) {
-        await api.put(`/reports/expense-categories/${editingCategory.id}`, formData);
+        await api.put(`/reports/expense-categories/${editingCategory.id}`, payload);
       } else {
-        await api.post('/reports/expense-categories', formData);
+        await api.post('/reports/expense-categories', payload);
       }
       
       handleCloseModal();
@@ -248,6 +260,34 @@ const ExpenseCategories = () => {
                     Los gastos directos están relacionados con la producción/venta. Los indirectos son operativos.
                   </p>
                 </div>
+                {editingCategory && fudoCategories && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Categoría de Fudo vinculada
+                    </label>
+                    <select
+                      value={formData.fudo_category_id}
+                      onChange={(e) => setFormData({ ...formData, fudo_category_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      <option value="">Sin vincular</option>
+                      {fudoCategories.map((fudoCategory) => {
+                        const owner = categories.find(
+                          (c) => c.fudo_category_id === fudoCategory.id && c.id !== editingCategory?.id
+                        );
+                        return (
+                          <option key={fudoCategory.id} value={fudoCategory.id}>
+                            {fudoCategory.name}{owner ? ` (hoy en "${owner.name}")` : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Los gastos de esa categoría de Fudo caen acá en la próxima sincronización
+                      (salvo los que corregiste a mano).
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">

@@ -13,6 +13,7 @@ class Supplier(db.Model):
     address = db.Column(db.Text, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    fudo_provider_id = db.Column(db.String(50), nullable=True, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -28,6 +29,7 @@ class Supplier(db.Model):
             'address': self.address,
             'notes': self.notes,
             'is_active': self.is_active,
+            'fudo_provider_id': self.fudo_provider_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
