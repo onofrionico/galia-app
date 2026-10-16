@@ -28,3 +28,5 @@ export const validateRange = (start, end) => {
 
 export const formatRunDate = (iso) =>
   (iso ? new Date(`${iso}Z`).toLocaleString('es-AR', { hourCycle: 'h23' }) : '-');
+
+export const errorCount = (run) => run?.stats?.errors_total ?? run?.stats?.errors?.length ?? 0;

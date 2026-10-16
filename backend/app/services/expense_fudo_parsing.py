@@ -104,7 +104,6 @@ def parse_expense(raw, index):
         raise ParseError(f'id inválido: {raw.get("id")!r}')
 
     attrs = raw.get('attributes') or {}
-    status = (attrs.get(ATTR['status']) or '').upper()
 
     provider_id, provider_attrs = _related(raw, 'provider', index)
     provider = None
@@ -119,7 +118,18 @@ def parse_expense(raw, index):
     _, receipt_attrs = _related(raw, 'receipt_type', index)
     _, cash_attrs = _related(raw, 'cash_register', index)
 
-    fields = {
+    try:
+        fields = _fields(attrs, provider, cash_attrs, method_attrs, receipt_attrs)
+    except ParseError as exc:
+        # Los nombres que mandó Fudo dicen qué atributo buscar si el supuesto está mal.
+        received = ', '.join(sorted(attrs)) or 'ninguno'
+        raise ParseError(f'{exc} (atributos recibidos: {received})') from exc
+    return ParsedExpense(external_id, fields, provider, category)
+
+
+def _fields(attrs, provider, cash_attrs, method_attrs, receipt_attrs):
+    status = (attrs.get(ATTR['status']) or '').upper()
+    return {
         'fecha': _date(attrs.get(ATTR['date']), 'fecha', required=True),
         'fecha_vencimiento': _date(attrs.get(ATTR['due_date']), 'fecha de vencimiento', required=False),
         'importe': _amount(attrs.get(ATTR['amount'])),
@@ -134,4 +144,3 @@ def parse_expense(raw, index):
         'numero_fiscal': provider.cuit if provider else None,
         'proveedor': provider.name if provider else None,
     }
-    return ParsedExpense(external_id, fields, provider, category)

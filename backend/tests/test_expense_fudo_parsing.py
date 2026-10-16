@@ -109,3 +109,17 @@ def test_client_collects_included_across_pages(monkeypatch):
     assert [(i['type'], i['id']) for i in result['included']] == [('Provider', '7'), ('ExpenseCategory', '3')]
     assert calls[0]['filter[date]'] == 'and(gte.2026-10-01,lte.2026-10-15)'
     assert len(client.get_all_expenses()) == 501  # el método viejo sigue devolviendo solo la lista
+
+
+def test_missing_date_error_lists_received_attributes():
+    raw = fudo_expense(5, date=None)
+    del raw['attributes']['date']
+    raw['attributes']['createdAt'] = '2026-10-01T12:00:00Z'
+
+    with pytest.raises(ParseError) as exc:
+        parse_expense(raw, {})
+
+    message = str(exc.value)
+    assert 'fecha vacía' in message
+    assert 'createdAt' in message
+    assert 'amount' in message

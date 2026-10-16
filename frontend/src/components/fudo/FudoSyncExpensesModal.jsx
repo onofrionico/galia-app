@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import fudoService from '../../services/fudoService';
-import { formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
+import { errorCount, formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
 
 const POLL_MS = 2000;
 
@@ -71,6 +71,7 @@ const FudoSyncExpensesModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   const shown = run && isRunFinished(run) ? run : null;
+  const failed = shown ? errorCount(shown) : 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -124,9 +125,10 @@ const FudoSyncExpensesModal = ({ isOpen, onClose, onSuccess }) => {
           )}
 
           {shown && shown.status === 'ok' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 text-green-900 font-medium">
-                <CheckCircle className="w-5 h-5" /> Sincronización terminada
+            <div className={`${failed ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4 space-y-3`}>
+              <div className={`flex items-center gap-2 font-medium ${failed ? 'text-amber-900' : 'text-green-900'}`}>
+                {failed ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                {failed ? 'Sincronización terminada con errores' : 'Sincronización terminada'}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {summarizeRun(shown).map(({ key, label, value }) => (
@@ -144,9 +146,12 @@ const FudoSyncExpensesModal = ({ isOpen, onClose, onSuccess }) => {
                   </ul>
                 </details>
               )}
-              {shown.stats?.errors?.length > 0 && (
+              {failed > 0 && (
                 <details className="text-sm text-red-700">
-                  <summary>{shown.stats.errors.length} gastos no se pudieron importar</summary>
+                  <summary>
+                    {failed} gastos no se pudieron importar
+                    {failed > (shown.stats.errors?.length ?? 0) && ` (se muestran los primeros ${shown.stats.errors?.length ?? 0})`}
+                  </summary>
                   <ul className="list-disc ml-5 mt-1">
                     {shown.stats.errors.map((item) => (
                       <li key={item.expense_id}>Gasto {item.expense_id}: {item.error}</li>
