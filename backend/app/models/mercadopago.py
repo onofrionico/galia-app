@@ -88,6 +88,17 @@ class MpMovement(db.Model):
     fetched_at = db.Column(db.DateTime, nullable=False)
 
 
+class MpFetchDay(db.Model):
+    """Día ya traído de MercadoPago (aunque no haya tenido movimientos)."""
+    __tablename__ = 'mp_fetch_days'
+
+    business_date = db.Column(db.Date, primary_key=True)
+    fetched_at = db.Column(db.DateTime, nullable=False)
+    fetched_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    count = db.Column(db.Integer, nullable=False, default=0)
+    truncated = db.Column(db.Boolean, nullable=False, default=False)
+
+
 class MpReconciliation(db.Model):
     __tablename__ = 'mp_reconciliations'
     __table_args__ = (

@@ -93,6 +93,15 @@ def upgrade():
     op.create_index('ix_mp_movements_business_date', 'mp_movements', ['business_date'])
     op.create_index('ix_mp_movements_external_reference', 'mp_movements', ['external_reference'])
     op.create_table(
+        'mp_fetch_days',
+        sa.Column('business_date', sa.Date(), nullable=False),
+        sa.Column('fetched_at', sa.DateTime(), nullable=False),
+        sa.Column('fetched_by', sa.Integer(), sa.ForeignKey('users.id'), nullable=False),
+        sa.Column('count', sa.Integer(), nullable=False, server_default='0'),
+        sa.Column('truncated', sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.PrimaryKeyConstraint('business_date'),
+    )
+    op.create_table(
         'mp_reconciliations',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('mp_movement_id', sa.Integer(), sa.ForeignKey('mp_movements.id'), nullable=True),
@@ -141,6 +150,7 @@ def downgrade():
     op.drop_index('uq_mp_reconciliations_payment', table_name='mp_reconciliations')
     op.drop_index('uq_mp_reconciliations_movement', table_name='mp_reconciliations')
     op.drop_table('mp_reconciliations')
+    op.drop_table('mp_fetch_days')
     op.drop_index('ix_mp_movements_external_reference', table_name='mp_movements')
     op.drop_index('ix_mp_movements_business_date', table_name='mp_movements')
     op.drop_table('mp_movements')
