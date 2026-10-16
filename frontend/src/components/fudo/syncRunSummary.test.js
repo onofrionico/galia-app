@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
+import { errorCount, formatRunDate, isRunFinished, summarizeRun, validateRange } from './syncRunSummary';
 
 describe('validateRange', () => {
   it('requires both dates', () => {
@@ -51,5 +51,17 @@ describe('formatRunDate', () => {
   });
   it('returns a dash without a date', () => {
     expect(formatRunDate(null)).toBe('-');
+  });
+});
+
+describe('errorCount', () => {
+  it('uses the total even when the listed errors are capped', () => {
+    expect(errorCount({ stats: { errors_total: 203, errors: new Array(50).fill({}) } })).toBe(203);
+  });
+  it('falls back to the listed errors for older runs', () => {
+    expect(errorCount({ stats: { errors: [{}, {}] } })).toBe(2);
+  });
+  it('is 0 without stats', () => {
+    expect(errorCount({ stats: null })).toBe(0);
   });
 });

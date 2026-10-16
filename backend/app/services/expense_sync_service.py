@@ -19,7 +19,7 @@ def sync_expenses(client, start_date, end_date):
     payload = client.get_all_expenses_with_included(start_date=start_date, end_date=end_date)
     expenses = payload.get('data', [])
     index = index_included(payload.get('included', []))
-    stats = {'fetched': len(expenses), 'created': 0, 'updated': 0, 'unchanged': 0, 'errors': [],
+    stats = {'fetched': len(expenses), 'created': 0, 'updated': 0, 'unchanged': 0, 'errors': [], 'errors_total': 0,
              **new_link_stats()}
     linker = Linker(stats)
 
@@ -32,6 +32,7 @@ def sync_expenses(client, start_date, end_date):
             linker.reset()  # lo creado dentro del savepoint se deshizo
             stats.update(counters)
             logger.warning('Gasto de Fudo %s no importado: %s', raw.get('id'), exc)
+            stats['errors_total'] += 1
             add_capped(stats['errors'], {'expense_id': raw.get('id'), 'error': str(exc)})
         if position % BATCH_SIZE == 0:
             db.session.commit()
