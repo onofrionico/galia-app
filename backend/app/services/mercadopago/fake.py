@@ -102,6 +102,9 @@ class FakeMercadoPago:
         if order['status'] not in ('processed', 'refunded'):
             raise MpRejected(400, 'invalid_status', 'Order cannot be refunded')
         order['status'] = 'refunded'
+        for payment in self.payments:  # como en MercadoPago: el pago queda devuelto
+            if payment.get('external_reference') == order['external_reference']:
+                payment.update({'status': 'refunded', 'transaction_amount_refunded': payment['transaction_amount']})
         return dict(order)
 
     def search_payments(self, begin_utc, end_utc, offset=0):

@@ -98,6 +98,8 @@ def test_fake_order_lifecycle(pos_app):
     assert fake.search_payments(None, None)['results'][0]['external_reference'] == 'ref-1'
     fake.refund_order(order['id'], 'r-1')
     assert fake.get_order(order['id'])['status'] == 'refunded'
+    movement = fake.search_payments(None, None)['results'][0]
+    assert movement['status'] == 'refunded' and movement['transaction_amount_refunded'] == 100.0
     other = fake.create_order('T1', Decimal('5'), 'ref-2', 'key-2')
     fake.cancel_order(other['id'])
     assert fake.get_order(other['id'])['status'] == 'canceled'
