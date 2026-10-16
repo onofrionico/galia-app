@@ -109,3 +109,54 @@ def test_client_collects_included_across_pages(monkeypatch):
     assert [(i['type'], i['id']) for i in result['included']] == [('Provider', '7'), ('ExpenseCategory', '3')]
     assert calls[0]['filter[date]'] == 'and(gte.2026-10-01,lte.2026-10-15)'
     assert len(client.get_all_expenses()) == 501  # el método viejo sigue devolviendo solo la lista
+
+
+def test_missing_date_error_lists_received_attributes():
+    raw = fudo_expense(5, date=None)
+    del raw['attributes']['date']
+    raw['attributes']['createdAt'] = '2026-10-01T12:00:00Z'
+
+    with pytest.raises(ParseError) as exc:
+        parse_expense(raw, {})
+
+    message = str(exc.value)
+    assert 'fecha vacía' in message
+    assert 'createdAt' in message
+    assert 'amount' in message
+
+
+def test_get_expenses_requests_sparse_fieldsets(monkeypatch):
+    """GET /expenses de Fudo no devuelve atributos si no se piden con fields[...] (openapi v1alpha1)."""
+    client = FudoClient(api_key='key', api_secret='secret')
+    calls = []
+    monkeypatch.setattr(client, '_make_request', lambda endpoint, params=None: calls.append(params) or {'data': []})
+
+    client.get_expenses(page_size=10, page_number=1)
+
+    params = calls[0]
+    expense_fields = set(params['fields[expense]'].split(','))
+    assert {'date', 'dueDate', 'amount', 'description', 'status', 'canceled', 'receiptNumber',
+            'useInCashCount', 'provider', 'expenseCategory', 'paymentMethod', 'receiptType',
+            'cashRegister'} <= expense_fields
+    for related in ('provider', 'expenseCategory', 'paymentMethod', 'receiptType', 'cashRegister'):
+        assert params[f'fields[{related}]'] == 'name'
+    assert set(params['include'].split(',')) >= {'provider', 'expenseCategory', 'paymentMethod', 'receiptType',
+                                                 'cashRegister'}
+
+
+def test_unpaid_status_is_pending():
+    parsed = parse_expense(fudo_expense(5, status='UNPAID'), {})
+    assert parsed.fields['estado_pago'] == 'Pendiente'
+    assert parsed.fields['cancelado'] is False
+
+
+def test_canceled_attribute_marks_expense_cancelled():
+    parsed = parse_expense(fudo_expense(5, status='PAID', canceled=True), {})
+    assert parsed.fields['cancelado'] is True
+    assert parsed.fields['estado_pago'] == 'Cancelado'
+
+
+def test_canceled_false_keeps_payment_status():
+    parsed = parse_expense(fudo_expense(5, status='PAID', canceled=False), {})
+    assert parsed.fields['cancelado'] is False
+    assert parsed.fields['estado_pago'] == 'Pagado'

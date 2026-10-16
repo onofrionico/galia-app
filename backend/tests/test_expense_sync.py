@@ -195,3 +195,11 @@ def test_new_expense_without_cash_flag_defaults_to_false(menu_app):
     _sync([fudo_expense(101)], included=[])
 
     assert Expense.query.filter_by(external_id=101).one().de_caja is False
+
+
+def test_errors_total_counts_beyond_the_listed_cap(menu_app):
+    stats, _ = _sync([fudo_expense(i, date=None) for i in range(1, 61)], included=[])
+
+    assert len(stats['errors']) == 50
+    assert stats['errors_total'] == 60
+    assert stats['created'] == 0
