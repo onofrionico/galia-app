@@ -10,6 +10,7 @@ ATTR = {
     'amount': 'amount',
     'description': 'description',
     'status': 'status',
+    'canceled': 'canceled',
     'receipt_number': 'receiptNumber',
     'from_cash': 'useInCashCount',
 }
@@ -21,7 +22,9 @@ REL = {
     'cash_register': 'cashRegister',
 }
 PROVIDER_ATTR = {'name': 'name', 'cuit': 'fiscalNumber'}
-STATUS_MAP = {'PENDING': 'Pendiente', 'PAID': 'Pagado', 'CANCELLED': 'Cancelado', 'CANCELED': 'Cancelado'}
+# Fudo usa PAID/UNPAID y marca la cancelación aparte, en el atributo booleano `canceled` (openapi v1alpha1).
+STATUS_MAP = {'UNPAID': 'Pendiente', 'PENDING': 'Pendiente', 'PAID': 'Pagado', 'CANCELLED': 'Cancelado',
+              'CANCELED': 'Cancelado'}
 CANCELLED_STATUSES = {'CANCELLED', 'CANCELED'}
 
 FUDO_FIELDS = (
@@ -129,13 +132,14 @@ def parse_expense(raw, index):
 
 def _fields(attrs, provider, cash_attrs, method_attrs, receipt_attrs):
     status = (attrs.get(ATTR['status']) or '').upper()
+    cancelado = attrs.get(ATTR['canceled']) is True or status in CANCELLED_STATUSES
     return {
         'fecha': _date(attrs.get(ATTR['date']), 'fecha', required=True),
         'fecha_vencimiento': _date(attrs.get(ATTR['due_date']), 'fecha de vencimiento', required=False),
         'importe': _amount(attrs.get(ATTR['amount'])),
         'comentario': _text(attrs.get(ATTR['description'])),
-        'estado_pago': STATUS_MAP.get(status, 'Pendiente'),
-        'cancelado': status in CANCELLED_STATUSES,
+        'estado_pago': 'Cancelado' if cancelado else STATUS_MAP.get(status, 'Pendiente'),
+        'cancelado': cancelado,
         'de_caja': bool(attrs[ATTR['from_cash']]) if attrs.get(ATTR['from_cash']) is not None else None,
         'caja': _text(cash_attrs.get('name')),
         'medio_pago': _text(method_attrs.get('name')),
