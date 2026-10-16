@@ -13,6 +13,7 @@ import PaymentModal from '../modals/PaymentModal'
 import SplitModal from '../modals/SplitModal'
 import WaiterModal from '../modals/WaiterModal'
 import InvoiceModal from '../fiscal/InvoiceModal'
+import PointPendingNotice from '../mercadopago/PointPendingNotice'
 import PrintJobsList from '../print/PrintJobsList'
 import { useToast } from '../ui/Toasts'
 import { errorMessage } from '../utils/errors'
@@ -150,6 +151,7 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
           <Ticket sale={sale} perms={perms} handlers={itemHandlers} busy={busy} />
         )}
       </div>
+      {modal?.type !== 'pay' && <PointPendingNotice sale={sale} onOpen={() => setModal({ type: 'pay' })} />}
       <div className="bg-gray-50 pb-[env(safe-area-inset-bottom)]">
         <SaleFooter sale={sale} actions={actions} handlers={handlers} busy={busy} />
       </div>

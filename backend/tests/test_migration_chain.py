@@ -62,3 +62,7 @@ def test_fiscal_invoicing_follows_print_stations():
 
 def test_expenses_fudo_link_follows_fiscal_invoicing():
     assert _revisions()['b5a0_expenses_fudo_link'] == ['b4a0_add_fiscal_invoicing']
+
+
+def test_mercadopago_follows_expenses_fudo_link():
+    assert _revisions()['b5b0_add_mercadopago'] == ['b5a0_expenses_fudo_link']

@@ -13,6 +13,7 @@ PUBLIC_ENDPOINTS = {
     'public_menu.menu_json',
     'public_menu.menu_image',
     'public_menu.menu_asset',
+    'mercadopago.webhook',
 }
 
 

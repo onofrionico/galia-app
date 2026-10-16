@@ -14,10 +14,13 @@ class PaymentMethod(db.Model):
     # Si este medio ya lo factura otro sistema (MercadoPago, terminal): Galia no lo incluye en sus facturas.
     invoiced_externally = db.Column(db.Boolean, nullable=False,
                                     default=lambda ctx: ctx.get_current_parameters().get('kind') != 'cash')
+    # Los pagos de este medio entran a la cuenta de MercadoPago (se concilian).
+    is_mercadopago = db.Column(db.Boolean, nullable=False, default=False)
 
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'kind': self.kind, 'position': self.position,
-                'is_active': self.is_active, 'invoiced_externally': self.invoiced_externally}
+                'is_active': self.is_active, 'invoiced_externally': self.invoiced_externally,
+                'is_mercadopago': self.is_mercadopago}
 
 
 class PosPayment(db.Model):
@@ -40,6 +43,8 @@ class PosPayment(db.Model):
     # Sesión de caja abierta al registrar el pago y al anularlo (nulas: sin caja).
     cash_session_id = db.Column(db.Integer, db.ForeignKey('cash_sessions.id'), nullable=True, index=True)
     cancel_cash_session_id = db.Column(db.Integer, db.ForeignKey('cash_sessions.id'), nullable=True, index=True)
+    # Id del pago en MercadoPago (cobros del Point o asociados en la conciliación).
+    mp_payment_id = db.Column(db.String(80), nullable=True, index=True)
 
     sale = db.relationship('PosSale', back_populates='payments')
 

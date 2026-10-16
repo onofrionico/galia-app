@@ -317,6 +317,8 @@ def _apply_payment_method(method, data, creating):
         method.invoiced_externally = bool(data['invoiced_externally'])
     elif creating:
         method.invoiced_externally = method.kind != 'cash'
+    if 'is_mercadopago' in data:
+        method.is_mercadopago = bool(data['is_mercadopago'])
 
 
 @bp.route('/payment-methods', methods=['GET'])

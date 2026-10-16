@@ -18,6 +18,9 @@ const LABELS = {
   split_out: 'Separó ítems a otra cuenta',
   split_in: 'Recibió ítems de otra cuenta',
   waiter_changed: 'Cambió el mozo',
+  point_order_created: 'Envió un cobro al Point',
+  point_order_canceled: 'Canceló el cobro en el Point',
+  point_order_finished: 'Terminó el cobro en el Point',
 }
 
 export const eventLabel = (type) => LABELS[type] ?? type

@@ -29,4 +29,10 @@ export const posKeys = {
   fiscalSaleInvoices: (id) => ['pos', 'fiscal', 'sale', id],
   fiscalInvoices: (params) => ['pos', 'fiscal', 'list', params],
   fiscalSettings: ['pos', 'fiscal', 'settings'],
+  mp: ['pos', 'mp'],
+  mpPointConfig: ['pos', 'mp', 'point-config'],
+  mpPointOrder: (id) => ['pos', 'mp', 'point-order', id],
+  mpSettings: ['pos', 'mp', 'settings'],
+  mpReconciliation: (day) => ['pos', 'mp', 'reconciliation', day],
+  mpReconciliationSummary: (from, to) => ['pos', 'mp', 'reconciliation-summary', from, to],
 }

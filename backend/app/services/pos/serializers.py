@@ -1,4 +1,5 @@
 from app.services.fiscal import guard
+from app.services.mercadopago import summary as mp_summary
 from app.services.pos.common import display_name
 
 
@@ -47,7 +48,8 @@ def payment_to_dict(payment):
         'id': payment.id, 'payment_method_id': payment.payment_method_id, 'method_name': payment.method_name,
         'amount': _money(payment.amount), 'tendered': _money(payment.tendered), 'change': _money(payment.change),
         'is_active': payment.cancelled_at is None, 'cancel_reason': payment.cancel_reason,
-        'cancel_reason_id': payment.cancel_reason_id,
+        'cancel_reason_id': payment.cancel_reason_id, 'mp_payment_id': payment.mp_payment_id,
+        'refundable_mp': mp_summary.refundable(payment),
         'created_at': _iso(payment.created_at),
     }
 
@@ -85,4 +87,5 @@ def sale_to_dict(sale, include_items=True):
         data['discounts'] = [discount_to_dict(d) for d in sale.discounts]
         data['payments'] = [payment_to_dict(p) for p in sale.payments]
         data['invoice'] = guard.sale_invoice_summary(sale.id)
+        data['point_order'] = mp_summary.active_point_order(sale.id)
     return data
