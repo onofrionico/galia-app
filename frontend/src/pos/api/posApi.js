@@ -107,3 +107,23 @@ export const posFiscalApi = {
   saveCertificate: (env, certificate) => data(api.put(`/fiscal/settings/${env}/certificate`, { certificate })),
   testConnection: () => data(api.post('/fiscal/settings/test')),
 }
+
+export const posMpApi = {
+  pointConfig: () => data(api.get('/mp/point-config')),
+  startPoint: (saleId, amount) => data(api.post(`/mp/sales/${saleId}/point`, { amount })),
+  pointOrder: (id) => data(api.get(`/mp/point-orders/${id}`)),
+  cancelPoint: (id) => data(api.post(`/mp/point-orders/${id}/cancel`)),
+  salePointOrders: (saleId) => data(api.get(`/mp/sales/${saleId}/point-orders`)).then((d) => d.orders),
+  fakePoint: (id, outcome) => data(api.post(`/mp/fake/point-orders/${id}/${outcome}`)),
+  reconciliationSummary: (from, to) => data(api.get('/mp/reconciliation', { params: { from, to } })).then((d) => d.days),
+  reconciliationDay: (day) => data(api.get(`/mp/reconciliation/${day}`)),
+  fetchDay: (day) => data(api.post(`/mp/reconciliation/${day}/fetch`)),
+  resolve: (body) => data(api.post('/mp/reconciliation/resolutions', body)),
+  undo: (id) => data(api.delete(`/mp/reconciliation/resolutions/${id}`)),
+  settings: () => data(api.get('/mp/settings')),
+  saveSettings: (body) => data(api.put('/mp/settings', body)),
+  saveToken: (environment, accessToken) => data(api.put('/mp/settings/token', { environment, access_token: accessToken })),
+  terminals: () => data(api.get('/mp/settings/terminals')).then((d) => d.terminals),
+  setPdv: (id) => data(api.post(`/mp/settings/terminals/${id}/pdv`)),
+  testConnection: () => data(api.post('/mp/settings/test')),
+}
