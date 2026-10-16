@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedText, isFinal, isWaiting, resultMessage, waitingLabel } from './pointCharge'
+import { elapsedText, isDone, isFinal, isWaiting, resultMessage, waitingLabel } from './pointCharge'
 
 describe('pointCharge', () => {
   it('clasifica los estados', () => {
@@ -7,6 +7,13 @@ describe('pointCharge', () => {
     expect(isWaiting('canceling')).toBe(true)
     expect(isFinal('approved')).toBe(true)
     expect(isFinal('processing')).toBe(false)
+  })
+  it('aprobado sin pago registrado todavía sigue esperando', () => {
+    expect(isDone({ status: 'approved', payment_id: null, error: null })).toBe(false)
+    expect(isDone({ status: 'approved', payment_id: 7, error: null })).toBe(true)
+    expect(isDone({ status: 'approved', payment_id: null, error: 'Cobrado de más: $5.00' })).toBe(true)
+    expect(isDone({ status: 'failed', payment_id: null, error: 'x' })).toBe(true)
+    expect(isDone({ status: 'created' })).toBe(false)
   })
   it('describe la espera', () => {
     expect(waitingLabel({ status: 'created' })).toBe('Esperando el cobro en el Point…')

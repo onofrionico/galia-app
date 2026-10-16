@@ -5,7 +5,7 @@ import { posKeys } from '../hooks/keys'
 import { btn } from '../ui/buttons'
 import { errorMessage } from '../utils/errors'
 import { formatMoney } from '../utils/money'
-import { POLL_MS, elapsedText, isFinal, resultMessage, waitingLabel } from './pointCharge'
+import { POLL_MS, elapsedText, isDone, isWaiting, resultMessage, waitingLabel } from './pointCharge'
 
 const TONES = { ok: 'bg-green-50 text-green-800', warn: 'bg-amber-50 text-amber-900', error: 'bg-red-50 text-red-800' }
 const SIMULATIONS = [['approved', 'aprobar'], ['rejected', 'rechazar'], ['expired', 'vencer']]
@@ -19,9 +19,9 @@ export default function PointWait({ orderId, saleId, onDone }) {
   const { data: order, error: loadError } = useQuery({
     queryKey: posKeys.mpPointOrder(orderId),
     queryFn: () => posMpApi.pointOrder(orderId),
-    refetchInterval: (query) => (query.state.data && isFinal(query.state.data.status) ? false : POLL_MS),
+    refetchInterval: (query) => (query.state.data && isDone(query.state.data) ? false : POLL_MS),
   })
-  const final = order ? isFinal(order.status) : false
+  const final = order ? isDone(order) : false
 
   useEffect(() => {
     if (final) return undefined
@@ -70,7 +70,7 @@ export default function PointWait({ orderId, saleId, onDone }) {
       <p className="text-gray-700">{waitingLabel(order)}</p>
       <p className="font-mono text-sm text-gray-500">{elapsedText(order.created_at, now)}</p>
       {error && <p className="text-sm text-red-700">{error}</p>}
-      {order.status !== 'canceling' && (
+      {isWaiting(order.status) && order.status !== 'canceling' && (
         <button type="button" className={btn('secondary', 'w-full')} disabled={acting}
           onClick={() => act(() => posMpApi.cancelPoint(orderId))}>
           Cancelar cobro

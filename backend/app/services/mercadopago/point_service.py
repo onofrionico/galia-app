@@ -75,16 +75,15 @@ def start(user, sale_id, amount):
     settings = mp_settings.get_settings()
     mp_settings.require_ready(settings)
     client = mercadopago.get_client(settings)
+    busy = _busy_order(settings.terminal_id)
+    if busy is not None:
+        raise PosError(f'El Point está cobrando {_place(busy.sale)} (${busy.amount:.2f}): esperá o cancelalo')
     sale = load_sale(parse_id(sale_id, 'La venta'))
     if not (sale.status == 'billing' or (sale.status == 'open' and sale.sale_type == 'counter')):
         raise PosError('Pedí la cuenta antes de cobrar')
     amount = _parse_amount(amount)
     if amount > sale.balance:
         raise bad_request(f'El monto tiene que ser mayor a 0 y no superar el saldo (${sale.balance:.2f})')
-    busy = MpPointOrder.query.filter(MpPointOrder.terminal_id == settings.terminal_id,
-                                     MpPointOrder.status.in_(ACTIVE_STATUSES)).first()
-    if busy is not None:
-        raise PosError(f'El Point está cobrando {_place(busy.sale)} (${busy.amount:.2f}): esperá o cancelalo')
     key = str(uuid.uuid4())
     order = MpPointOrder(sale_id=sale.id, amount=amount, terminal_id=settings.terminal_id, status='creating',
                          external_reference=f'galia-venta-{sale.id}-{key[:8]}', idempotency_key=key,
@@ -96,22 +95,29 @@ def start(user, sale_id, amount):
         db.session.rollback()
         raise PosError('El Point está ocupado con otro cobro: esperá o cancelalo')
     response = None
-    for attempt in (1, 2):  # un reintento con la misma clave de idempotencia
-        try:
-            response = client.create_order(order.terminal_id, order.amount, order.external_reference, key)
-            break
-        except MpUnavailable as exc:
-            logger.warning('MercadoPago sin respuesta creando la orden %s (intento %s): %s', order.id, attempt, exc)
-        except MpRejected as exc:
-            logger.warning('MercadoPago rechazó la orden %s: %s', order.id, exc)
-            order.status = 'failed'
-            order.error = NOT_READY if exc.status in (400, 404, 409) else exc.message[:255]
-            order.updated_at = now()
-            db.session.commit()
-            return order
-    if response is None:
-        order.status, order.error, order.updated_at = 'failed', UNAVAILABLE, now()
-        db.session.commit()
+    try:
+        for attempt in (1, 2):  # un reintento con la misma clave de idempotencia
+            try:
+                response = client.create_order(order.terminal_id, order.amount, order.external_reference, key)
+                break
+            except MpUnavailable as exc:
+                logger.warning('MercadoPago sin respuesta creando la orden %s (intento %s): %s', order.id, attempt,
+                               exc)
+    except MpRejected as exc:
+        logger.warning('MercadoPago rechazó la orden %s: %s', order.id, exc)
+        _fail_creation(order, NOT_READY if exc.status in (400, 404, 409) else exc.message[:255])
+        return order
+    except Exception:
+        # Nunca dejar la orden en 'creating': bloquearía la terminal.
+        logger.exception('Error inesperado creando la orden %s', order.id)
+        _fail_creation(order, UNAVAILABLE)
+        raise PosError(UNAVAILABLE)
+    if response is None or not response.get('id'):
+        if response is not None:
+            logger.error('MercadoPago devolvió una orden sin id (%s): %s', order.id, response)
+        _fail_creation(order, UNAVAILABLE)
+        if response is not None:
+            raise PosError(UNAVAILABLE)
         return order
     order.mp_order_id = str(response['id'])
     order.status = 'created'
@@ -121,8 +127,41 @@ def start(user, sale_id, amount):
     return order
 
 
-def _register_payment(order, approved_amount):
-    """Crea el pago de Galia por lo aprobado, hasta el saldo. Lo que sobra queda marcado para conciliar."""
+def _fail_creation(order, error):
+    db.session.rollback()
+    order = _load(order.id, lock=True)
+    order.status, order.error, order.updated_at = 'failed', error, now()
+    db.session.commit()
+
+
+STALE_CREATING = timedelta(minutes=2)
+
+
+def _busy_order(terminal_id):
+    """Cobro activo de la terminal. Si hace rato que nadie lo consulta, primero se refresca contra MercadoPago
+    (el aviso pudo no llegar y la orden ya haber vencido)."""
+    busy = MpPointOrder.query.filter(MpPointOrder.terminal_id == terminal_id,
+                                     MpPointOrder.status.in_(ACTIVE_STATUSES)).first()
+    if busy is None:
+        return None
+    if busy.mp_order_id is None:
+        if busy.status == 'creating' and busy.created_at < now() - STALE_CREATING:
+            _fail_creation(busy, UNAVAILABLE)  # quedó trabada (el proceso murió creándola)
+            return None
+        return busy
+    if busy.last_checked_at is None or busy.last_checked_at < now() - REFRESH_AFTER:
+        busy = apply(busy.id)
+    return busy if busy.status in ACTIVE_STATUSES else None
+
+
+def _needs_registration(order):
+    """Aprobada pero sin pago en Galia (el registro falló a mitad de camino): se reintenta."""
+    return order.status == 'approved' and order.payment_id is None and order.error is None
+
+
+def _register_payment(order):
+    """Crea el pago de Galia por lo aprobado, hasta el saldo (leído con la venta bloqueada). Lo que sobra queda
+    marcado para conciliar. Todo va en la misma transacción que el estado approved: si falla, se reintenta."""
     request_id = f'mp-order-{order.id}'
     existing = PosPayment.query.filter_by(client_request_id=request_id).first()
     if existing is not None:  # otra vía ya lo registró
@@ -131,7 +170,8 @@ def _register_payment(order, approved_amount):
         return existing
     settings = mp_settings.get_settings()
     user = db.session.get(User, order.created_by)
-    sale = order.sale
+    sale = load_sale(order.sale_id)
+    approved_amount = order.approved_amount
     balance = sale.balance if sale.status in ('billing', 'open') else Decimal('0')
     to_register = min(approved_amount, balance)
     if approved_amount > to_register:
@@ -140,7 +180,6 @@ def _register_payment(order, approved_amount):
     if to_register <= 0:
         db.session.commit()
         return None
-    db.session.commit()  # persiste el estado approved antes de crear el pago (add_payment hace su propio commit)
     payment_service.add_payment(user, sale.id, settings.point_payment_method_id, to_register,
                                 client_request_id=request_id)
     payment = PosPayment.query.filter_by(client_request_id=request_id).first()
@@ -150,8 +189,32 @@ def _register_payment(order, approved_amount):
     return payment
 
 
+def _mark_approved(order, state):
+    order.status = 'approved'
+    order.mp_payment_id = state['mp_payment_id']
+    order.approved_amount = state['approved_amount'] or order.amount
+    order.status_detail = (state['status_detail'] or '')[:80] or None
+    order.last_checked_at = order.updated_at = now()
+
+
+def _register_or_flag(order_id, order, state=None):
+    try:
+        _register_payment(order)
+    except PosError as exc:
+        db.session.rollback()
+        order = _load(order_id, lock=True)
+        if state is not None:
+            _mark_approved(order, state)
+        order.error = f'Cobrado pero no registrado: {exc.message}. Revisalo en Conciliación'[:255]
+        logger.error('Cobro de Point %s aprobado sin registrar: %s', order.id, exc.message)
+        db.session.commit()
+    return order
+
+
 def apply(order_id):
     order = _load(order_id, lock=True)
+    if _needs_registration(order):
+        return _register_or_flag(order_id, order)
     if order.status in FINAL_STATUSES or not order.mp_order_id:
         db.session.commit()
         return order
@@ -166,18 +229,8 @@ def apply(order_id):
     order.last_checked_at = order.updated_at = now()
     order.status_detail = (state['status_detail'] or '')[:80] or None
     if state['status'] == 'approved':
-        order.status = 'approved'
-        order.mp_payment_id = state['mp_payment_id']
-        order.approved_amount = state['approved_amount'] or order.amount
-        try:
-            _register_payment(order, order.approved_amount)
-        except PosError as exc:
-            db.session.rollback()
-            order = _load(order_id, lock=True)
-            order.error = f'Cobrado pero no registrado: {exc.message}. Revisalo en Conciliación'[:255]
-            logger.error('Cobro de Point %s aprobado sin registrar: %s', order.id, exc.message)
-            db.session.commit()
-        return order
+        _mark_approved(order, state)
+        return _register_or_flag(order_id, order, state)
     if state['status'] == 'failed':
         reason = REJECTION_TEXT.get(state['status_detail'] or '', state['status_detail'] or 'sin detalle')
         order.status, order.error = 'failed', f'El pago fue rechazado en el Point: {reason}'[:255]
@@ -201,9 +254,9 @@ def apply_by_mp_order_id(mp_order_id):
 
 def refresh(order_id):
     order = _load(order_id)
-    if order.status in FINAL_STATUSES:
+    if order.status in FINAL_STATUSES and not _needs_registration(order):
         return order
-    if order.last_checked_at is None or order.last_checked_at < now() - REFRESH_AFTER:
+    if _needs_registration(order) or order.last_checked_at is None or order.last_checked_at < now() - REFRESH_AFTER:
         return apply(order.id)
     return order
 

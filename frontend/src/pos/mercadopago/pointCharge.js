@@ -6,10 +6,14 @@ const FINAL = ['approved', 'failed', 'canceled', 'expired']
 
 export const isWaiting = (status) => WAITING.includes(status)
 export const isFinal = (status) => FINAL.includes(status)
+// Terminó de verdad: un aprobado sin pago ni error todavía se está registrando en Galia.
+export const isDone = (order) =>
+  isFinal(order.status) && !(order.status === 'approved' && !order.payment_id && !order.error)
 
 export function waitingLabel(order) {
   if (order.status === 'processing') return 'Cobrando en el Point…'
   if (order.status === 'canceling') return 'Cancelando en el Point…'
+  if (order.status === 'approved') return 'Cobro aprobado: registrando el pago…'
   return 'Esperando el cobro en el Point…'
 }
 

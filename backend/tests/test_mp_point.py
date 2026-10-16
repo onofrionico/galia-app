@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from app.extensions import db
 from app.models.pos import PosSaleEvent
@@ -149,6 +150,51 @@ def test_refresh_only_checks_when_stale(ctx):
     order.last_checked_at = datetime.utcnow() - timedelta(seconds=6)
     db.session.commit()
     assert point_service.refresh(order.id).status == 'approved'
+
+
+def test_payment_failure_after_approval_is_retried(ctx, monkeypatch):
+    user, cat, t1, _t2, _s = ctx
+    sale = billing_sale(user, cat, t1)
+    order = point_service.start(user, sale.id, Decimal('1800'))
+    FakeMercadoPago().simulate(order.mp_order_id, 'approved')
+    real_add = payment_service.add_payment
+
+    def broken(*args, **kwargs):
+        raise OperationalError('INSERT', {}, Exception('deadlock'))
+
+    monkeypatch.setattr(payment_service, 'add_payment', broken)
+    with pytest.raises(OperationalError):
+        point_service.apply(order.id)
+    db.session.rollback()
+    monkeypatch.setattr(payment_service, 'add_payment', real_add)
+    order = point_service.apply(order.id)  # la consulta siguiente lo registra
+    db.session.refresh(sale)
+    assert order.status == 'approved' and order.payment_id is not None and sale.status == 'closed'
+
+
+def test_create_without_id_does_not_block_the_terminal(ctx, monkeypatch):
+    user, cat, t1, t2, _s = ctx
+    sale = billing_sale(user, cat, t1)
+    monkeypatch.setattr(FakeMercadoPago, 'create_order', lambda self, *args: {})
+    with pytest.raises(PosError):
+        point_service.start(user, sale.id, Decimal('1800'))
+    db.session.rollback()
+    monkeypatch.undo()
+    monkeypatch.setattr(mercadopago, 'get_client', lambda settings: FakeMercadoPago())
+    again = point_service.start(user, billing_sale(user, cat, t2).id, Decimal('1800'))
+    assert again.status == 'created'
+
+
+def test_stale_busy_order_is_refreshed_before_rejecting(ctx):
+    user, cat, t1, t2, _s = ctx
+    first = point_service.start(user, billing_sale(user, cat, t1).id, Decimal('1800'))
+    FakeMercadoPago().simulate(first.mp_order_id, 'expired')  # el aviso no llegó
+    first.last_checked_at = datetime.utcnow() - timedelta(seconds=30)
+    db.session.commit()
+    second = point_service.start(user, billing_sale(user, cat, t2).id, Decimal('1800'))
+    assert second.status == 'created'
+    db.session.refresh(first)
+    assert first.status == 'expired'
 
 
 def test_requires_charge_permission_and_configuration(ctx):
