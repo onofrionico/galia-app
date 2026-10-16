@@ -31,7 +31,7 @@ Que los gastos importados desde Fudo lleguen **bien enriquecidos**: con su prove
 
 ## Modelo de datos
 
-Migración `b4a0_expenses_fudo_link` (down_revision `b3a0_add_print_stations`):
+Migración `b5a0_expenses_fudo_link` (down_revision `b4a0_add_fiscal_invoicing`):
 
 | Tabla | Columna | Tipo | Notas |
 |---|---|---|---|
@@ -69,8 +69,8 @@ Para cada gasto con proveedor en Fudo (`relationships.provider.data.id`):
 
 ### Categoría
 1. `ExpenseCategory` con ese `fudo_category_id` → usarla.
-2. Si no, buscar entre categorías sin vínculo por nombre (casefold) → vincularla.
-3. Si no → crearla con `expense_type` inferido por palabras clave. La lista de palabras clave de `Expense.from_csv_row` se extrae a una función compartida `infer_expense_type(name)`. Si el nombre ya existe (unique) pero vinculado a otra categoría de Fudo, se crea como `"<nombre> (Fudo)"`.
+2. Si no, buscar entre categorías sin vínculo (activas o no; no se cambia `is_active`) por nombre normalizado → vincularla.
+3. Si no → crearla con `expense_type` inferido por palabras clave. La lista de palabras clave de `Expense.from_csv_row` se extrae a una función compartida `infer_expense_type(name)`. Si el nombre ya existe (unique) pero vinculado a otra categoría de Fudo, se crea como `"<nombre> (Fudo <id>)"` (el id garantiza unicidad).
 4. Gasto sin categoría → "Sin categoría" (se crea si no existe, como hoy).
 
 **Re-vincular a mano:** el endpoint existente `PUT /api/v1/reports/expense-categories/<id>` (`routes/reports.py`) acepta `fudo_category_id` (o `null`). Al moverlo, se quita de la categoría que lo tenía. Los gastos ya importados no cambian hasta la próxima sync (donde se recalculan los no corregidos).
