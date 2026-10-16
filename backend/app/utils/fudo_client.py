@@ -9,6 +9,10 @@ class FudoClient:
     
     AUTH_URL = "https://auth.fu.do/api"
     BASE_URL = "https://api.fu.do/v1alpha1"
+
+    EXPENSE_FIELDS = ('date', 'dueDate', 'amount', 'description', 'status', 'canceled', 'receiptNumber',
+                      'useInCashCount')
+    EXPENSE_RELATIONS = ('provider', 'expenseCategory', 'paymentMethod', 'receiptType', 'cashRegister')
     
     def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None):
         self.api_key = api_key or os.getenv('FUDO_API_KEY')
@@ -171,7 +175,10 @@ class FudoClient:
         params = {
             'page[size]': min(page_size, 500),
             'page[number]': page_number,
-            'include': 'provider,expenseCategory,paymentMethod,user,receiptType,commercialDocument'
+            'include': ','.join(self.EXPENSE_RELATIONS),
+            # Sin fields[...] Fudo devuelve los gastos sin atributos (ver openapi v1alpha1, listExpenses).
+            'fields[expense]': ','.join(self.EXPENSE_FIELDS + self.EXPENSE_RELATIONS),
+            **{f'fields[{relation}]': 'name' for relation in self.EXPENSE_RELATIONS},
         }
         
         if filters:
