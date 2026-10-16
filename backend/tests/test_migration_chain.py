@@ -58,3 +58,7 @@ def test_print_stations_follows_products_fudo_link():
 
 def test_fiscal_invoicing_follows_print_stations():
     assert _revisions()['b4a0_add_fiscal_invoicing'] == ['b3a0_add_print_stations']
+
+
+def test_expenses_fudo_link_follows_fiscal_invoicing():
+    assert _revisions()['b5a0_expenses_fudo_link'] == ['b4a0_add_fiscal_invoicing']

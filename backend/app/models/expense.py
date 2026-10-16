@@ -1,5 +1,16 @@
 from datetime import datetime
+import sqlalchemy as sa
+
 from app.extensions import db
+
+DIRECT_EXPENSE_KEYWORDS = ('mercaderia', 'mercadería', 'insumo', 'materia prima', 'producto', 'stock')
+
+
+def infer_expense_type(name):
+    """'directo' si el nombre de la categoría sugiere costo de producción, si no 'indirecto'."""
+    lowered = (name or '').lower()
+    return 'directo' if any(keyword in lowered for keyword in DIRECT_EXPENSE_KEYWORDS) else 'indirecto'
+
 
 class ExpenseCategory(db.Model):
     __tablename__ = 'expense_categories'
@@ -9,6 +20,7 @@ class ExpenseCategory(db.Model):
     description = db.Column(db.String(255))
     expense_type = db.Column(db.String(20), nullable=False, default='indirecto')  # 'directo' o 'indirecto'
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    fudo_category_id = db.Column(db.String(50), nullable=True, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     expenses = db.relationship('Expense', backref='category_rel', lazy='dynamic')
@@ -20,6 +32,7 @@ class ExpenseCategory(db.Model):
             'description': self.description,
             'expense_type': self.expense_type,
             'is_active': self.is_active,
+            'fudo_category_id': self.fudo_category_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -42,6 +55,9 @@ class Expense(db.Model):
     numero_comprobante = db.Column(db.String(100))
     creado_por = db.Column(db.String(100))
     cancelado = db.Column(db.Boolean, default=False)
+    source = db.Column(db.String(10), nullable=False, default='galia', server_default='galia')  # 'fudo' | 'galia'
+    category_overridden = db.Column(db.Boolean, nullable=False, default=False, server_default=sa.false())
+    supplier_overridden = db.Column(db.Boolean, nullable=False, default=False, server_default=sa.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     category_id = db.Column(db.Integer, db.ForeignKey('expense_categories.id'), nullable=True)
@@ -69,6 +85,9 @@ class Expense(db.Model):
             'numero_comprobante': self.numero_comprobante,
             'creado_por': self.creado_por,
             'cancelado': self.cancelado,
+            'source': self.source,
+            'category_overridden': self.category_overridden,
+            'supplier_overridden': self.supplier_overridden,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'category_id': self.category_id,
             'category_name': self.category_rel.name if self.category_rel else None,
@@ -123,16 +142,15 @@ class Expense(db.Model):
             if not category:
                 # Create new category if it doesn't exist
                 # Determine expense_type based on keywords
-                direct_keywords = ['mercaderia', 'mercadería', 'insumo', 'materia prima', 'producto', 'stock']
-                expense_type = 'directo' if any(kw in categoria_name.lower() for kw in direct_keywords) else 'indirecto'
+                expense_type = infer_expense_type(categoria_name)
                 
                 category = ExpenseCategory(
                     name=categoria_name,
                     expense_type=expense_type,
                     is_active=True
                 )
-                db.add(category)
-                db.flush()  # Get the ID without committing
+                db.session.add(category)
+                db.session.flush()  # Get the ID without committing
             
             category_id = category.id
         else:
@@ -144,8 +162,8 @@ class Expense(db.Model):
                     expense_type='indirecto',
                     is_active=True
                 )
-                db.add(default_category)
-                db.flush()
+                db.session.add(default_category)
+                db.session.flush()
             category_id = default_category.id
         
         return cls(
@@ -164,5 +182,6 @@ class Expense(db.Model):
             tipo_comprobante=row.get('Tipo de comprobante', '').strip() or None,
             numero_comprobante=row.get('N° de comprobante', '').strip() or None,
             creado_por=row.get('Creado por', '').strip() or None,
-            cancelado=cls.parse_bool(row.get('Cancelado', ''))
+            cancelado=cls.parse_bool(row.get('Cancelado', '')),
+            source='fudo' if external_id else 'galia',
         )
