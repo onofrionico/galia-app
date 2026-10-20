@@ -8,6 +8,7 @@ from app.utils.fudo_client import FudoClient
 from app.models.fudo_sync_run import FudoSyncRun
 from app.services import fudo_sync_runs
 from app.services.fudo_sync_runs import SyncInProgress
+from app.utils.timezone_utils import business_date, get_current_date_argentina
 from datetime import date, datetime
 from typing import Dict, List, Optional
 import logging
@@ -48,7 +49,7 @@ def parse_fudo_sale(fudo_sale: Dict) -> Dict:
         except (ValueError, AttributeError):
             pass
     
-    fecha = cerrada.date() if cerrada else (creacion.date() if creacion else datetime.now().date())
+    fecha = business_date(cerrada or creacion) if (cerrada or creacion) else get_current_date_argentina()
     
     total = attributes.get('total', 0)
     if total:

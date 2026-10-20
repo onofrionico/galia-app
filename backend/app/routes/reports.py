@@ -1,8 +1,8 @@
+import calendar
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from sqlalchemy import func, and_, or_, extract, cast, text
-from sqlalchemy import Date as SQLDate
+from sqlalchemy import func, and_, or_, extract, text
 from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 from app.extensions import db
@@ -236,43 +236,36 @@ def get_expenses_metrics(start_date, end_date):
     }
 
 
+def _payroll_accrual_period(payroll):
+    """Días que cubre una nómina: su mes, o el semestre para el SAC (13 = ene–jun, 14 = jul–dic)."""
+    if payroll.month == 13:
+        return date(payroll.year, 1, 1), date(payroll.year, 6, 30)
+    if payroll.month == 14:
+        return date(payroll.year, 7, 1), date(payroll.year, 12, 31)
+    last_day = calendar.monthrange(payroll.year, payroll.month)[1]
+    return date(payroll.year, payroll.month, 1), date(payroll.year, payroll.month, last_day)
+
+
 def get_payroll_metrics(start_date, end_date):
-    """Calcular métricas de sueldos/payroll para un período"""
-    start_month = start_date.month
-    start_year = start_date.year
-    end_month = end_date.month
-    end_year = end_date.year
+    """Calcular métricas de sueldos/payroll para un período.
 
-    # Nóminas regulares (meses 1-12) filtradas por rango año/mes
-    regular_payrolls = Payroll.query.filter(
-        Payroll.month <= 12,
-        or_(
-            and_(Payroll.year == start_year, Payroll.month >= start_month),
-            Payroll.year > start_year
-        ),
-        or_(
-            and_(Payroll.year == end_year, Payroll.month <= end_month),
-            Payroll.year < end_year
-        )
-    ).all()
+    Cada nómina se reparte en partes iguales entre los días que cubre (su mes, o el
+    semestre para el SAC) y se suma la parte que cae dentro del rango, así un día o una
+    semana no cargan el sueldo del mes entero.
+    """
+    payrolls = Payroll.query.filter(Payroll.year >= start_date.year, Payroll.year <= end_date.year).all()
 
-    # SAC1 (mes 13) se paga en junio, SAC2 (mes 14) en diciembre.
-    # Solo se incluye si el mes de pago cae dentro del rango consultado.
-    from datetime import date as _date
-    sac_conditions = []
-    for year in range(start_year, end_year + 1):
-        if _date(year, 6, 1) >= start_date.replace(day=1) and _date(year, 6, 1) <= end_date.replace(day=1):
-            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 13))
-        if _date(year, 12, 1) >= start_date.replace(day=1) and _date(year, 12, 1) <= end_date.replace(day=1):
-            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 14))
-
-    sac_payrolls = Payroll.query.filter(or_(*sac_conditions)).all() if sac_conditions else []
-
-    payrolls = regular_payrolls + sac_payrolls
-
-    # gross_salary + extraordinary_amount cubre tanto sueldos normales como aguinaldos
-    total = sum(float(p.gross_salary) + float(p.extraordinary_amount or 0) for p in payrolls)
-    horas = sum(float(p.hours_worked) for p in payrolls)
+    total = 0.0
+    horas = 0.0
+    for p in payrolls:
+        period_start, period_end = _payroll_accrual_period(p)
+        overlap = (min(end_date, period_end) - max(start_date, period_start)).days + 1
+        if overlap <= 0:
+            continue
+        share = overlap / ((period_end - period_start).days + 1)
+        # gross_salary + extraordinary_amount cubre tanto sueldos normales como aguinaldos
+        total += (float(p.gross_salary) + float(p.extraordinary_amount or 0)) * share
+        horas += float(p.hours_worked) * share
 
     return {
         'total': total,
@@ -1057,17 +1050,17 @@ def get_sales_by_weekday(start_date, end_date):
 
     days_in_range = _days_in_range_by_dow(start_date, end_date)
 
-    local_cerrada = Sale.cerrada + text("INTERVAL '-3 hours'")
-    dow_expr = func.extract('dow', local_cerrada)
+    # Día de semana del día comercial (Sale.fecha), el mismo que usa el dashboard:
+    # una mesa cerrada a la 1 de la madrugada del sábado cuenta para el viernes.
+    dow_expr = func.extract('dow', Sale.fecha)
     rows = db.session.query(
         dow_expr.label('dow_pg'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(local_cerrada, SQLDate) >= start_date,
-        cast(local_cerrada, SQLDate) <= end_date,
-        Sale.estado == 'Cerrada',
-        Sale.cerrada.isnot(None)
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
+        Sale.estado == 'Cerrada'
     ).group_by(dow_expr).all()
 
     # Convert DOW: extract('dow') returns 0=Sunday in both SQLite and PostgreSQL
@@ -1102,8 +1095,8 @@ def get_sales_by_hour(start_date, end_date):
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(local_cerrada, SQLDate) >= start_date,
-        cast(local_cerrada, SQLDate) <= end_date,
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
     ).group_by(hour_expr).order_by(hour_expr).all()
