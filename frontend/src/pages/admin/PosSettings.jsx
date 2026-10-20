@@ -6,12 +6,13 @@ import { posConfigApi } from '@/pos/api/posApi'
 const TABS = {
   'payment-methods': {
     label: 'Medios de pago',
-    emptyItem: { name: '', kind: 'cash', position: 0, invoiced_externally: false, is_active: true },
+    emptyItem: { name: '', kind: 'cash', position: 0, invoiced_externally: false, is_mercadopago: false, is_active: true },
     fields: [
       { key: 'name', label: 'Nombre', type: 'text' },
       { key: 'kind', label: 'Tipo', type: 'select', options: [['cash', 'Efectivo'], ['card', 'Tarjeta'], ['transfer', 'Transferencia'], ['other', 'Otro']] },
       { key: 'position', label: 'Orden', type: 'number' },
       { key: 'invoiced_externally', label: 'Lo factura otro sistema', type: 'checkbox' },
+      { key: 'is_mercadopago', label: 'Es de MercadoPago', type: 'checkbox' },
       { key: 'is_active', label: 'Activo', type: 'checkbox' },
     ],
   },

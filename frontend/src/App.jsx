@@ -12,6 +12,8 @@ import Expenses from './pages/Expenses'
 import CashSessions from './pages/CashSessions'
 import Invoices from './pages/Invoices'
 import FiscalSettings from './pages/admin/FiscalSettings'
+import MercadoPagoSettings from './pages/admin/MercadoPagoSettings'
+import MpReconciliation from './pages/MpReconciliation'
 import CashSessionDetail from './pages/CashSessionDetail'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
@@ -126,6 +128,8 @@ function App() {
             <Route path="/admin/branding" element={<RoleProtectedRoute adminOnly><BrandingConfig /></RoleProtectedRoute>} />
             <Route path="/admin/pos-settings" element={<RoleProtectedRoute adminOnly><PosSettings /></RoleProtectedRoute>} />
             <Route path="/admin/fiscal" element={<RoleProtectedRoute adminOnly><FiscalSettings /></RoleProtectedRoute>} />
+            <Route path="/admin/mercadopago" element={<RoleProtectedRoute adminOnly><MercadoPagoSettings /></RoleProtectedRoute>} />
+            <Route path="/mp/reconciliation" element={<RoleProtectedRoute moduleName="Conciliar"><MpReconciliation /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
