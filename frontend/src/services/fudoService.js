@@ -26,6 +26,19 @@ const fudoService = {
     return response.data;
   },
 
+  importHistory: async (fromMonth = null, force = false) => {
+    const params = new URLSearchParams();
+    if (fromMonth) params.append('from_month', fromMonth);
+    if (force) params.append('force', 'true');
+    const response = await api.post(`/fudo/sync/sales/history?${params.toString()}`);
+    return response.data;
+  },
+
+  importMonths: async () => {
+    const response = await api.get('/fudo/import/months');
+    return response.data.months;
+  },
+
   syncExpenses: async (startDate, endDate) => {
     const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
     const response = await api.post(`/fudo/sync/expenses?${params.toString()}`);

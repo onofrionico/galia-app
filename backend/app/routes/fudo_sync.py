@@ -10,6 +10,9 @@ from app.services import fudo_sync_runs
 from app.services.fudo_sync_runs import SyncInProgress
 from app.services.sale_fudo_parsing import parse_fudo_sale  # noqa: F401 (reexportado)
 from app.services.sales_sync_service import apply_fudo_sales
+from app.services import cutover
+from app.services.pos.errors import PosError
+from app.models.operation_settings import FudoImportMonth
 from datetime import date, datetime
 from typing import Dict, List, Optional
 import logging
@@ -44,6 +47,48 @@ def _sync_sales_background(start_date, end_date, update_existing):
             logger.error(f"Error in background sales sync: {str(e)}")
 
 
+def _fudo_off_response():
+    """409 si Fudo está apagado; None si se puede usar."""
+    try:
+        cutover.require_fudo_on()
+    except PosError as exc:
+        return jsonify({'error': exc.message}), exc.status
+    return None
+
+
+@bp.route('/sync/sales/history', methods=['POST'])
+@token_required
+@admin_required
+def sync_sales_history(current_user):
+    """Importa toda la historia de ventas de Fudo, mes por mes. Query: from_month (YYYY-MM), force."""
+    blocked = _fudo_off_response()
+    if blocked:
+        return blocked
+    from_month = None
+    if request.args.get('from_month'):
+        try:
+            from_month = date.fromisoformat(f"{request.args['from_month']}-01")
+        except ValueError:
+            return jsonify({'error': 'Mes inválido, usá YYYY-MM'}), 400
+    force = request.args.get('force', 'false').lower() == 'true'
+    params = {'from_month': from_month.isoformat() if from_month else None, 'force': force}
+    try:
+        run = fudo_sync_runs.start_run('sales_history', params, current_user.id)
+    except SyncInProgress as exc:
+        return jsonify({'error': 'Ya hay una importación de ventas en curso', 'run_id': exc.run.id}), 409
+    _launch(fudo_sync_runs.run_sales_history, current_app._get_current_object(), run.id, from_month, force,
+            FudoClient)
+    return jsonify({'message': 'Importación de la historia iniciada', 'status': 'processing', 'run_id': run.id}), 202
+
+
+@bp.route('/import/months', methods=['GET'])
+@token_required
+@admin_required
+def import_months(current_user):
+    months = FudoImportMonth.query.order_by(FudoImportMonth.month.desc()).all()
+    return jsonify({'months': [m.to_dict() for m in months]}), 200
+
+
 @bp.route('/sync/sales', methods=['POST'])
 @token_required
 @admin_required
@@ -56,6 +101,9 @@ def sync_sales(current_user):
         - end_date: End date in ISO format (e.g., '2024-01-31T23:59:59Z')
         - update_existing: Whether to update existing sales (default: false)
     """
+    blocked = _fudo_off_response()
+    if blocked:
+        return blocked
     try:
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')

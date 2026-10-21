@@ -48,6 +48,23 @@ def finish_run(run_id, stats=None, error=None):
     db.session.commit()
 
 
+def run_sales_history(app, run_id, from_month, force, client_factory):
+    """Importación de la historia de ventas de Fudo en segundo plano (kind='sales_history')."""
+    from app.services import fudo_sales_import
+
+    with app.app_context():
+        try:
+            stats = fudo_sales_import.import_history(client_factory(), from_month=from_month, force=force,
+                                                     run_id=run_id)
+        except Exception as exc:
+            logger.exception('Importación de la historia de ventas %s falló', run_id)
+            db.session.rollback()
+            finish_run(run_id, error=str(exc) or exc.__class__.__name__)
+            return
+        finish_run(run_id, stats={'months': len(stats['months']), 'errors': stats['errors'],
+                                  'changed_months': stats['changed_months']})
+
+
 def run_expenses_sync(app, run_id, start_date, end_date, client_factory):
     with app.app_context():
         try:
