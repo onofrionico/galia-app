@@ -7,6 +7,7 @@ from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 from app.extensions import db
 from app.models.sale import Sale
+from app.models.sale_item import SaleItem
 from app.models.expense import Expense, ExpenseCategory
 from app.models.payroll import Payroll
 from app.models.shift import Shift
@@ -932,6 +933,119 @@ def productivity_report(current_user):
         'costo_laboral_porcentaje': round(costo_laboral_pct, 1),
         'meta_productividad': meta_productividad,
         'cumple_meta': ventas_por_hora >= meta_productividad if meta_productividad > 0 else None
+    }), 200
+
+
+# ==================== PRODUCTOS ====================
+
+SIN_CATEGORIA = 'Sin categoría'
+
+
+def _product_rows(start_date, end_date):
+    """Unidades y facturación por (producto, variante, categoría) de las ventas cerradas del rango."""
+    return db.session.query(
+        SaleItem.product_name,
+        SaleItem.variant_name,
+        SaleItem.category_name,
+        func.sum(SaleItem.quantity).label('unidades'),
+        func.sum(SaleItem.total).label('facturacion'),
+    ).join(Sale, SaleItem.sale_id == Sale.id).filter(
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
+        Sale.estado == 'Cerrada'
+    ).group_by(SaleItem.product_name, SaleItem.variant_name, SaleItem.category_name).all()
+
+
+def _abc_class(cumulative_pct, is_first):
+    if is_first or cumulative_pct <= 80:
+        return 'A'
+    return 'B' if cumulative_pct <= 95 else 'C'
+
+
+@bp.route('/products', methods=['GET'])
+@token_required
+@module_required('Reports')
+def products_report(current_user):
+    """Ventas por producto y categoría, con clase ABC, variación contra el período anterior y cobertura."""
+    start_date = parse_date(request.args.get('start_date'))
+    end_date = parse_date(request.args.get('end_date'))
+
+    if not start_date:
+        start_date, end_date = get_period_dates('mensual')
+    if not end_date:
+        end_date = date.today()
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    period_length = (end_date - start_date).days + 1
+    prev_end_date = start_date - timedelta(days=1)
+    prev_start_date = prev_end_date - timedelta(days=period_length - 1)
+
+    rows = _product_rows(start_date, end_date)
+    previous = {(r.product_name, r.variant_name, r.category_name): float(r.facturacion or 0)
+                for r in _product_rows(prev_start_date, prev_end_date)}
+
+    total_facturacion = sum(float(r.facturacion or 0) for r in rows)
+    total_unidades = sum(float(r.unidades or 0) for r in rows)
+
+    products = []
+    cumulative = 0.0
+    for i, r in enumerate(sorted(rows, key=lambda r: float(r.facturacion or 0), reverse=True)):
+        facturacion = float(r.facturacion or 0)
+        unidades = float(r.unidades or 0)
+        porcentaje = facturacion / total_facturacion * 100 if total_facturacion > 0 else 0
+        cumulative += porcentaje
+        anterior = previous.get((r.product_name, r.variant_name, r.category_name))
+        products.append({
+            'producto': r.product_name,
+            'variante': r.variant_name,
+            'categoria': r.category_name or SIN_CATEGORIA,
+            'unidades': round(unidades, 3),
+            'facturacion': round(facturacion, 2),
+            'precio_promedio': round(facturacion / unidades, 2) if unidades else 0,
+            'porcentaje': round(porcentaje, 1),
+            'clase': _abc_class(round(cumulative, 4), i == 0),
+            'facturacion_anterior': round(anterior, 2) if anterior is not None else None,
+            'variacion': round((facturacion - anterior) / anterior * 100, 1) if anterior else None,
+        })
+
+    categories = {}
+    for p in products:
+        c = categories.setdefault(p['categoria'], {'categoria': p['categoria'], 'unidades': 0.0,
+                                                   'facturacion': 0.0, 'productos': 0})
+        c['unidades'] += p['unidades']
+        c['facturacion'] += p['facturacion']
+        c['productos'] += 1
+    by_category = sorted(categories.values(), key=lambda c: c['facturacion'], reverse=True)
+    for c in by_category:
+        c['facturacion'] = round(c['facturacion'], 2)
+        c['unidades'] = round(c['unidades'], 3)
+        c['porcentaje'] = round(c['facturacion'] / total_facturacion * 100, 1) if total_facturacion > 0 else 0
+
+    sales_filter = (Sale.fecha >= start_date, Sale.fecha <= end_date, Sale.estado == 'Cerrada')
+    sales_data = get_sales_metrics(start_date, end_date)
+    ventas_con_detalle = db.session.query(func.count(func.distinct(Sale.id))).join(
+        SaleItem, SaleItem.sale_id == Sale.id).filter(*sales_filter).scalar() or 0
+
+    return jsonify({
+        'period': {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat()
+        },
+        'summary': {
+            'unidades': round(total_unidades, 3),
+            'facturacion': round(total_facturacion, 2),
+            'productos': len(products),
+            'ventas_total': sales_data['count'],
+            'ventas_con_detalle': ventas_con_detalle,
+            'facturacion_ventas': sales_data['total'],
+            'cobertura_ventas_pct': round(ventas_con_detalle / sales_data['count'] * 100, 1)
+            if sales_data['count'] else 0,
+            'cobertura_monto_pct': round(total_facturacion / sales_data['total'] * 100, 1)
+            if sales_data['total'] else 0,
+        },
+        'by_category': by_category,
+        'by_product': products,
     }), 200
 
 

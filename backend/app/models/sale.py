@@ -30,6 +30,9 @@ class Sale(db.Model):
     id_origen = db.Column(db.String(100), nullable=True)
     source = db.Column(db.String(20), nullable=False, default='fudo', server_default='fudo')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    items = db.relationship('SaleItem', back_populates='sale', order_by='SaleItem.id',
+                            cascade='all, delete-orphan', passive_deletes=True)
     
     __table_args__ = (
         db.Index('idx_sales_fecha', 'fecha'),
