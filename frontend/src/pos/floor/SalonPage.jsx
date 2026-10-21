@@ -54,14 +54,15 @@ export default function SalonPage() {
 
   return (
     <div className="flex h-full">
-      <div className="min-w-0 flex-1 overflow-auto p-4">
+      <div className="flex min-w-0 flex-1 flex-col p-4">
         {moving && (
-          <div className="mb-3 flex items-center justify-between rounded-lg bg-galia-lime/30 px-4 py-2">
+          <div className="mb-3 flex shrink-0 items-center justify-between rounded-lg bg-galia-lime/30 px-4 py-2">
             <span className="font-medium">Tocá la mesa libre de destino</span>
             <button type="button" className={btn('secondary')} onClick={() => setMoving(false)}>Cancelar</button>
           </div>
         )}
-        <FloorPlan tables={tables} selectedTableId={selectedTable?.id} picking={moving} onTableClick={onTableClick} />
+        <FloorPlan tables={tables} selectedTableId={selectedTable?.id} picking={moving} onTableClick={onTableClick}
+          fit className="min-h-0 flex-1" />
       </div>
       {saleId && (
         <SalePanel key={saleId} saleId={saleId} siblings={selectedTable?.sales ?? []} initialModal={initialModal}

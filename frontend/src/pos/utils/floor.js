@@ -42,3 +42,10 @@ export function clampSize({ pos_x, width, height }) {
 export function canvasHeight(tables) {
   return Math.max(MIN_CANVAS_HEIGHT, ...tables.map((t) => t.pos_y + t.height + 4))
 }
+
+// Escala del plano: al ancho disponible, o (con `height`) lo más grande posible sin pasarse del alto.
+export function fitScale(width, height, tables) {
+  const byWidth = width / LOGICAL_WIDTH
+  if (height == null) return byWidth
+  return Math.min(byWidth, height / canvasHeight(tables))
+}
