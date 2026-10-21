@@ -962,6 +962,39 @@ def _abc_class(cumulative_pct, is_first):
     return 'B' if cumulative_pct <= 95 else 'C'
 
 
+def _compare_months(args):
+    from app.services.reports_products_compare import parse_month
+    try:
+        return parse_month(args.get('month_a')), parse_month(args.get('month_b'))
+    except ValueError:
+        return None
+
+
+@bp.route('/products/compare', methods=['GET'])
+@token_required
+@module_required('Reports')
+def products_compare(current_user):
+    """Ventas por producto de dos meses (month_a, month_b en YYYY-MM)."""
+    from app.services import reports_products_compare
+    months = _compare_months(request.args)
+    if months is None:
+        return jsonify({'error': 'Mes inválido, usá YYYY-MM'}), 400
+    return jsonify(reports_products_compare.compare(*months)), 200
+
+
+@bp.route('/products/compare/daily', methods=['GET'])
+@token_required
+@module_required('Reports')
+def products_compare_daily(current_user):
+    """Detalle día por día de un producto (key) en los dos meses."""
+    from app.services import reports_products_compare
+    months = _compare_months(request.args)
+    key = request.args.get('key')
+    if months is None or not key:
+        return jsonify({'error': 'Indicá el producto y dos meses válidos (YYYY-MM)'}), 400
+    return jsonify(reports_products_compare.daily(key, *months)), 200
+
+
 @bp.route('/products', methods=['GET'])
 @token_required
 @module_required('Reports')
