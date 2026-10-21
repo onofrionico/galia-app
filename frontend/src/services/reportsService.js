@@ -95,6 +95,16 @@ export const reportsService = {
   getProducts: async (params = {}) => {
     const response = await api.get('/reports/products', { params })
     return response.data
+  },
+
+  productsCompare: async (monthA, monthB) => {
+    const response = await api.get('/reports/products/compare', { params: { month_a: monthA, month_b: monthB } })
+    return response.data
+  },
+
+  productsCompareDaily: async (key, monthA, monthB) => {
+    const response = await api.get('/reports/products/compare/daily', { params: { key, month_a: monthA, month_b: monthB } })
+    return response.data
   }
 }
 
