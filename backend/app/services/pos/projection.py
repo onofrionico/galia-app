@@ -1,13 +1,13 @@
 """Copia de las ventas cerradas del POS en `sales`, la tabla que leen los reportes."""
 from app.extensions import db
-from app.models import Sale
+from app.models import ProductVariant, Sale, SaleItem
 from app.services.pos.common import active_payments, display_name
 from app.utils.timezone_utils import business_date
 
 
-def _fit(column, value):
-    """Recorta `value` al largo de la columna de `sales` (si tiene)."""
-    length = getattr(Sale.__table__.c[column].type, 'length', None)
+def _fit(column, value, model=Sale):
+    """Recorta `value` al largo de la columna de `model` (si tiene)."""
+    length = getattr(model.__table__.c[column].type, 'length', None)
     if value is None or length is None:
         return value
     return value[:length]
@@ -39,6 +39,21 @@ def project(sale):
         origen=_fit('origen', 'Galia POS'),
         id_origen=_fit('id_origen', str(sale.id)),
     )
+    for item in sale.items:
+        if item.status == 'cancelled':
+            continue
+        variant = db.session.get(ProductVariant, item.product_variant_id)
+        product = variant.product if variant else None
+        row.items.append(SaleItem(
+            product_variant_id=item.product_variant_id,
+            product_name=_fit('product_name', item.product_name, SaleItem),
+            variant_name=_fit('variant_name', item.variant_name, SaleItem),
+            category_name=_fit('category_name', product.category.name if product and product.category else None,
+                               SaleItem),
+            quantity=item.quantity,
+            unit_price=item.unit_price + item.modifiers_total,
+            total=item.line_total,
+        ))
     db.session.add(row)
     db.session.flush()
     sale.sale_id = row.id

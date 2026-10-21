@@ -8,7 +8,8 @@ from app.utils.fudo_client import FudoClient
 from app.models.fudo_sync_run import FudoSyncRun
 from app.services import fudo_sync_runs
 from app.services.fudo_sync_runs import SyncInProgress
-from app.utils.timezone_utils import business_date, get_current_date_argentina
+from app.services.sale_fudo_parsing import parse_fudo_sale  # noqa: F401 (reexportado)
+from app.services.sales_sync_service import apply_fudo_sales
 from datetime import date, datetime
 from typing import Dict, List, Optional
 import logging
@@ -17,83 +18,6 @@ import threading
 bp = Blueprint('fudo_sync', __name__, url_prefix='/api/v1/fudo')
 
 logger = logging.getLogger(__name__)
-
-
-def parse_fudo_sale(fudo_sale: Dict) -> Dict:
-    """
-    Parse Fudo sale data to Galia format
-    
-    Args:
-        fudo_sale: Sale data from Fudo API
-    
-    Returns:
-        Dictionary with parsed sale data
-    """
-    attributes = fudo_sale.get('attributes', {})
-    sale_id = fudo_sale.get('id')
-    
-    created_at = attributes.get('createdAt')
-    closed_at = attributes.get('closedAt')
-    
-    creacion = None
-    if created_at:
-        try:
-            creacion = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            creacion = datetime.now()
-    
-    cerrada = None
-    if closed_at:
-        try:
-            cerrada = datetime.fromisoformat(closed_at.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            pass
-    
-    fecha = business_date(cerrada or creacion) if (cerrada or creacion) else get_current_date_argentina()
-    
-    total = attributes.get('total', 0)
-    if total:
-        total = float(total)
-    
-    estado_map = {
-        'OPEN': 'Abierta',
-        'CLOSED': 'Cerrada',
-        'CANCELLED': 'Cancelada'
-    }
-    estado = estado_map.get(attributes.get('status'), 'Cerrada')
-    
-    tipo_venta_map = {
-        'DELIVERY': 'Delivery',
-        'TAKE_AWAY': 'Para llevar',
-        'TABLE': 'Local',
-        'COUNTER': 'Mostrador'
-    }
-    tipo_venta = tipo_venta_map.get(attributes.get('type'), 'Local')
-    
-    relationships = fudo_sale.get('relationships', {})
-    table_data = relationships.get('table', {}).get('data')
-    room_data = relationships.get('room', {}).get('data')
-    
-    return {
-        'external_id': sale_id,
-        'fecha': fecha,
-        'creacion': creacion,
-        'cerrada': cerrada,
-        'caja': attributes.get('cashRegisterName'),
-        'estado': estado,
-        'cliente': attributes.get('customerName'),
-        'mesa': table_data.get('id') if table_data else None,
-        'sala': room_data.get('id') if room_data else None,
-        'personas': attributes.get('people'),
-        'camarero': attributes.get('userName'),
-        'medio_pago': None,
-        'total': total,
-        'fiscal': attributes.get('fiscalReceipt', False),
-        'tipo_venta': tipo_venta,
-        'comentario': attributes.get('comments'),
-        'origen': 'Fudo',
-        'id_origen': sale_id
-    }
 
 
 def _sync_sales_background(start_date, end_date, update_existing):
@@ -106,45 +30,14 @@ def _sync_sales_background(start_date, end_date, update_existing):
             logger.info(f"Starting background sales sync: {start_date} to {end_date}")
             client = FudoClient()
             
-            fudo_sales = client.get_all_sales(start_date=start_date, end_date=end_date)
-            
-            results = {
-                'total_fetched': len(fudo_sales),
-                'imported': 0,
-                'updated': 0,
-                'skipped': 0,
-                'errors': []
-            }
-            
-            for fudo_sale in fudo_sales:
-                try:
-                    sale_data = parse_fudo_sale(fudo_sale)
-                    external_id = sale_data.get('external_id')
-                    
-                    existing_sale = Sale.query.filter_by(external_id=external_id).first()
-                    
-                    if existing_sale:
-                        if update_existing:
-                            for key, value in sale_data.items():
-                                if key != 'external_id':
-                                    setattr(existing_sale, key, value)
-                            results['updated'] += 1
-                        else:
-                            results['skipped'] += 1
-                    else:
-                        new_sale = Sale(**sale_data)
-                        db.session.add(new_sale)
-                        results['imported'] += 1
-                        
-                except Exception as e:
-                    logger.error(f"Error processing Fudo sale {fudo_sale.get('id')}: {str(e)}")
-                    results['errors'].append({
-                        'sale_id': fudo_sale.get('id'),
-                        'error': str(e)
-                    })
+            payload = client.get_all_sales_with_included(start_date=start_date, end_date=end_date)
+            results = apply_fudo_sales(payload, update_existing)
+            for error in results['errors']:
+                logger.error(f"Error processing Fudo sale {error['sale_id']}: {error['error']}")
             
             db.session.commit()
-            logger.info(f"Sales sync completed: {results['imported']} imported, {results['updated']} updated")
+            logger.info(f"Sales sync completed: {results['imported']} imported, {results['updated']} updated, "
+                        f"{results['items_backfilled']} con ítems completados")
             
         except Exception as e:
             db.session.rollback()
