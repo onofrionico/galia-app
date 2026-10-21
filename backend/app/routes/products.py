@@ -8,7 +8,7 @@ from app.models.product_recipe_item import ProductRecipeItem
 from app.models.product_category import ProductCategory
 from app.models.supply import Supply
 from app.models.menu import FudoProduct
-from app.services import menu_sync_service
+from app.services import cutover, menu_sync_service
 from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
@@ -279,7 +279,7 @@ def update_variant(current_user, product_id, variant_id):
 @module_required('Products')
 def delete_variant(current_user, product_id, variant_id):
     variant = ProductVariant.query.filter_by(id=variant_id, product_id=product_id).first_or_404()
-    if variant.fudo_product_id:
+    if variant.fudo_product_id and not cutover.catalog_in_galia():
         if variant.fudo_status != 'missing':
             return _fudo_locked()
         # Ya no existe en Fudo: se desvincula para poder resolver la alerta.
@@ -420,6 +420,8 @@ def upload_image_endpoint(current_user):
 @token_required
 @module_required('Products')
 def sync_fudo(current_user):
+    if cutover.catalog_in_galia():
+        return jsonify({'error': 'El catálogo ya se maneja en Galia'}), 409
     try:
         stats = menu_sync_service.sync_fudo_products(FudoClient())
     except Exception:

@@ -5,6 +5,7 @@ from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
 from app.utils.validation import clean_str, json_object
 from sqlalchemy.exc import IntegrityError
+from app.services.cutover import catalog_in_galia
 from app.services.product_fudo_info import FUDO_LOCKED_ERROR, LOCKED_CATEGORY_FIELDS, changes_locked
 from app.models.pos import PrintStation
 
@@ -122,7 +123,7 @@ def update_category(current_user, category_id):
 @module_required('Products')
 def delete_category(current_user, category_id):
     category = ProductCategory.query.get_or_404(category_id)
-    if category.fudo_category_id:
+    if category.fudo_category_id and not catalog_in_galia():
         return jsonify({'error': FUDO_LOCKED_ERROR}), 409
     category.is_active = False
     db.session.commit()

@@ -157,6 +157,9 @@ def _launch(target, *args):
 @admin_required
 def sync_expenses(current_user):
     """Sincroniza gastos de Fudo en segundo plano. Query: start_date, end_date (YYYY-MM-DD)."""
+    blocked = _fudo_off_response()
+    if blocked:
+        return blocked
     dates, error = _parse_range(request.args)
     if error:
         return jsonify({'error': error}), 400
