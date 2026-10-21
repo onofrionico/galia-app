@@ -17,6 +17,7 @@ from app.extensions import db
 from app.models import Expense, ExpenseCategory, Supplier, User
 from app.models.pos import (ACTIVE_SALE_STATUSES, CashEvent, CashMovement, CashRegister, CashSession,
                             CashSessionCount, PaymentMethod, PosPayment, PosSale)
+from app.services import cutover
 from app.services.pos import pricing
 from app.services.pos.audit import _jsonable
 from app.services.pos.common import MAX_MONEY, display_name, now, parse_id, require_reason
@@ -85,7 +86,7 @@ def open_session(user, register_id, opening_float):
     if CashSession.query.filter_by(register_id=register.id, status='open').first() is not None:
         raise PosError('La caja ya está abierta')
     session = CashSession(register_id=register.id, status='open', opened_at=now(), opened_by=user.id,
-                          opening_float=amount)
+                          opening_float=amount, is_practice=cutover.practice_mode())
     db.session.add(session)
     db.session.flush()
     db.session.add(CashMovement(session_id=session.id, kind='opening_float', amount=amount, created_by=user.id,
@@ -124,7 +125,7 @@ def add_movement(user, session_id, kind, amount, reason, category_id=None, suppl
     reason = require_reason(reason)
     movement = CashMovement(session_id=session.id, kind=kind, amount=amount, reason=reason, created_by=user.id,
                             created_at=now())
-    if kind == 'expense':
+    if kind == 'expense' and not session.is_practice:  # un gasto de práctica no crea un gasto real
         movement.expense_id = _create_expense(user, session, amount, reason, category_id, supplier_id).id
     db.session.add(movement)
     db.session.flush()
@@ -313,7 +314,8 @@ def _net_by_session(session_ids):
 
 def list_sessions(from_date, to_date, register_id=None, page=1, per_page=50):
     start, end = argentina_day_bounds(from_date, to_date)
-    query = CashSession.query.filter(CashSession.opened_at >= start, CashSession.opened_at < end)
+    query = CashSession.query.filter(CashSession.opened_at >= start, CashSession.opened_at < end,
+                                     CashSession.is_practice.is_(False))
     if register_id is not None:
         query = query.filter(CashSession.register_id == register_id)
     total = query.count()
@@ -338,8 +340,9 @@ def list_sessions(from_date, to_date, register_id=None, page=1, per_page=50):
 def unassigned_payments(from_date, to_date):
     start, end = argentina_day_bounds(from_date, to_date)
     payments = (PosPayment.query.options(selectinload(PosPayment.sale))
+                .join(PosSale, PosPayment.sale_id == PosSale.id)
                 .filter(PosPayment.cash_session_id.is_(None), PosPayment.created_at >= start,
-                        PosPayment.created_at < end)
+                        PosPayment.created_at < end, PosSale.is_practice.is_(False))
                 .order_by(PosPayment.created_at, PosPayment.id).all())
     rows = []
     for payment in payments:

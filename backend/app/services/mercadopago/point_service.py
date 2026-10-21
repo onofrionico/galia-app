@@ -11,7 +11,7 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import MpPointOrder, PosPayment, User
+from app.models import MpPointOrder, PosPayment, PosSale, User
 from app.models.mercadopago import ACTIVE_STATUSES, FINAL_STATUSES
 from app.services import mercadopago
 from app.services.mercadopago import MpRejected, MpUnavailable
@@ -72,6 +72,9 @@ def _parse_amount(value):
 
 def start(user, sale_id, amount):
     _require_charge(user)
+    target = db.session.get(PosSale, parse_id(sale_id, 'La venta'))
+    if target is not None and target.is_practice:
+        raise PosError('En modo práctica no se cobra con el Point')
     settings = mp_settings.get_settings()
     mp_settings.require_ready(settings)
     client = mercadopago.get_client(settings)

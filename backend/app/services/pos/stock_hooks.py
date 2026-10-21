@@ -17,8 +17,14 @@ def _requirements(items):
     return stock_requirements(dict(variants), dict(extra_supplies))
 
 
+def _real(items):
+    """Los ítems de ventas de práctica no mueven stock."""
+    return [item for item in items if not (item.sale is not None and item.sale.is_practice)]
+
+
 def consume(items):
     """Descuenta el stock de ítems recién confirmados. Puede quedar negativo: la venta no se frena."""
+    items = _real(items)
     if items:
         variants, supplies = _requirements(items)
         move_stock(variants, supplies, sign=-1, allow_negative=True)
@@ -26,6 +32,7 @@ def consume(items):
 
 def restore(items):
     """Devuelve el stock de ítems confirmados que se anulan."""
+    items = _real(items)
     if items:
         variants, supplies = _requirements(items)
         move_stock(variants, supplies, sign=1)

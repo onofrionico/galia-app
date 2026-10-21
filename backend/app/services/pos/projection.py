@@ -15,8 +15,10 @@ def _fit(column, value, model=Sale):
 
 def project(sale):
     """Crea la fila de `sales` de una venta recién cerrada (mismo criterio de fechas que fudo_sync:
-    timestamps en UTC y fecha = día comercial del cierre)."""
-    methods = sorted({p.method_name for p in active_payments(sale)})
+    timestamps en UTC y fecha = día comercial del cierre). Las ventas de práctica no se proyectan."""
+    if sale.is_practice:
+        return
+    methods =sorted({p.method_name for p in active_payments(sale)})
     table = sale.table
     row = Sale(
         source='galia',

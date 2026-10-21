@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from app.extensions import db
 from app.models import FiscalCustomer, Invoice, InvoicePayment, PaymentMethod
 from app.models.fiscal import VOUCHER_TYPES
+from app.models.pos import PosSale
 from app.services.fiscal import amounts, arca, receivers
 from app.services.fiscal import settings as fiscal_settings
 from app.services.fiscal.arca import ArcaRejected, ArcaUnavailable, wsfe
@@ -244,6 +245,9 @@ def _gateway_or_error(settings):
 
 
 def issue(user, sale_id, customer_data):
+    target = db.session.get(PosSale, parse_id(sale_id, 'La venta'))
+    if target is not None and target.is_practice:
+        raise PosError('En modo práctica no se factura')
     settings = fiscal_settings.get_settings()
     fiscal_settings.require_ready(settings)
     gateway = _gateway_or_error(settings)  # WSAA antes del lock: el token se guarda con su propio commit

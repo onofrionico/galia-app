@@ -82,9 +82,10 @@ def _galia_payments(day):
     method_ids = [m.id for m in PaymentMethod.query.filter_by(is_mercadopago=True)]
     if not method_ids:
         return []
-    return PosPayment.query.filter(PosPayment.payment_method_id.in_(method_ids),
-                                   PosPayment.created_at >= _begin(day),
-                                   PosPayment.created_at < _begin(day + timedelta(days=1))).order_by(PosPayment.id).all()
+    return (PosPayment.query.join(PosSale, PosPayment.sale_id == PosSale.id)
+            .filter(PosPayment.payment_method_id.in_(method_ids), PosSale.is_practice.is_(False),
+                    PosPayment.created_at >= _begin(day),
+                    PosPayment.created_at < _begin(day + timedelta(days=1))).order_by(PosPayment.id).all())
 
 
 def _money(value):
