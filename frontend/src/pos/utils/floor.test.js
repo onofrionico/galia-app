@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canvasHeight, clampPosition, clampSize, snap, tableStatus, tableSummary } from './floor'
+import { canvasHeight, clampPosition, clampSize, snap, tableStatus, tableSummary, tileLabel } from './floor'
 
 describe('tableStatus', () => {
   it('libre, abierta o con cuenta pedida', () => {
@@ -33,5 +33,12 @@ describe('geometría', () => {
   it('el alto del lienzo crece con las mesas', () => {
     expect(canvasHeight([])).toBe(60)
     expect(canvasHeight([{ pos_y: 70, height: 10 }])).toBe(84)
+  })
+})
+
+describe('tileLabel', () => {
+  it('muestra el número si la mesa no tiene nombre y el nombre si lo tiene', () => {
+    expect(tileLabel({ number: 12, name: null, label: 'Mesa 12' })).toBe('12')
+    expect(tileLabel({ number: 1, name: 'Barra 1', label: 'Barra 1' })).toBe('Barra 1')
   })
 })

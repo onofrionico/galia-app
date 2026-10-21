@@ -12,6 +12,12 @@ export function tableStatus(table) {
   return sales.every((s) => s.status === 'billing') ? 'billing' : 'open'
 }
 
+// Lo que entra en el recuadro del plano: el nombre propio si tiene ("Barra 1") o solo el número
+// ("Mesa 12" no entra en una mesa chica del celular y quedaba "M…").
+export function tileLabel(table) {
+  return table.name || String(table.number)
+}
+
 export function tableSummary(table) {
   const sales = table.sales ?? []
   const openedAt = sales.map((s) => s.opened_at).filter(Boolean).sort()[0] ?? null

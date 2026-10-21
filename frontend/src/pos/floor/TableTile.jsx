@@ -1,5 +1,5 @@
 import { formatMoney } from '../utils/money'
-import { tableStatus, tableSummary } from '../utils/floor'
+import { tableStatus, tableSummary, tileLabel } from '../utils/floor'
 import { elapsedLabel } from '../utils/time'
 import { TABLE_STATUS_STYLES } from './tableStyles'
 
@@ -15,7 +15,7 @@ export default function TableTile({ table, scale, selected, picking, now, onClic
       className={`absolute flex flex-col justify-between overflow-hidden rounded-lg border-2 p-1.5 text-left text-xs transition ${TABLE_STATUS_STYLES[status]} ${ring} ${disabled || dimmed ? 'opacity-40' : ''}`}
       style={{ left: table.pos_x * scale, top: table.pos_y * scale, width: table.width * scale, height: table.height * scale }}>
       <span className="flex w-full items-center justify-between gap-1 text-sm font-semibold">
-        <span className="truncate">{table.label}</span>
+        <span className="truncate">{tileLabel(table)}</span>
         {summary.count > 1 && (
           <span className="whitespace-nowrap rounded-full bg-galia-plum px-1.5 text-[10px] text-galia-cream">{summary.count} cuentas</span>
         )}
