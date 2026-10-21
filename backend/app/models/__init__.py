@@ -36,8 +36,10 @@ from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, Prod
                             PosSaleItem, PosSaleItemModifier, PosSaleEvent, CancelReason)
 from app.models.fiscal import ArcaToken, FiscalCustomer, FiscalSettings, Invoice, InvoicePayment
 from app.models.mercadopago import MpFetchDay, MpMovement, MpPointOrder, MpReconciliation, MpSettings
+from app.models.operation_settings import FudoImportMonth, OperationSettings
 
 __all__ = [
+    'FudoImportMonth', 'OperationSettings',
     'MpFetchDay', 'MpMovement', 'MpPointOrder', 'MpReconciliation', 'MpSettings',
     'ArcaToken', 'FiscalCustomer', 'FiscalSettings', 'Invoice', 'InvoicePayment',
     'User',
