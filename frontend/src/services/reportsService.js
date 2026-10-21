@@ -90,6 +90,11 @@ export const reportsService = {
   getTimeAnalysis: async (params = {}) => {
     const response = await api.get('/reports/time-analysis', { params })
     return response.data
+  },
+
+  getProducts: async (params = {}) => {
+    const response = await api.get('/reports/products', { params })
+    return response.data
   }
 }
 
