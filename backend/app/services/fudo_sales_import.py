@@ -105,11 +105,15 @@ def import_history(client, from_month=None, force=False, run_id=None):
         from_month = first
     month = from_month.replace(day=1)
     recent = {last, (last - timedelta(days=1)).replace(day=1)}
-    done = {m.month for m in FudoImportMonth.query.filter_by(status='done')}
+    # Un mes `done` se saltea solo si coincidió con Fudo y no tuvo errores; si no, se reintenta.
+    settled = {m.month for m in FudoImportMonth.query.filter_by(status='done') if m.matches and not m.errors}
     months = []
     while month <= last:
-        if force or month in recent or month not in done:
+        if force or month in recent or month not in settled:
             months.append(import_month(client, month, run_id))
+            if run_id is not None:
+                from app.services import fudo_sync_runs
+                fudo_sync_runs.heartbeat(run_id)
         month = _next_month(month)
     return {'months': months, 'errors': sum(len(m['errors']) for m in months),
             'changed_months': [m['month'] for m in months if m['changed']]}

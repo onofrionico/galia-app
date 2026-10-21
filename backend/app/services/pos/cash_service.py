@@ -46,13 +46,15 @@ def _require_admin(user, message):
         raise forbidden(message)
 
 
-def current_session_id():
-    """La única sesión abierta, o None si no hay ninguna o hay más de una (varias cajas abiertas).
+def current_session_id(practice=False):
+    """La única sesión abierta (real o de práctica, según `practice`), o None si no hay ninguna o hay más de una.
+
+    Un pago real nunca se cuelga de una caja de práctica ni al revés.
 
     Toma un lock compartido (FOR SHARE) sobre la sesión: un cierre concurrente (FOR UPDATE) espera a que el cobro
     o la anulación termine, y si el cierre ganó, la fila se reevalúa ya cerrada y no se adjunta. SQLite lo ignora.
     """
-    rows = (db.session.query(CashSession.id).filter_by(status='open')
+    rows = (db.session.query(CashSession.id).filter_by(status='open', is_practice=bool(practice))
             .with_for_update(read=True).limit(2).all())
     ids = [row.id for row in rows]
     return ids[0] if len(ids) == 1 else None

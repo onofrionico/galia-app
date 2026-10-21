@@ -17,14 +17,36 @@ class SyncInProgress(Exception):
         self.run = run
 
 
+# La importación de la historia puede tardar horas: se la da por muerta si no late en 2 horas.
+STALE_AFTER_BY_KIND = {'sales_history': timedelta(hours=2)}
+
+
+def _last_sign_of_life(run):
+    beat = (run.stats or {}).get('heartbeat') if isinstance(run.stats, dict) else None
+    try:
+        return max(run.started_at, datetime.fromisoformat(beat)) if beat else run.started_at
+    except ValueError:
+        return run.started_at
+
+
 def expire_stale(kind, now=None):
-    """Marca como abandonadas las corridas `running` de más de 30 min (su hilo murió). No commitea."""
+    """Marca como abandonadas las corridas `running` sin señales de vida (su hilo murió). No commitea."""
     now = now or datetime.utcnow()
+    limit = STALE_AFTER_BY_KIND.get(kind, STALE_AFTER)
     for running in FudoSyncRun.query.filter_by(kind=kind, status='running').all():
-        if now - running.started_at >= STALE_AFTER:
+        if now - _last_sign_of_life(running) >= limit:
             running.status = 'error'
             running.finished_at = now
-            running.error = 'Corrida abandonada (no terminó en 30 minutos)'
+            running.error = f'Corrida abandonada (sin avances en {int(limit.total_seconds() // 60)} minutos)'
+
+
+def heartbeat(run_id, now=None):
+    """La corrida sigue viva (la importación de la historia late una vez por mes). Commitea."""
+    run = db.session.get(FudoSyncRun, run_id)
+    if run is None or run.status != 'running':
+        return
+    run.stats = {**(run.stats or {}), 'heartbeat': (now or datetime.utcnow()).isoformat()}
+    db.session.commit()
 
 
 def start_run(kind, params, user_id=None, now=None):

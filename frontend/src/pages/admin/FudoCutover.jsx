@@ -58,10 +58,13 @@ export default function FudoCutover() {
     }
   }
 
-  const importHistory = () => act(fudoService.importHistory, (r) => {
-    setRunId(r.run_id)
-    return 'Importación iniciada: puede tardar varios minutos.'
-  })
+  const importHistory = (force = false) => {
+    if (force && !window.confirm('Se vuelven a leer todos los meses de Fudo (puede tardar). ¿Seguimos?')) return
+    act(() => fudoService.importHistory(null, force), (r) => {
+      setRunId(r.run_id)
+      return 'Importación iniciada: puede tardar varios minutos.'
+    })
+  }
   const setFlag = (flag, value, confirmText) => {
     if (confirmText && !window.confirm(confirmText)) return
     act(() => cutoverService.update({ [flag]: value }), (r) => {
@@ -91,9 +94,18 @@ export default function FudoCutover() {
         <p className="text-sm text-gray-600">
           Trae todas las ventas de Fudo con sus productos, mes por mes. Se puede repetir: no duplica nada y retoma donde quedó.
         </p>
-        <button type="button" className={primary} disabled={busy || running || flags.fudo_off} onClick={importHistory}>
-          {running ? 'Importando…' : 'Importar historia'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={primary} disabled={busy || running || flags.fudo_off} onClick={() => importHistory()}>
+            {running ? 'Importando…' : 'Importar historia'}
+          </button>
+          <button type="button" className={secondary} disabled={busy || running || flags.fudo_off} onClick={() => importHistory(true)}>
+            Reimportar todo
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">
+          "Importar historia" trae lo nuevo y reintenta los meses con ⚠. Antes de apagar Fudo, usá "Reimportar todo" para que
+          también se actualicen las ventas viejas que se anularon en Fudo.
+        </p>
         {run && (
           <p className="text-sm text-gray-600">
             Corrida #{run.id}: {run.status === 'running' ? 'en curso' : run.status === 'ok' ? 'terminada' : `con error: ${run.error}`}

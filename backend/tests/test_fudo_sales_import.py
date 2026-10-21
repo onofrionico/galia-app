@@ -90,6 +90,29 @@ def test_history_resumes_and_skips_done_months(pos_app, monkeypatch):
     assert client.requested[-4:] == ['2026-06', '2026-07', '2026-08', '2026-09']
 
 
+def test_history_retries_months_that_do_not_match(pos_app, monkeypatch):
+    monkeypatch.setattr(fudo_sales_import, 'current_month', lambda: date(2026, 9, 1))
+    db.session.add(FudoImportMonth(month=date(2026, 5, 1), status='done', fudo_count=3, galia_count=2,
+                                   fudo_total=0, galia_total=0, changed=0))
+    db.session.add(FudoImportMonth(month=date(2026, 6, 1), status='done', fudo_count=0, galia_count=0,
+                                   fudo_total=0, galia_total=0, changed=0, errors=[{'sale_id': '1', 'error': 'x'}]))
+    db.session.commit()
+    client = FakeSalesClient({}, first=date(2026, 5, 1), included=CATALOG)
+    fudo_sales_import.import_history(client)
+    assert client.requested[:2] == ['2026-05', '2026-06']  # no coincidían o tuvieron errores: se reintentan
+
+
+def test_long_history_run_is_not_abandoned_while_running(pos_app):
+    from datetime import datetime, timedelta
+    from app.services import fudo_sync_runs
+    run = fudo_sync_runs.start_run('sales_history', {}, None, now=datetime(2026, 10, 21, 10, 0))
+    fudo_sync_runs.expire_stale('sales_history', now=datetime(2026, 10, 21, 11, 30))
+    assert run.status == 'running'
+    fudo_sync_runs.heartbeat(run.id, now=datetime(2026, 10, 21, 11, 30))
+    fudo_sync_runs.expire_stale('sales_history', now=datetime(2026, 10, 21, 13, 0))
+    assert run.status == 'running'  # el último latido fue hace 90 minutos
+
+
 def test_history_route_blocked_when_fudo_off(pos_app):
     client = pos_app.test_client()
     headers = auth_headers(client, make_user('admin@test.com', role='admin'))

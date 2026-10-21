@@ -129,6 +129,26 @@ def test_clear_practice(ctx):
     assert CashSession.query.count() == 0 and Sale.query.count() == 1
 
 
+def test_real_and_practice_payments_never_share_a_cash_session(ctx):
+    admin, cat, register, _category = ctx
+    real_session = cash_service.open_session(admin, register.id, 0)
+    real_sale = _closed_counter_sale(admin, cat)
+    cash_service.close_session(admin, real_session.id, [{'payment_method_id': cat.efectivo.id, 'counted': 900}], None)
+    _practice_on(admin)
+    practice_session = cash_service.open_session(admin, register.id, 0)
+    # Anular y volver a cobrar una venta REAL con el modo práctica prendido: no se cuelga de la caja de práctica.
+    payment = real_sale.payments[0]
+    payment_service.cancel_payment(admin, payment.id, 'Error de carga')
+    db.session.refresh(payment)
+    assert payment.cancel_cash_session_id != practice_session.id
+    payment_service.add_payment(admin, real_sale.id, cat.efectivo.id, 900)
+    db.session.refresh(real_sale)
+    assert all(p.cash_session_id != practice_session.id for p in real_sale.payments)
+    cash_service.close_session(admin, practice_session.id, [{'payment_method_id': cat.efectivo.id, 'counted': 0}], None)
+    cutover.set_flags(admin, practice_mode=False)
+    assert practice.clear_practice(admin) == {'sales': 0, 'cash_sessions': 1}
+
+
 def test_reconciliation_ignores_practice_payments(ctx):
     admin, cat, _register, _category = ctx
     cat.efectivo.is_mercadopago = True
