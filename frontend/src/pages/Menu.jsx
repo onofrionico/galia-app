@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { RefreshCw, Upload, ExternalLink, AlertTriangle, Inbox } from 'lucide-react'
 import menuService from '../services/menuService'
+import { useCutover } from '@/pos/hooks/useCutover'
 import CategoryCard from '../components/menu/CategoryCard'
 import GroupsPanel from '../components/menu/GroupsPanel'
 import CategoryFormModal from '../components/menu/CategoryFormModal'
@@ -12,6 +13,7 @@ import MenuSettingsPanel from '../components/menu/MenuSettingsPanel'
 import { swap, errorMessage, PUBLIC_MENU_URL } from '../utils/menuFormat'
 
 const Menu = () => {
+  const { catalog_in_galia: catalogInGalia } = useCutover()
   const [menu, setMenu] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -54,7 +56,9 @@ const Menu = () => {
   }
 
   const handleSync = () =>
-    run('sync', menuService.syncFudo, (r) => `Fudo sincronizado: ${r.products} productos, ${r.price_changes} precios actualizados.`)
+    run('sync', menuService.syncFudo, (r) => catalogInGalia
+      ? `Carta actualizada desde el catálogo: ${r.price_changes} precios actualizados, ${r.items_created} ítems nuevos.`
+      : `Fudo sincronizado: ${r.products} productos, ${r.price_changes} precios actualizados.`)
 
   const handlePublish = () => run('publish', menuService.publish, 'Carta publicada. Los clientes ya ven los cambios.')
 
@@ -123,7 +127,8 @@ const Menu = () => {
             <ExternalLink className="h-4 w-4" /> Ver carta
           </a>
           <button type="button" onClick={handleSync} disabled={!!busy} className="inline-flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">
-            <RefreshCw className={`h-4 w-4 ${busy === 'sync' ? 'animate-spin' : ''}`} /> Sincronizar Fudo
+            <RefreshCw className={`h-4 w-4 ${busy === 'sync' ? 'animate-spin' : ''}`} />
+            {catalogInGalia ? 'Actualizar desde el catálogo' : 'Sincronizar Fudo'}
           </button>
           <button type="button" onClick={handlePublish} disabled={!!busy} className="inline-flex items-center gap-1 px-3 py-2 text-sm bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50">
             <Upload className="h-4 w-4" /> {busy === 'publish' ? 'Publicando…' : 'Publicar'}

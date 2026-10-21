@@ -139,7 +139,9 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
             <button type="button" className={btn('secondary')} onClick={() => posPrintApi.printReceipt(sale.id)
               .then(() => toast.success('Ticket enviado a imprimir'))
               .catch((printError) => toast.error(errorMessage(printError)))}>Imprimir ticket</button>
-            {perms.pos && <button type="button" className={btn('secondary')} onClick={() => setInvoicing(true)}>Facturar</button>}
+            {perms.pos && !sale.is_practice && (
+              <button type="button" className={btn('secondary')} onClick={() => setInvoicing(true)}>Facturar</button>
+            )}
             <button type="button" className={btn('primary')} onClick={onSaleClosed}>Listo</button>
           </div>
         )}>

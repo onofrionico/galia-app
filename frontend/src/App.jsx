@@ -13,6 +13,7 @@ import CashSessions from './pages/CashSessions'
 import Invoices from './pages/Invoices'
 import FiscalSettings from './pages/admin/FiscalSettings'
 import MercadoPagoSettings from './pages/admin/MercadoPagoSettings'
+import FudoCutover from './pages/admin/FudoCutover'
 import MpReconciliation from './pages/MpReconciliation'
 import CashSessionDetail from './pages/CashSessionDetail'
 import Reports from './pages/Reports'
@@ -129,6 +130,7 @@ function App() {
             <Route path="/admin/pos-settings" element={<RoleProtectedRoute adminOnly><PosSettings /></RoleProtectedRoute>} />
             <Route path="/admin/fiscal" element={<RoleProtectedRoute adminOnly><FiscalSettings /></RoleProtectedRoute>} />
             <Route path="/admin/mercadopago" element={<RoleProtectedRoute adminOnly><MercadoPagoSettings /></RoleProtectedRoute>} />
+            <Route path="/admin/fudo-cutover" element={<RoleProtectedRoute adminOnly><FudoCutover /></RoleProtectedRoute>} />
             <Route path="/mp/reconciliation" element={<RoleProtectedRoute moduleName="Conciliar"><MpReconciliation /></RoleProtectedRoute>} />
             <Route path="/profile" element={<Profile />} />
           </Route>

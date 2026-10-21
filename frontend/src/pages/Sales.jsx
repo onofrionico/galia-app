@@ -7,8 +7,10 @@ import {
 import api from '../services/api';
 import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
+import { useCutover } from '@/pos/hooks/useCutover';
 
 const Sales = () => {
+  const { fudo_off: fudoOff } = useCutover();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -333,14 +335,14 @@ const Sales = () => {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <button
+          {!fudoOff && <button
             onClick={() => setShowFudoSyncModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             title="Sincronizar desde Fudo"
           >
             <Cloud className="w-4 h-4" />
             Sync Fudo
-          </button>
+          </button>}
           <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"

@@ -8,9 +8,11 @@ import api from '../services/api';
 import suppliersService from '@/services/suppliersService';
 import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModal';
 import FudoSyncExpensesModal from '../components/fudo/FudoSyncExpensesModal';
+import { useCutover } from '@/pos/hooks/useCutover';
 import MoneyFormat from '../components/MoneyFormat';
 
 const Expenses = () => {
+  const { fudo_off: fudoOff } = useCutover();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -343,14 +345,14 @@ const Expenses = () => {
             <Tag className="w-4 h-4 mr-1" />
             Clasificar Gastos
           </button>
-          <button
+          {!fudoOff && <button
             onClick={() => setShowFudoSyncModal(true)}
             className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
             title="Sincronizar desde Fudo"
           >
             <Cloud className="w-4 h-4 mr-1" />
             Sync Fudo
-          </button>
+          </button>}
           <button
             onClick={() => setShowImportModal(true)}
             className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"

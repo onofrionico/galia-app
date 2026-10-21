@@ -32,6 +32,7 @@ import {
   Banknote,
   Scale,
   CreditCard,
+  Power,
 } from 'lucide-react'
 
 const alwaysVisibleAdmin = [
@@ -134,6 +135,7 @@ const navGroups = [
       { to: '/admin/pos-settings', icon: Store, label: 'Ajustes del POS', adminOnly: true },
       { to: '/admin/fiscal', icon: Receipt, label: 'Facturación', adminOnly: true },
       { to: '/admin/mercadopago', icon: CreditCard, label: 'MercadoPago', adminOnly: true },
+      { to: '/admin/fudo-cutover', icon: Power, label: 'Corte con Fudo', adminOnly: true },
     ],
   },
 ]
