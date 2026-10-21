@@ -7,7 +7,8 @@ from flask import Blueprint, jsonify, request
 
 from app.extensions import db
 from app.models.menu import FudoProduct, MenuCategory, MenuGroup, MenuItem, MenuItemVariant, MenuSetting, MenuTag
-from app.services import menu_publish_service, menu_sync_service
+from app.models import ProductVariant
+from app.services import cutover, menu_catalog_sync, menu_publish_service, menu_sync_service
 from app.services.menu_sync_service import assign_fudo_category
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.decorators import module_required
@@ -412,7 +413,14 @@ def merge_item(current_user, item_id):
 @module_required('Menu')
 def ignore_item(current_user, item_id):
     item = db.get_or_404(MenuItem, item_id)
+    catalog = cutover.catalog_in_galia()
     for variant in item.variants:
+        if catalog:
+            galia_variant = db.session.get(ProductVariant, variant.product_variant_id) \
+                if variant.product_variant_id else None
+            if galia_variant is not None:
+                galia_variant.menu_ignored = True
+            continue
         product = db.session.get(FudoProduct, variant.fudo_product_id) if variant.fudo_product_id else None
         if product is not None:
             product.ignored = True
@@ -609,6 +617,9 @@ def get_inbox(current_user):
 @token_required
 @module_required('Menu')
 def sync_fudo(current_user):
+    if cutover.catalog_in_galia():  # después del corte la carta se actualiza desde el catálogo de Galia
+        stats = menu_catalog_sync.sync_from_catalog()
+        return jsonify({**stats, 'status': _status()}), 200
     try:
         stats = menu_sync_service.sync_fudo_products(FudoClient())
     except Exception:
