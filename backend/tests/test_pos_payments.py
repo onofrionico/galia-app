@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
@@ -6,6 +7,7 @@ from app.extensions import db
 from app.models import Sale
 from app.services.pos import discount_service, payment_service, sale_service
 from app.services.pos.errors import PosError
+from app.utils.timezone_utils import business_date
 from pos_helpers import make_catalog, make_floor, make_user, pos_app  # noqa: F401
 
 
@@ -30,7 +32,18 @@ def test_partial_payments_then_close_and_project(pos_app):
     row = db.session.get(Sale, sale.sale_id)
     assert row.source == 'galia' and row.total == Decimal('3600') and row.medio_pago == 'Mixto'
     assert row.mesa == 'Mesa 1' and row.sala == 'Salón' and row.personas == 3 and row.estado == 'Cerrada'
-    assert row.tipo_venta == 'Local' and row.id_origen == str(sale.id) and row.fecha == sale.closed_at.date()
+    assert row.tipo_venta == 'Local' and row.id_origen == str(sale.id) and row.fecha == business_date(sale.closed_at)
+
+
+def test_sale_closed_at_night_is_projected_on_its_business_day(pos_app, monkeypatch):
+    cashier = make_user('caja@test.com', modules=('POS',))
+    cat = make_catalog()
+    _s, t1, _t = make_floor()
+    sale = _billing_sale(cashier, cat, t1)
+    # 01:30 UTC del 1/10 = 22:30 del 30/9 en Argentina
+    monkeypatch.setattr('app.services.pos.closing.now', lambda: datetime(2026, 10, 1, 1, 30))
+    sale = payment_service.add_payment(cashier, sale.id, cat.debito.id, 3600)
+    assert db.session.get(Sale, sale.sale_id).fecha == date(2026, 9, 30)
 
 
 def test_payment_cannot_exceed_balance(pos_app):

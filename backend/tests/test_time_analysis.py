@@ -74,8 +74,6 @@ def test_distribute_midnight_crossing():
 
 def test_sales_by_weekday_sums_correctly(app_ctx):
     """Two sales on a Monday → correct sum, promedio = sum / 1 Monday in range"""
-    if _is_sqlite(app_ctx):
-        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     sale1 = Sale(
         fecha=date(2026, 7, 6),
         creacion=datetime(2026, 7, 6, 12, 0, 0),
@@ -102,15 +100,11 @@ def test_sales_by_weekday_sums_correctly(app_ctx):
 
 
 def test_sales_by_weekday_returns_all_7_days(app_ctx):
-    if _is_sqlite(app_ctx):
-        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     result = get_sales_by_weekday(date(2026, 7, 6), date(2026, 7, 6))
     assert len(result) == 7
 
 
 def test_sales_by_weekday_excludes_non_closed(app_ctx):
-    if _is_sqlite(app_ctx):
-        pytest.skip('INTERVAL syntax not supported in SQLite — PostgreSQL only')
     sale = Sale(
         fecha=date(2026, 7, 6),
         creacion=datetime(2026, 7, 6, 12, 0, 0),
@@ -126,6 +120,22 @@ def test_sales_by_weekday_excludes_non_closed(app_ctx):
     assert lunes['sum_ventas'] == 0
 
 
+def test_sales_by_weekday_uses_business_day(app_ctx):
+    """Mesa cerrada el sábado 11/7 a la 1:00 (04:00 UTC) es del viernes comercial 10/7."""
+    db.session.add(Sale(
+        fecha=date(2026, 7, 10),
+        creacion=datetime(2026, 7, 11, 2, 0, 0),
+        cerrada=datetime(2026, 7, 11, 4, 0, 0),
+        total=7000,
+        estado='Cerrada'
+    ))
+    db.session.commit()
+
+    result = get_sales_by_weekday(date(2026, 7, 10), date(2026, 7, 10))
+    viernes = next(r for r in result if r['dow'] == 4)
+    assert viernes['sum_ventas'] == pytest.approx(7000)
+
+
 def test_sales_by_hour_groups_correctly(app_ctx):
     """Two sales in hour 12 → correct sum and promedio"""
     if _is_sqlite(app_ctx):
@@ -133,14 +143,14 @@ def test_sales_by_hour_groups_correctly(app_ctx):
     sale1 = Sale(
         fecha=date(2026, 7, 7),
         creacion=datetime(2026, 7, 7, 12, 0, 0),
-        cerrada=datetime(2026, 7, 7, 12, 30, 0),
+        cerrada=datetime(2026, 7, 7, 15, 30, 0),
         total=3000,
         estado='Cerrada'
     )
     sale2 = Sale(
         fecha=date(2026, 7, 7),
         creacion=datetime(2026, 7, 7, 12, 45, 0),
-        cerrada=datetime(2026, 7, 7, 12, 50, 0),
+        cerrada=datetime(2026, 7, 7, 15, 50, 0),
         total=2000,
         estado='Cerrada'
     )

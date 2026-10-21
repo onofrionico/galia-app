@@ -2,6 +2,7 @@
 from app.extensions import db
 from app.models import Sale
 from app.services.pos.common import active_payments, display_name
+from app.utils.timezone_utils import business_date
 
 
 def _fit(column, value):
@@ -14,13 +15,13 @@ def _fit(column, value):
 
 def project(sale):
     """Crea la fila de `sales` de una venta recién cerrada (mismo criterio de fechas que fudo_sync:
-    timestamps en UTC y fecha = día de cierre)."""
+    timestamps en UTC y fecha = día comercial del cierre)."""
     methods = sorted({p.method_name for p in active_payments(sale)})
     table = sale.table
     row = Sale(
         source='galia',
         external_id=None,
-        fecha=sale.closed_at.date(),
+        fecha=business_date(sale.closed_at),
         creacion=sale.opened_at,
         cerrada=sale.closed_at,
         caja=None,
