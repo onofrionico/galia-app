@@ -1,12 +1,13 @@
+import calendar
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from sqlalchemy import func, and_, or_, extract, cast, text
-from sqlalchemy import Date as SQLDate
+from sqlalchemy import func, and_, or_, extract, text
 from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 from app.extensions import db
 from app.models.sale import Sale
+from app.models.sale_item import SaleItem
 from app.models.expense import Expense, ExpenseCategory
 from app.models.payroll import Payroll
 from app.models.shift import Shift
@@ -236,43 +237,36 @@ def get_expenses_metrics(start_date, end_date):
     }
 
 
+def _payroll_accrual_period(payroll):
+    """Días que cubre una nómina: su mes, o el semestre para el SAC (13 = ene–jun, 14 = jul–dic)."""
+    if payroll.month == 13:
+        return date(payroll.year, 1, 1), date(payroll.year, 6, 30)
+    if payroll.month == 14:
+        return date(payroll.year, 7, 1), date(payroll.year, 12, 31)
+    last_day = calendar.monthrange(payroll.year, payroll.month)[1]
+    return date(payroll.year, payroll.month, 1), date(payroll.year, payroll.month, last_day)
+
+
 def get_payroll_metrics(start_date, end_date):
-    """Calcular métricas de sueldos/payroll para un período"""
-    start_month = start_date.month
-    start_year = start_date.year
-    end_month = end_date.month
-    end_year = end_date.year
+    """Calcular métricas de sueldos/payroll para un período.
 
-    # Nóminas regulares (meses 1-12) filtradas por rango año/mes
-    regular_payrolls = Payroll.query.filter(
-        Payroll.month <= 12,
-        or_(
-            and_(Payroll.year == start_year, Payroll.month >= start_month),
-            Payroll.year > start_year
-        ),
-        or_(
-            and_(Payroll.year == end_year, Payroll.month <= end_month),
-            Payroll.year < end_year
-        )
-    ).all()
+    Cada nómina se reparte en partes iguales entre los días que cubre (su mes, o el
+    semestre para el SAC) y se suma la parte que cae dentro del rango, así un día o una
+    semana no cargan el sueldo del mes entero.
+    """
+    payrolls = Payroll.query.filter(Payroll.year >= start_date.year, Payroll.year <= end_date.year).all()
 
-    # SAC1 (mes 13) se paga en junio, SAC2 (mes 14) en diciembre.
-    # Solo se incluye si el mes de pago cae dentro del rango consultado.
-    from datetime import date as _date
-    sac_conditions = []
-    for year in range(start_year, end_year + 1):
-        if _date(year, 6, 1) >= start_date.replace(day=1) and _date(year, 6, 1) <= end_date.replace(day=1):
-            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 13))
-        if _date(year, 12, 1) >= start_date.replace(day=1) and _date(year, 12, 1) <= end_date.replace(day=1):
-            sac_conditions.append(and_(Payroll.year == year, Payroll.month == 14))
-
-    sac_payrolls = Payroll.query.filter(or_(*sac_conditions)).all() if sac_conditions else []
-
-    payrolls = regular_payrolls + sac_payrolls
-
-    # gross_salary + extraordinary_amount cubre tanto sueldos normales como aguinaldos
-    total = sum(float(p.gross_salary) + float(p.extraordinary_amount or 0) for p in payrolls)
-    horas = sum(float(p.hours_worked) for p in payrolls)
+    total = 0.0
+    horas = 0.0
+    for p in payrolls:
+        period_start, period_end = _payroll_accrual_period(p)
+        overlap = (min(end_date, period_end) - max(start_date, period_start)).days + 1
+        if overlap <= 0:
+            continue
+        share = overlap / ((period_end - period_start).days + 1)
+        # gross_salary + extraordinary_amount cubre tanto sueldos normales como aguinaldos
+        total += (float(p.gross_salary) + float(p.extraordinary_amount or 0)) * share
+        horas += float(p.hours_worked) * share
 
     return {
         'total': total,
@@ -942,6 +936,119 @@ def productivity_report(current_user):
     }), 200
 
 
+# ==================== PRODUCTOS ====================
+
+SIN_CATEGORIA = 'Sin categoría'
+
+
+def _product_rows(start_date, end_date):
+    """Unidades y facturación por (producto, variante, categoría) de las ventas cerradas del rango."""
+    return db.session.query(
+        SaleItem.product_name,
+        SaleItem.variant_name,
+        SaleItem.category_name,
+        func.sum(SaleItem.quantity).label('unidades'),
+        func.sum(SaleItem.total).label('facturacion'),
+    ).join(Sale, SaleItem.sale_id == Sale.id).filter(
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
+        Sale.estado == 'Cerrada'
+    ).group_by(SaleItem.product_name, SaleItem.variant_name, SaleItem.category_name).all()
+
+
+def _abc_class(cumulative_pct, is_first):
+    if is_first or cumulative_pct <= 80:
+        return 'A'
+    return 'B' if cumulative_pct <= 95 else 'C'
+
+
+@bp.route('/products', methods=['GET'])
+@token_required
+@module_required('Reports')
+def products_report(current_user):
+    """Ventas por producto y categoría, con clase ABC, variación contra el período anterior y cobertura."""
+    start_date = parse_date(request.args.get('start_date'))
+    end_date = parse_date(request.args.get('end_date'))
+
+    if not start_date:
+        start_date, end_date = get_period_dates('mensual')
+    if not end_date:
+        end_date = date.today()
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    period_length = (end_date - start_date).days + 1
+    prev_end_date = start_date - timedelta(days=1)
+    prev_start_date = prev_end_date - timedelta(days=period_length - 1)
+
+    rows = _product_rows(start_date, end_date)
+    previous = {(r.product_name, r.variant_name, r.category_name): float(r.facturacion or 0)
+                for r in _product_rows(prev_start_date, prev_end_date)}
+
+    total_facturacion = sum(float(r.facturacion or 0) for r in rows)
+    total_unidades = sum(float(r.unidades or 0) for r in rows)
+
+    products = []
+    cumulative = 0.0
+    for i, r in enumerate(sorted(rows, key=lambda r: float(r.facturacion or 0), reverse=True)):
+        facturacion = float(r.facturacion or 0)
+        unidades = float(r.unidades or 0)
+        porcentaje = facturacion / total_facturacion * 100 if total_facturacion > 0 else 0
+        cumulative += porcentaje
+        anterior = previous.get((r.product_name, r.variant_name, r.category_name))
+        products.append({
+            'producto': r.product_name,
+            'variante': r.variant_name,
+            'categoria': r.category_name or SIN_CATEGORIA,
+            'unidades': round(unidades, 3),
+            'facturacion': round(facturacion, 2),
+            'precio_promedio': round(facturacion / unidades, 2) if unidades else 0,
+            'porcentaje': round(porcentaje, 1),
+            'clase': _abc_class(round(cumulative, 4), i == 0),
+            'facturacion_anterior': round(anterior, 2) if anterior is not None else None,
+            'variacion': round((facturacion - anterior) / anterior * 100, 1) if anterior else None,
+        })
+
+    categories = {}
+    for p in products:
+        c = categories.setdefault(p['categoria'], {'categoria': p['categoria'], 'unidades': 0.0,
+                                                   'facturacion': 0.0, 'productos': 0})
+        c['unidades'] += p['unidades']
+        c['facturacion'] += p['facturacion']
+        c['productos'] += 1
+    by_category = sorted(categories.values(), key=lambda c: c['facturacion'], reverse=True)
+    for c in by_category:
+        c['facturacion'] = round(c['facturacion'], 2)
+        c['unidades'] = round(c['unidades'], 3)
+        c['porcentaje'] = round(c['facturacion'] / total_facturacion * 100, 1) if total_facturacion > 0 else 0
+
+    sales_filter = (Sale.fecha >= start_date, Sale.fecha <= end_date, Sale.estado == 'Cerrada')
+    sales_data = get_sales_metrics(start_date, end_date)
+    ventas_con_detalle = db.session.query(func.count(func.distinct(Sale.id))).join(
+        SaleItem, SaleItem.sale_id == Sale.id).filter(*sales_filter).scalar() or 0
+
+    return jsonify({
+        'period': {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat()
+        },
+        'summary': {
+            'unidades': round(total_unidades, 3),
+            'facturacion': round(total_facturacion, 2),
+            'productos': len(products),
+            'ventas_total': sales_data['count'],
+            'ventas_con_detalle': ventas_con_detalle,
+            'facturacion_ventas': sales_data['total'],
+            'cobertura_ventas_pct': round(ventas_con_detalle / sales_data['count'] * 100, 1)
+            if sales_data['count'] else 0,
+            'cobertura_monto_pct': round(total_facturacion / sales_data['total'] * 100, 1)
+            if sales_data['total'] else 0,
+        },
+        'by_category': by_category,
+        'by_product': products,
+    }), 200
+
+
 # ==================== CATEGORÍAS DE GASTOS ====================
 
 @bp.route('/expense-categories', methods=['GET'])
@@ -1057,17 +1164,17 @@ def get_sales_by_weekday(start_date, end_date):
 
     days_in_range = _days_in_range_by_dow(start_date, end_date)
 
-    local_cerrada = Sale.cerrada + text("INTERVAL '-3 hours'")
-    dow_expr = func.extract('dow', local_cerrada)
+    # Día de semana del día comercial (Sale.fecha), el mismo que usa el dashboard:
+    # una mesa cerrada a la 1 de la madrugada del sábado cuenta para el viernes.
+    dow_expr = func.extract('dow', Sale.fecha)
     rows = db.session.query(
         dow_expr.label('dow_pg'),
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(local_cerrada, SQLDate) >= start_date,
-        cast(local_cerrada, SQLDate) <= end_date,
-        Sale.estado == 'Cerrada',
-        Sale.cerrada.isnot(None)
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
+        Sale.estado == 'Cerrada'
     ).group_by(dow_expr).all()
 
     # Convert DOW: extract('dow') returns 0=Sunday in both SQLite and PostgreSQL
@@ -1102,8 +1209,8 @@ def get_sales_by_hour(start_date, end_date):
         func.sum(Sale.total).label('sum_ventas'),
         func.count(Sale.id).label('count_ventas')
     ).filter(
-        cast(local_cerrada, SQLDate) >= start_date,
-        cast(local_cerrada, SQLDate) <= end_date,
+        Sale.fecha >= start_date,
+        Sale.fecha <= end_date,
         Sale.estado == 'Cerrada',
         Sale.cerrada.isnot(None)
     ).group_by(hour_expr).order_by(hour_expr).all()

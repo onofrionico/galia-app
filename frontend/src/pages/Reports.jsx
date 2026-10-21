@@ -6,6 +6,13 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { reportsService } from '@/services/reportsService'
+import ProductsTab from '@/components/reports/ProductsTab'
+
+// 'YYYY-MM-DD' → 'D/M/YYYY' sin pasar por Date (new Date('2026-10-01') es UTC y en Argentina muestra el 30/9)
+const formatISODate = (iso) => {
+  const [year, month, day] = iso.split('-').map(Number)
+  return `${day}/${month}/${year}`
+}
 
 const Reports = () => {
   const [loading, setLoading] = useState(true)
@@ -25,16 +32,19 @@ const Reports = () => {
   const [timeData, setTimeData] = useState(null)
   const [timeLoading, setTimeLoading] = useState(false)
   const [timeError, setTimeError] = useState(null)
+  const [productsData, setProductsData] = useState(null)
+  const [productsLoading, setProductsLoading] = useState(false)
+  const [productsError, setProductsError] = useState(null)
 
   useEffect(() => {
-    if (filterMode === 'period') {
-      if (activeTab === 'dashboard') loadDashboard()
-      else if (activeTab === 'time') loadTimeAnalysis()
-    } else if (filterMode === 'month') {
-      if (activeTab === 'dashboard') loadDashboard()
-      else if (activeTab === 'time') loadTimeAnalysis()
-    }
+    if (filterMode === 'period' || filterMode === 'month') loadActiveTab()
   }, [period, filterMode, selectedMonth, activeTab])
+
+  const loadActiveTab = () => {
+    if (activeTab === 'dashboard') loadDashboard()
+    else if (activeTab === 'time') loadTimeAnalysis()
+    else if (activeTab === 'products') loadProducts()
+  }
 
   const loadDashboard = async () => {
     try {
@@ -63,10 +73,7 @@ const Reports = () => {
   }
 
   const handleApplyDateRange = () => {
-    if (startDate && endDate) {
-      if (activeTab === 'dashboard') loadDashboard()
-      else if (activeTab === 'time') loadTimeAnalysis()
-    }
+    if (startDate && endDate) loadActiveTab()
   }
 
   const navigateMonth = (direction) => {
@@ -129,6 +136,33 @@ const Reports = () => {
       setTimeError('Error al cargar el análisis por día/hora')
     } finally {
       setTimeLoading(false)
+    }
+  }
+
+  const loadProducts = async () => {
+    let startStr, endStr
+    if (filterMode === 'range' && startDate && endDate) {
+      startStr = startDate
+      endStr = endDate
+    } else if (filterMode === 'month') {
+      const start = new Date(selectedMonth.year, selectedMonth.month - 1, 1)
+      const end = new Date(selectedMonth.year, selectedMonth.month, 0)
+      startStr = start.toISOString().split('T')[0]
+      endStr = end.toISOString().split('T')[0]
+    } else {
+      setProductsData(null)
+      setProductsError('Las ventas por producto requieren seleccionar un mes o un rango de fechas específico.')
+      return
+    }
+    try {
+      setProductsLoading(true)
+      setProductsError(null)
+      setProductsData(await reportsService.getProducts({ start_date: startStr, end_date: endStr }))
+    } catch (err) {
+      console.error('Error loading products report:', err)
+      setProductsError('Error al cargar las ventas por producto')
+    } finally {
+      setProductsLoading(false)
     }
   }
 
@@ -263,7 +297,7 @@ const Reports = () => {
             <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Reportes</h1>
             {dashboard?.period && (
               <p className="text-sm text-gray-500 mt-1">
-                {new Date(dashboard.period.start_date).toLocaleDateString('es-AR')} - {new Date(dashboard.period.end_date).toLocaleDateString('es-AR')}
+                {formatISODate(dashboard.period.start_date)} - {formatISODate(dashboard.period.end_date)}
                 {dashboard.period.type === 'custom' && <span className="ml-2 text-blue-600">(Rango personalizado)</span>}
               </p>
             )}
@@ -271,7 +305,7 @@ const Reports = () => {
           
           <div className="flex items-center gap-2">
             <button
-              onClick={loadDashboard}
+              onClick={loadActiveTab}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="Actualizar"
             >
@@ -432,6 +466,16 @@ const Reports = () => {
           }`}
         >
           Día / Hora
+        </button>
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'products'
+              ? 'bg-white border border-b-white border-gray-200 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Productos
         </button>
       </div>
 
@@ -833,6 +877,15 @@ const Reports = () => {
           {/* Apalancamiento Operativo */}
           <ApalancamientoCard dashboard={dashboard} />
         </>
+      )}
+
+      {activeTab === 'products' && (
+        <ProductsTab
+          data={productsData}
+          loading={productsLoading}
+          error={productsError}
+          formatCurrency={formatCurrency}
+        />
       )}
 
       {activeTab === 'time' && (

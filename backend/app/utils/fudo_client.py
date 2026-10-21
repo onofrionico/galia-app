@@ -86,7 +86,8 @@ class FudoClient:
     def get_sales(self, 
                   page_size: int = 500, 
                   page_number: int = 1,
-                  filters: Optional[Dict] = None) -> Dict:
+                  filters: Optional[Dict] = None,
+                  extra_params: Optional[Dict] = None) -> Dict:
         """
         Get sales from Fudo API
         
@@ -106,6 +107,8 @@ class FudoClient:
         if filters:
             for key, value in filters.items():
                 params[f'filter[{key}]'] = value
+        if extra_params:
+            params.update(extra_params)
         
         return self._make_request('/sales', params)
     
@@ -157,6 +160,34 @@ class FudoClient:
         
         return all_sales
     
+    def get_all_sales_with_included(self,
+                                    start_date: Optional[str] = None,
+                                    end_date: Optional[str] = None) -> Dict:
+        """Ventas cerradas con sus ítems, productos, mozo, mesa, caja y pagos (`included` deduplicado)."""
+        from app.services.sale_fudo_parsing import request_params
+
+        filters = {'saleState': 'in.(CLOSED)'}
+        if start_date and end_date:
+            filters['createdAt'] = f'and(gte.{start_date},lte.{end_date})'
+        elif start_date:
+            filters['createdAt'] = f'gte.{start_date}'
+        elif end_date:
+            filters['createdAt'] = f'lte.{end_date}'
+
+        all_sales, included = [], {}
+        page_number, page_size = 1, 500
+        while True:
+            response = self.get_sales(page_size=page_size, page_number=page_number, filters=filters,
+                                      extra_params=request_params())
+            data = response.get('data', []) or []
+            all_sales.extend(data)
+            for item in response.get('included', []) or []:
+                included.setdefault((item.get('type'), str(item.get('id'))), item)
+            if len(data) < page_size:
+                break
+            page_number += 1
+        return {'data': all_sales, 'included': list(included.values())}
+
     def get_expenses(self, 
                      page_size: int = 500, 
                      page_number: int = 1,

@@ -1,11 +1,14 @@
 """
 Utilidades para manejo de zona horaria Argentina (UTC-3)
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 # Zona horaria de Argentina
 ARGENTINA_TZ = pytz.timezone('America/Argentina/Buenos_Aires')
+
+# Hora local en la que empieza el día comercial (las ventas de la madrugada son del día anterior)
+BUSINESS_DAY_CUTOFF_HOUR = 6
 
 
 def get_current_time_argentina():
@@ -26,6 +29,22 @@ def get_current_date_argentina():
         date: Fecha actual en Argentina
     """
     return get_current_time_argentina().date()
+
+
+def business_date(utc_datetime):
+    """
+    Día comercial de un instante UTC: la fecha en Argentina, pero lo ocurrido
+    antes de BUSINESS_DAY_CUTOFF_HOUR cuenta para el día anterior
+    (una mesa cerrada a la 1 de la madrugada es del turno noche previo).
+
+    Args:
+        utc_datetime: datetime en UTC (naive o con timezone)
+
+    Returns:
+        date: día comercial
+    """
+    local = convert_utc_to_argentina(utc_datetime)
+    return (local - timedelta(hours=BUSINESS_DAY_CUTOFF_HOUR)).date()
 
 
 def get_current_time_only_argentina():
