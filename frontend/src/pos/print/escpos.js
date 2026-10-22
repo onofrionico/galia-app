@@ -88,7 +88,10 @@ function bodyLines(doc, cols) {
 
 export function renderText(doc, width) {
   const cols = columnsFor(width)
-  const lines = [...wrap(doc.title ?? '', cols).map((t) => center(t, cols)), ...headerLines(doc, cols), ...bodyLines(doc, cols)]
+  const bodyCols = doc.large_body ? Math.floor(cols / 2) : cols
+  const lines = [...wrap(doc.title ?? '', cols).map((t) => center(t, cols)), ...headerLines(doc, cols),
+    ...bodyLines({ ...doc, lines: doc.lines, totals: doc.large_body ? [] : doc.totals, footer: doc.large_body ? [] : doc.footer }, bodyCols),
+    ...(doc.large_body && (doc.footer ?? []).length ? bodyLines({ lines: [], totals: [], footer: doc.footer }, cols) : [])]
   if (doc.qr) lines.push('', ...wrap(`QR: ${doc.qr}`, cols))
   return lines
 }
@@ -107,8 +110,17 @@ export function renderEscPos(doc, width) {
   // El título va a doble ancho: entran la mitad de las columnas.
   out += `${ESC}a\x01${GS}!\x11${wrap(doc.title ?? '', Math.floor(cols / 2)).join('\n')}\n${GS}!\x00${ESC}a\x00`
   out += `${ESC}E\x01${headerLines(doc, cols).join('\n')}\n${ESC}E\x00`
-  out += `${bodyLines(doc, cols).join('\n')}\n`
+  if (doc.large_body) {
+    // Comandas de cocina: ítems en doble alto y ancho (GS ! 0x11); entran la mitad de columnas.
+    const kitchenCols = Math.floor(cols / 2)
+    out += `${GS}!\x11${bodyLines({ ...doc, lines: doc.lines, totals: [], footer: [] }, kitchenCols).join('\n')}\n${GS}!\x00`
+    if ((doc.footer ?? []).length) {
+      out += `${bodyLines({ lines: [], totals: [], footer: doc.footer }, cols).join('\n')}\n`
+    }
+  } else {
+    out += `${bodyLines(doc, cols).join('\n')}\n`
+  }
   if (doc.qr) out += `${ESC}a\x01${qrCommand(doc.qr)}\n${ESC}a\x00`
-  out += `\n\n\n${GS}V\x01`
+  out += `\n\n\n\n\n${GS}V\x01`
   return out
 }
