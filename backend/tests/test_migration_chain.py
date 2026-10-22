@@ -66,3 +66,7 @@ def test_expenses_fudo_link_follows_fiscal_invoicing():
 
 def test_mercadopago_follows_expenses_fudo_link():
     assert _revisions()['b5b0_add_mercadopago'] == ['b5a0_expenses_fudo_link']
+
+
+def test_fudo_cutover_follows_sale_items():
+    assert _revisions()['b6a0_fudo_cutover'] == ['b5d0_add_sale_items']

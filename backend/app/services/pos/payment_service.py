@@ -60,7 +60,7 @@ def add_payment(user, sale_id, payment_method_id, amount, tendered=None, client_
         change = tendered - amount
     payment = PosPayment(payment_method_id=method.id, method_name=method.name, amount=amount, tendered=tendered,
                          change=change, client_request_id=request_id, created_by=user.id, created_at=now(),
-                         cash_session_id=current_session_id())
+                         cash_session_id=current_session_id(sale.is_practice))
     sale.payments.append(payment)
     try:
         recalc(sale)
@@ -109,7 +109,7 @@ def cancel_payment(user, payment_id, reason, reason_id=None):
     payment.cancelled_by = user.id
     payment.cancel_reason = reason
     payment.cancel_reason_id = reason_id
-    payment.cancel_cash_session_id = current_session_id()
+    payment.cancel_cash_session_id = current_session_id(sale.is_practice)
     was_closed = sale.status == 'closed'
     if was_closed:
         projection.unproject(sale)

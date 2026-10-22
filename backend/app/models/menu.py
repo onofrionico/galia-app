@@ -41,6 +41,9 @@ class MenuCategory(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('menu_groups.id', ondelete='SET NULL'), index=True)
     show_title = db.Column(db.Boolean, nullable=False, default=True)
     fudo_status = db.Column(db.String(20))  # None | 'missing'
+    # Con el catálogo en Galia, la categoría de la carta sigue a esta categoría del catálogo.
+    product_category_id = db.Column(db.Integer, db.ForeignKey('product_categories.id', ondelete='SET NULL'),
+                                    unique=True, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -117,7 +120,10 @@ class MenuItemVariant(db.Model):
     label = db.Column(db.String(100))
     fudo_product_id = db.Column(db.String(20), unique=True)
     price = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    # Estado del vínculo: con Fudo o, con el catálogo en Galia, con product_variant_id.
     fudo_status = db.Column(db.String(20))  # 'ok' | 'inactive' | 'missing' | None (no vinculada)
+    product_variant_id = db.Column(db.Integer, db.ForeignKey('product_variants.id', ondelete='SET NULL'),
+                                   unique=True, nullable=True)
     sort_order = db.Column(db.Integer, nullable=False, default=0)
 
     def to_dict(self):

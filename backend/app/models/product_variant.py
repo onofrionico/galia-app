@@ -13,6 +13,8 @@ class ProductVariant(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     fudo_product_id = db.Column(db.String(20), unique=True, nullable=True)
     fudo_status = db.Column(db.String(20), nullable=True)  # 'ok' | 'inactive' | 'missing' | None (no vinculada)
+    # Ignorada en la carta: la sync desde el catálogo no le crea un ítem.
+    menu_ignored = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

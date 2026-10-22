@@ -162,11 +162,12 @@ class FudoClient:
     
     def get_all_sales_with_included(self,
                                     start_date: Optional[str] = None,
-                                    end_date: Optional[str] = None) -> Dict:
-        """Ventas cerradas con sus ítems, productos, mozo, mesa, caja y pagos (`included` deduplicado)."""
+                                    end_date: Optional[str] = None,
+                                    states=('CLOSED',)) -> Dict:
+        """Ventas (por defecto cerradas) con sus ítems, productos, mozo, mesa, caja y pagos (`included` deduplicado)."""
         from app.services.sale_fudo_parsing import request_params
 
-        filters = {'saleState': 'in.(CLOSED)'}
+        filters = {'saleState': f"in.({','.join(states)})"}
         if start_date and end_date:
             filters['createdAt'] = f'and(gte.{start_date},lte.{end_date})'
         elif start_date:
@@ -188,7 +189,20 @@ class FudoClient:
             page_number += 1
         return {'data': all_sales, 'included': list(included.values())}
 
-    def get_expenses(self, 
+    def first_sale_date(self):
+        """Fecha (Argentina) de la venta más antigua de Fudo, o None si no hay ventas."""
+        from app.utils.timezone_utils import convert_utc_to_argentina
+
+        response = self.get_sales(page_size=1, page_number=1,
+                                  extra_params={'sort': 'createdAt', 'fields[sale]': 'createdAt'})
+        data = response.get('data') or []
+        created = ((data[0].get('attributes') or {}).get('createdAt')) if data else None
+        if not created:
+            return None
+        moment = datetime.fromisoformat(str(created).replace('Z', '+00:00'))
+        return convert_utc_to_argentina(moment).date()
+
+    def get_expenses(self,
                      page_size: int = 500, 
                      page_number: int = 1,
                      filters: Optional[Dict] = None) -> Dict:

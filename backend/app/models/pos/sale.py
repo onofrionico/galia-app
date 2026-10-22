@@ -37,6 +37,8 @@ class PosSale(db.Model):
     paid_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     split_from_id = db.Column(db.Integer, db.ForeignKey('pos_sales.id'), nullable=True)
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id', ondelete='SET NULL'), nullable=True)
+    # Venta de práctica: no se proyecta, no mueve stock, no se factura ni se cobra con el Point.
+    is_practice = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false(), index=True)
 
     table = db.relationship('PosTable')
     waiter = db.relationship('User', foreign_keys=[waiter_id])

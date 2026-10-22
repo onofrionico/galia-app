@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { usePosChanges } from '../hooks/usePosChanges'
+import PracticeBanner from '../ui/PracticeBanner'
 import { ToastProvider } from '../ui/Toasts'
 import MobileHint from './MobileHint'
 import PosTopBar from './PosTopBar'
@@ -9,6 +10,7 @@ function PosShell() {
   return (
     <div className="flex h-screen flex-col bg-galia-cream">
       <PosTopBar />
+      <PracticeBanner />
       <MobileHint />
       <main className="min-h-0 flex-1">
         <Outlet />

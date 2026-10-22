@@ -18,6 +18,7 @@ from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos import waiters
 from app.services.pos import print_service
 from app.services.fiscal import guard
+from app.services import cutover
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import (MAX_QUANTITY, active_payments, load_sale, now, parse_id, recalc,
                                      require_module, require_status)
@@ -61,7 +62,8 @@ def open_sale(user, sale_type, table_id=None, people=None, customer_name=None, c
         waiter = waiters.get_waiter(waiter_id).id
     sale = PosSale(business_date=get_current_date_argentina(), sale_type=sale_type,
                    table_id=table.id if table else None, people=people, customer_name=customer_name,
-                   comment=comment, waiter_id=waiter, status='open', opened_at=now(), opened_by=user.id)
+                   comment=comment, waiter_id=waiter, status='open', opened_at=now(), opened_by=user.id,
+                   is_practice=cutover.practice_mode())
     assign_number(sale)
     audit.record(sale, user, 'opened', sale_type=sale_type, table_id=sale.table_id, people=people)
     db.session.commit()
@@ -351,7 +353,7 @@ def split_sale(user, sale_id, lines):
     new = PosSale(business_date=get_current_date_argentina(), sale_type=sale.sale_type, table_id=sale.table_id,
                   people=1 if sale.sale_type == 'salon' else None, customer_name=sale.customer_name,
                   waiter_id=sale.waiter_id, status='billing', opened_at=now(), opened_by=user.id,
-                  billing_at=now(), split_from_id=sale.id)
+                  billing_at=now(), split_from_id=sale.id, is_practice=sale.is_practice)
     assign_number(new)
     moved = []
     for item_id, quantity in requested.items():

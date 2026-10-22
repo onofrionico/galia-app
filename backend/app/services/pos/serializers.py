@@ -80,6 +80,7 @@ def sale_to_dict(sale, include_items=True):
         'paid_total': _money(sale.paid_total),
         'balance': _money(sale.balance),
         'split_from_id': sale.split_from_id,
+        'is_practice': sale.is_practice,
         'sale_id': sale.sale_id,
     }
     if include_items:

@@ -73,8 +73,10 @@ def _mp_call(fn):
 @token_required
 @module_required('POS', 'Cobrar')
 def point_config(current_user):
+    from app.services import cutover
     settings = mp_settings.get_settings()
-    return jsonify({'enabled': not mp_settings.missing(settings),
+    # En modo práctica el Point no aparece: cobraría tarjetas de verdad.
+    return jsonify({'enabled': not mp_settings.missing(settings) and not cutover.practice_mode(),
                     'payment_method_id': settings.point_payment_method_id if settings else None,
                     'fake': mercadopago.fake_enabled()}), 200
 

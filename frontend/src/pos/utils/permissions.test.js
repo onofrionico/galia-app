@@ -73,6 +73,10 @@ describe('saleActions', () => {
     const pending = { ...closed, invoice: { id: 2, label: 'x', status: 'pending', is_active: false } }
     expect(saleActions(pending, cashier)).toMatchObject({ invoice: false, invoiceActions: true, cancelInvoice: false })
   })
+  it('una venta de práctica no se factura', () => {
+    const practice = sale({ status: 'closed', balance: 0, paid_total: 1000, invoice: null, is_practice: true })
+    expect(saleActions(practice, cashier).invoice).toBe(false)
+  })
 })
 
 describe('itemActions', () => {

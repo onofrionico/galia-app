@@ -5,8 +5,10 @@ import productsService from '../services/productsService'
 import productCategoriesService from '../services/productCategoriesService'
 import { useAuth } from '../context/AuthContext'
 import { syncSummary } from '../utils/fudoLock'
+import { useCutover } from '@/pos/hooks/useCutover'
 
 const Products = () => {
+  const { catalog_in_galia: catalogInGalia } = useCutover()
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
@@ -113,7 +115,7 @@ const Products = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Productos</h1>
         <div className="flex gap-2">
-          {hasModuleAccess('Products') && (
+          {hasModuleAccess('Products') && !catalogInGalia && (
             <button
               onClick={handleSyncFudo}
               disabled={syncing}

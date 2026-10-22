@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, ArrowDown, ArrowUp, Package, RefreshCw, Search } from 'lucide-react'
 import { coverageLevel, filterAndSortProducts, nextSort, productLabel } from '@/utils/productsReport'
+import ProductsCompare from './ProductsCompare'
 
 const CLASS_STYLES = {
   A: 'bg-green-100 text-green-700',
@@ -53,7 +54,7 @@ const CoverageNotice = ({ summary }) => {
   )
 }
 
-const ProductsTab = ({ data, loading, error, formatCurrency }) => {
+const PeriodView = ({ data, loading, error, formatCurrency }) => {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [sort, setSort] = useState({ sortKey: 'facturacion', sortDir: 'desc' })
@@ -202,6 +203,26 @@ const ProductsTab = ({ data, loading, error, formatCurrency }) => {
           </table>
         </div>
       </div>
+    </div>
+  )
+}
+
+const VIEWS = [['period', 'Período'], ['compare', 'Comparar meses']]
+
+// Pestaña Productos: la vista por período (con el selector de Reportes) o la comparación de dos meses.
+const ProductsTab = (props) => {
+  const [view, setView] = useState('period')
+  return (
+    <div className="space-y-4">
+      <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+        {VIEWS.map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setView(key)}
+            className={`rounded-md px-3 py-1.5 text-sm ${view === key ? 'bg-galia-plum text-galia-cream' : 'text-gray-600 hover:text-gray-900'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === 'period' ? <PeriodView {...props} /> : <ProductsCompare formatCurrency={props.formatCurrency} />}
     </div>
   )
 }

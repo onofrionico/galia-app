@@ -11,9 +11,17 @@ LOCKED_CATEGORY_FIELDS = ('name', 'is_active')
 ALERT_STATUSES = ('missing', 'inactive')
 
 
+def _catalog_in_galia():
+    from app.services import cutover
+    return cutover.catalog_in_galia()
+
+
 def fudo_info(product_ids):
-    """{product_id: {'linked': n, 'alerts': n}} para los Productos con variantes vinculadas a Fudo."""
-    if not product_ids:
+    """{product_id: {'linked': n, 'alerts': n}} para los Productos con variantes vinculadas a Fudo.
+
+    Con el catálogo en Galia, Fudo ya no manda: nada aparece como vinculado ni bloqueado.
+    """
+    if not product_ids or _catalog_in_galia():
         return {}
     rows = (
         db.session.query(ProductVariant.product_id, ProductVariant.fudo_status)
@@ -61,6 +69,8 @@ def _normalize(field, value):
 
 def changes_locked(data, fields, obj):
     """True si el body intenta cambiar algún campo bloqueado respecto de su valor actual."""
+    if _catalog_in_galia():
+        return False
     for field in fields:
         if field not in data:
             continue

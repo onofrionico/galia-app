@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { usePosChanges } from '@/pos/hooks/usePosChanges'
 import { ModalPresentationContext } from '@/pos/ui/ModalPresentation'
+import PracticeBanner from '@/pos/ui/PracticeBanner'
 import { ToastProvider } from '@/pos/ui/Toasts'
 import ConnectivityBanner from './ConnectivityBanner'
 import UpdateBanner from './UpdateBanner'
@@ -13,6 +14,7 @@ function CamareroShell() {
   useWakeLock()
   return (
     <div className="flex h-dvh flex-col bg-galia-cream">
+      <PracticeBanner />
       <ConnectivityBanner online={online} />
       <UpdateBanner />
       <main className="min-h-0 flex-1">

@@ -43,7 +43,7 @@ export function saleActions(sale, perms) {
     cancelPayment: perms.cancel && ['billing', 'closed'].includes(sale.status),
     printBill: active && confirmed > 0,
     printReceipt: sale.status === 'closed',
-    invoice: perms.pos && sale.status === 'closed' && !sale.invoice,
+    invoice: perms.pos && sale.status === 'closed' && !sale.invoice && !sale.is_practice,
     invoiceActions: perms.pos && Boolean(sale.invoice),
     cancelInvoice: perms.pos && perms.cancel && Boolean(sale.invoice?.is_active),
   }

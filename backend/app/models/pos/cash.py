@@ -24,6 +24,8 @@ class CashSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     register_id = db.Column(db.Integer, db.ForeignKey('cash_registers.id'), nullable=False, index=True)
     status = db.Column(db.String(10), nullable=False, default='open')
+    # Caja abierta en modo práctica: nada de lo que pasa en ella cuenta.
+    is_practice = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false(), index=True)
     opened_at = db.Column(db.DateTime, nullable=False)
     opened_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     opening_float = db.Column(db.Numeric(12, 2), nullable=False)
