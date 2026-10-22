@@ -68,18 +68,19 @@ def _title(sale, title):
     return f'PRÁCTICA · {title}' if getattr(sale, 'is_practice', False) else title
 
 
-def _document(title, header, lines, totals=None, footer=None):
-    return {'title': title, 'header': header, 'lines': lines, 'totals': totals or [], 'footer': footer or []}
+def _document(title, header, lines, totals=None, footer=None, large_body=False):
+    return {'title': title, 'header': header, 'lines': lines, 'totals': totals or [], 'footer': footer or [],
+            'large_body': large_body}
 
 
 def order_document(sale, station, batch, items):
     return _document(_title(sale, station.name.upper()), [_place(sale), _waiter(sale), f'Tanda {batch}', _when()],
-                     [_line(item) for item in items])
+                     [_line(item) for item in items], large_body=True)
 
 
 def void_document(sale, station, items, reason):
     return _document(_title(sale, f'ANULACIÓN · {station.name.upper()}'), [_place(sale), _waiter(sale), _when()],
-                     [_line(item, strike=True) for item in items], footer=[f'Motivo: {reason}'])
+                     [_line(item, strike=True) for item in items], footer=[f'Motivo: {reason}'], large_body=True)
 
 
 def _sale_header(sale):
