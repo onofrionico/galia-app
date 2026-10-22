@@ -31,6 +31,7 @@ class Printer(db.Model):
     print_point = db.Column(db.String(60), nullable=False)
     station_id = db.Column(db.Integer, db.ForeignKey('print_stations.id'), nullable=True)
     is_cashier = db.Column(db.Boolean, nullable=False, default=False)
+    is_kitchen = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     station = db.relationship('PrintStation')
@@ -40,7 +41,7 @@ class Printer(db.Model):
                 'port': self.port, 'os_name': self.os_name, 'paper_width': self.paper_width,
                 'print_point': self.print_point, 'station_id': self.station_id,
                 'station_name': self.station.name if self.station else None, 'is_cashier': self.is_cashier,
-                'is_active': self.is_active}
+                'is_kitchen': self.is_kitchen, 'is_active': self.is_active}
 
 
 class PrintJob(db.Model):

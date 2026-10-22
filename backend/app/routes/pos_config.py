@@ -550,7 +550,7 @@ def _apply_printer(printer, data):
             if station is None or not station.is_active:
                 raise bad_request('La estación no existe')
             printer.station_id = station.id
-    for flag in ('is_cashier', 'is_active'):
+    for flag in ('is_cashier', 'is_kitchen', 'is_active'):
         if flag in data:
             setattr(printer, flag, bool(data[flag]))
     if printer.connection == 'network' and not printer.host:
@@ -559,6 +559,8 @@ def _apply_printer(printer, data):
         raise bad_request('Una impresora USB necesita el nombre que tiene en Windows')
     if printer.station_id and printer.is_cashier:
         raise bad_request('Una impresora de estación no puede ser la de caja')
+    if printer.is_kitchen and not printer.is_cashier:
+        raise bad_request('Solo la impresora de caja puede actuar como cocina')
     others = Printer.query.filter(Printer.is_active.is_(True))
     if printer.id is not None:
         others = others.filter(Printer.id != printer.id)
@@ -575,7 +577,7 @@ def _apply_printer(printer, data):
 @admin_required
 def create_printer(current_user):
     def action():
-        printer = Printer(port=9100, is_cashier=False, is_active=True)
+        printer = Printer(port=9100, is_cashier=False, is_kitchen=False, is_active=True)
         _apply_printer(printer, _body())
         db.session.add(printer)
         db.session.flush()

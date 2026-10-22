@@ -50,7 +50,7 @@ const TABS = {
     label: 'Impresoras',
     emptyItem: {
       name: '', connection: 'network', host: '', port: 9100, os_name: '', paper_width: 80, print_point: 'Caja',
-      station_id: '', is_cashier: false, is_active: true,
+      station_id: '', is_cashier: false, is_kitchen: false, is_active: true,
     },
     fields: [
       { key: 'name', label: 'Nombre', type: 'text' },
@@ -62,6 +62,7 @@ const TABS = {
       { key: 'print_point', label: 'Punto de impresión', type: 'text' },
       { key: 'station_id', label: 'Estación', type: 'select', numeric: true, options: [] },
       { key: 'is_cashier', label: 'Impresora de caja', type: 'checkbox' },
+      { key: 'is_kitchen', label: 'También imprime comandas (caja = cocina)', type: 'checkbox' },
       { key: 'is_active', label: 'Activa', type: 'checkbox' },
     ],
   },

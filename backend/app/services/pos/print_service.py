@@ -34,6 +34,11 @@ def cashier_printer():
     return Printer.query.filter_by(is_cashier=True, is_active=True).order_by(Printer.id).first()
 
 
+def kitchen_printer():
+    """Impresora de caja marcada también como cocina, para locales sin estaciones separadas."""
+    return Printer.query.filter_by(is_cashier=True, is_kitchen=True, is_active=True).order_by(Printer.id).first()
+
+
 def add_job(kind, printer, user, document, sale=None, station_id=None, batch=None, reprint_of=None):
     job = PrintJob(kind=kind, printer_id=printer.id, sale_id=sale.id if sale is not None else None,
                    station_id=station_id, batch=batch, document=document, status='pending', attempts=0,
@@ -57,6 +62,10 @@ def _by_station(items):
     return groups
 
 
+def _items_without_station(items):
+    return [i for i in items if _station_of(i) is None]
+
+
 def _station_jobs(kind, sale, items, user, build):
     jobs = []
     for station_id, group in _by_station(items).items():
@@ -68,16 +77,42 @@ def _station_jobs(kind, sale, items, user, build):
     return jobs
 
 
+class _KitchenStation:
+    """Estación virtual usada cuando la impresora de caja también actúa como cocina."""
+    name = 'COCINA'
+
+
 def jobs_for_batch(sale, items, user):
-    """Una comanda por estación con los ítems recién confirmados. Sin estación o sin impresora: nada."""
-    return _station_jobs('order', sale, items, user,
+    """Una comanda por estación con los ítems recién confirmados.
+
+    Si hay ítems sin estación asignada y la impresora de caja tiene is_kitchen=True,
+    se imprime una comanda consolidada en esa impresora.
+    """
+    jobs = _station_jobs('order', sale, items, user,
                          lambda station, group: documents.order_document(sale, station, group[0].batch, group))
+    unstationned = _items_without_station(items)
+    if unstationned:
+        printer = kitchen_printer()
+        if printer is not None:
+            batch = unstationned[0].batch
+            jobs.append(add_job('order', printer, user,
+                                documents.order_document(sale, _KitchenStation(), batch, unstationned),
+                                sale, station_id=None, batch=batch))
+    return jobs
 
 
 def jobs_for_void(sale, items, user, reason):
     """Una comanda de anulación por estación con los ítems confirmados que se anularon."""
-    return _station_jobs('void', sale, items, user,
+    jobs = _station_jobs('void', sale, items, user,
                          lambda station, group: documents.void_document(sale, station, group, reason))
+    unstationned = _items_without_station(items)
+    if unstationned:
+        printer = kitchen_printer()
+        if printer is not None:
+            jobs.append(add_job('void', printer, user,
+                                documents.void_document(sale, _KitchenStation(), unstationned, reason),
+                                sale, station_id=None))
+    return jobs
 
 
 def _require_cashier():
