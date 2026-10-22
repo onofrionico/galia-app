@@ -90,7 +90,7 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
     requestBill: async () => {
       if (!(await confirmPendingFirst())) return
       const billed = await run(sale.id, () => posApi.requestBill(sale.id))
-      if (billed) handlers.printBill()
+      if (billed) toast.info('Cuenta pedida', { label: 'Imprimir precuenta', onClick: handlers.printBill })
     },
     printBill: () => sendToPrinter(posPrintApi.printBill, 'Precuenta enviada a imprimir'),
     printReceipt: () => sendToPrinter(posPrintApi.printReceipt, 'Ticket enviado a imprimir'),
