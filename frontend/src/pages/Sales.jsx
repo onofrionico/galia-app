@@ -996,7 +996,7 @@ const Sales = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Total</p>
-                  <p className="font-bold text-lg text-green-600">{formatCurrency(selectedSale.total)}</p>
+                  <p className="font-bold text-lg text-green-600">$<MoneyFormat amount={selectedSale.total} /></p>
                 </div>
                 <div>
                   <p className="text-gray-500">Estado</p>
