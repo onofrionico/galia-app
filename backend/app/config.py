@@ -30,6 +30,8 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    # Con el costo por defecto (12) cada usuario de test + login tarda ~0,5 s.
+    BCRYPT_LOG_ROUNDS = 4
 
 config = {
     'development': DevelopmentConfig,
