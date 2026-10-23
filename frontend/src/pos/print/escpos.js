@@ -4,7 +4,9 @@ const ESC = '\x1b'
 const GS = '\x1d'
 const INDENT = '    '
 
-export const columnsFor = (width) => (Number(width) === 58 ? 32 : 48)
+// Caracteres por renglón: los de la impresora si están configurados (hay de 80 mm que entran 42) o según el papel.
+export const columnsFor = (width, charsPerLine = null) =>
+  (charsPerLine ? Number(charsPerLine) : Number(width) === 58 ? 32 : 48)
 
 export function formatTicketMoney(amount) {
   const value = Number(amount)
@@ -86,8 +88,8 @@ function bodyLines(doc, cols) {
   return out
 }
 
-export function renderText(doc, width) {
-  const cols = columnsFor(width)
+export function renderText(doc, width, charsPerLine = null) {
+  const cols = columnsFor(width, charsPerLine)
   const bodyCols = doc.large_body ? Math.floor(cols / 2) : cols
   const lines = [...wrap(doc.title ?? '', cols).map((t) => center(t, cols)), ...headerLines(doc, cols),
     ...bodyLines({ ...doc, lines: doc.lines, totals: doc.large_body ? [] : doc.totals, footer: doc.large_body ? [] : doc.footer }, bodyCols),
@@ -104,8 +106,8 @@ export function qrCommand(data) {
     + `${GS}(k\x03\x001Q0`
 }
 
-export function renderEscPos(doc, width) {
-  const cols = columnsFor(width)
+export function renderEscPos(doc, width, charsPerLine = null) {
+  const cols = columnsFor(width, charsPerLine)
   let out = `${ESC}@${ESC}t\x13`
   // El título va a doble ancho: entran la mitad de las columnas.
   out += `${ESC}a\x01${GS}!\x11${wrap(doc.title ?? '', Math.floor(cols / 2)).join('\n')}\n${GS}!\x00${ESC}a\x00`

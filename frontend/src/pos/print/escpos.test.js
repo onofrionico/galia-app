@@ -25,6 +25,10 @@ describe('columnsFor', () => {
     expect(columnsFor(58)).toBe(32)
     expect(columnsFor(80)).toBe(48)
   })
+  it('usa los caracteres por renglón de la impresora si están configurados', () => {
+    expect(columnsFor(80, 42)).toBe(42)
+    expect(columnsFor(58, null)).toBe(32)
+  })
 })
 
 describe('formatTicketMoney', () => {
@@ -41,6 +45,8 @@ describe('renderText', () => {
       const lines = renderText(order, width)
       expect(lines.every((l) => l.length <= columnsFor(width))).toBe(true)
     }
+    expect(renderText(bill, 80, 42).every((l) => l.length <= 42)).toBe(true)
+    expect(renderText(bill, 80, 42).some((l) => l.length > 32)).toBe(true)
     const lines = renderText(order, 58)
     expect(lines).toContain('2 x Tostado')
     expect(lines).toContain('    Nota: sin sal')
@@ -85,6 +91,12 @@ describe('renderEscPos', () => {
   it('parte el título doble a la mitad de columnas sin cortar palabras', () => {
     const data = renderEscPos({ ...order, title: 'ANULACIÓN · COCINA' }, 58)
     expect(data).toContain('\x1d!\x11ANULACIÓN ·\nCOCINA\n')
+  })
+
+  it('respeta los caracteres por renglón de la impresora', () => {
+    // Sin los comandos ESC/GS (byte de control + 1 o 2 bytes de parámetros) quedan solo los renglones impresos.
+    const lines = renderEscPos(bill, 80, 42).split('\n').map((l) => l.replace(/[\x1b\x1d][\s\S]{1,2}/g, ''))
+    expect(lines.every((l) => l.length <= 42)).toBe(true)
   })
 
   it('inicializa, usa CP858, título doble, conserva acentos y corta el papel', () => {

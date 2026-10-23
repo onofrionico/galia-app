@@ -537,6 +537,14 @@ def _apply_printer(printer, data):
         if data.get('paper_width') not in PAPER_WIDTHS:
             raise bad_request('El ancho de papel tiene que ser 58 u 80 mm')
         printer.paper_width = data['paper_width']
+    if 'chars_per_line' in data:
+        value = data['chars_per_line']
+        if value in (None, ''):
+            printer.chars_per_line = None
+        else:
+            printer.chars_per_line = _int(value, 'Los caracteres por renglón', minimum=24)
+            if printer.chars_per_line > 64:
+                raise bad_request('Los caracteres por renglón tienen que estar entre 24 y 64')
     if 'print_point' in data or creating:
         printer.print_point = clean_str(data.get('print_point'), 60)
         if not printer.print_point:

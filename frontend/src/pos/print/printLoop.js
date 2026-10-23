@@ -31,3 +31,11 @@ export function printByPrinter(jobs, printOne, onFail) {
 export function shouldReconnect({ simulate, ready, lastAttemptAt, now, waitMs = RECONNECT_EVERY_MS }) {
   return !simulate && !ready && now - lastAttemptAt >= waitMs
 }
+
+// Una consulta al backend o un envío a QZ colgados (red caída, spooler trabado) dejaban el bucle esperando
+// para siempre: nunca más tomaba trabajos hasta recargar la página.
+export function withTimeout(promise, ms, message) {
+  let timer
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms) })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}

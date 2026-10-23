@@ -266,7 +266,8 @@ def job_to_dict(job, with_printer=False):
     printer = {'id': job.printer.id, 'name': job.printer.name}
     if with_printer:
         printer.update({'connection': job.printer.connection, 'host': job.printer.host, 'port': job.printer.port,
-                        'os_name': job.printer.os_name, 'paper_width': job.printer.paper_width})
+                        'os_name': job.printer.os_name, 'paper_width': job.printer.paper_width,
+                        'chars_per_line': job.printer.chars_per_line})
     return {
         'id': job.id, 'kind': job.kind, 'status': job.status, 'printer': printer, 'sale_id': job.sale_id,
         'sale_number': job.sale.number if job.sale else None, 'place': _place(job),

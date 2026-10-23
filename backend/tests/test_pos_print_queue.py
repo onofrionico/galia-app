@@ -160,7 +160,8 @@ def test_job_dict_with_printer_connection(ctx):
     job = print_service.claim('Caja')[0]
     data = print_service.job_to_dict(job, with_printer=True)
     assert data['printer'] == {'id': bar_printer.id, 'name': 'Térmica barra', 'connection': 'network',
-                               'host': '192.168.0.50', 'port': 9100, 'os_name': None, 'paper_width': 80}
+                               'host': '192.168.0.50', 'port': 9100, 'os_name': None, 'paper_width': 80,
+                               'chars_per_line': None}
     assert data['document']['title'] == 'BARRA' and data['sale_number'] == 1
 
 
