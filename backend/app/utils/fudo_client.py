@@ -81,7 +81,8 @@ class FudoClient:
             return response.json()
             
         except requests.exceptions.RequestException as e:
-            raise Exception(f"Error making request to Fudo API: {str(e)}")
+            detail = e.response.text[:500] if e.response is not None else ''
+            raise Exception(f"Error making request to Fudo API: {str(e)} {detail}".strip())
     
     def get_sales(self, 
                   page_size: int = 500, 

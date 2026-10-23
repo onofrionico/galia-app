@@ -7,7 +7,7 @@ import pytest
 from app.extensions import db
 from app.models import ProductVariant, Sale, SaleItem
 from app.services.pos import payment_service, sale_service
-from app.services.sale_fudo_parsing import index_included, parse_fudo_items, parse_fudo_sale
+from app.services.sale_fudo_parsing import index_included, parse_fudo_items, parse_fudo_sale, request_params
 from app.services.sales_sync_service import apply_fudo_sales
 from pos_helpers import auth_headers, make_catalog, make_floor, make_user, pos_app  # noqa: F401
 
@@ -186,3 +186,12 @@ def test_products_report_requires_reports_module(pos_app):
     client = pos_app.test_client()
     response = client.get('/api/v1/reports/products', headers=auth_headers(client, user))
     assert response.status_code == 403
+
+
+def test_request_params_only_use_fields_types_accepted_by_list_sales():
+    """listSales responde 400 ante un fields[tipo] que no está en su openapi (pasó con item/payment/paymentMethod)."""
+    accepted = {'cashRegister', 'customer', 'discountTemplate', 'invoiceInformation', 'order', 'product',
+                'productCategory', 'room', 'sale', 'saleIdentifier', 'serviceCost', 'table', 'user'}
+    params = request_params()
+    used = {key[len('fields['):-1] for key in params if key.startswith('fields[')}
+    assert used <= accepted

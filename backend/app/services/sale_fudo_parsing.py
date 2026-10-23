@@ -12,17 +12,15 @@ SALE_RELATIONS = ('items', 'waiter', 'table', 'cashRegister', 'payments')
 INCLUDE = ('items', 'items.product', 'items.product.productCategory', 'waiter', 'table', 'table.room',
            'cashRegister', 'payments', 'payments.paymentMethod')
 # Sin fields[...] Fudo puede devolver recursos sin atributos (pasó en /expenses).
+# listSales rechaza con 400 cualquier fields[tipo] fuera de su lista (no acepta item, payment ni paymentMethod).
 FIELDS = {
     'sale': SALE_FIELDS + SALE_RELATIONS,
-    'item': ('canceled', 'price', 'quantity', 'cost', 'product'),
     'product': ('name', 'productCategory'),
     'productCategory': ('name',),
     'user': ('name',),
     'table': ('number', 'room'),
     'room': ('name',),
     'cashRegister': ('name',),
-    'payment': ('amount', 'canceled', 'paymentMethod'),
-    'paymentMethod': ('name',),
 }
 
 STATE_MAP = {'CLOSED': 'Cerrada', 'CANCELED': 'Cancelada', 'CANCELLED': 'Cancelada'}
