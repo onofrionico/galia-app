@@ -920,7 +920,7 @@ const Expenses = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Importe</p>
-                    <p className="font-bold text-lg text-red-600">{formatCurrency(selectedExpense.importe)}</p>
+                    <p className="font-bold text-lg text-red-600">$<MoneyFormat amount={selectedExpense.importe} /></p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Proveedor</p>
