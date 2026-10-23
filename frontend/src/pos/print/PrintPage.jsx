@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useWakeLock } from '@/camarero/hooks/useWakeLock'
@@ -8,105 +8,22 @@ import { btn } from '../ui/buttons'
 import { useToast } from '../ui/Toasts'
 import { errorMessage } from '../utils/errors'
 import { timeLabel } from '../utils/time'
-import { renderEscPos, renderText } from './escpos'
-import { connectQz, printRaw, qzReady } from './qz'
-import { printByPrinter, shouldReconnect } from './printLoop'
-import { jobLabel } from './printStatus'
-import { startTicker } from './ticker'
+import { readPrintPoint, usePrintAgent, writePrintPoint } from './usePrintAgent'
 
-const POINT_KEY = 'pos.printPoint'
-const TICK_MS = 2000
-
-const read = (key) => { try { return localStorage.getItem(key) } catch { return null } }
-const write = (key, value) => { try { localStorage.setItem(key, value) } catch { /* sin storage: solo esta sesión */ } }
-
-function beep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const osc = ctx.createOscillator()
-    osc.connect(ctx.destination)
-    osc.frequency.value = 880
-    osc.start()
-    osc.stop(ctx.currentTime + 0.25)
-  } catch { /* sin audio */ }
-}
-
-// Punto de impresión: toma los trabajos de sus impresoras y los imprime con QZ Tray (o los simula).
+// Punto de impresión: elige qué impresoras atiende esta PC y muestra el estado. El mismo agente corre en la
+// caja (PosLayout), así que con la caja abierta no hace falta tener esta página abierta.
 export default function PrintPage() {
   useWakeLock()
   const toast = useToast()
-  const [point, setPoint] = useState(() => read(POINT_KEY) ?? '')
+  const [point, setPoint] = useState(readPrintPoint)
   // La simulación no se guarda: al reabrir la página siempre imprime de verdad.
   const [simulate, setSimulate] = useState(false)
-  const [qzState, setQzState] = useState('idle')
-  const [log, setLog] = useState([])
   const [preview, setPreview] = useState(null)
-  const busy = useRef(false)
-  const lastAttempt = useRef(0)
+  const { active, qzState, connect, log } = usePrintAgent({ point, simulate, onPreview: setPreview })
   const { data: points = [] } = useQuery({ queryKey: posKeys.printPoints, queryFn: posPrintApi.points })
   const printers = points.find((p) => p.name === point)?.printers ?? []
 
-  const addLog = useCallback((job, ok, error) => {
-    setLog((current) => [{ at: new Date().toISOString(), label: jobLabel(job), printer: job.printer.name, ok, error },
-      ...current].slice(0, 50))
-  }, [])
-
-  const connect = useCallback(async () => {
-    lastAttempt.current = Date.now()
-    setQzState('connecting')
-    try {
-      await connectQz()
-      setQzState('ready')
-    } catch {
-      setQzState('error')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (point && !simulate) connect()
-  }, [point, simulate, connect])
-
-  const printOne = useCallback(async (job) => {
-    const width = job.printer.paper_width
-    if (simulate) setPreview({ label: jobLabel(job), text: renderText(job.document, width).join('\n') })
-    else await printRaw(job.printer, renderEscPos(job.document, width))
-    addLog(job, true)
-    // Si avisar falla, el backend lo devuelve a la cola a los 60 s.
-    await posPrintApi.done(job.id).catch(() => {})
-  }, [simulate, addLog])
-
-  const onFail = useCallback(async (job, message) => {
-    addLog(job, false, message)
-    beep()
-    try { await posPrintApi.failed(job.id, message) } catch { /* el backend lo recupera a los 60 s */ }
-  }, [addLog])
-
-  useEffect(() => {
-    if (!point) return undefined
-    const tick = async () => {
-      if (busy.current) return
-      if (!simulate && !qzReady()) {
-        // QZ Tray se cerró o todavía no arrancó (por ejemplo al prender la PC): aviso y reintento solo.
-        setQzState((state) => (state === 'ready' ? 'error' : state))
-        if (shouldReconnect({ simulate, ready: false, lastAttemptAt: lastAttempt.current, now: Date.now() })) connect()
-        return
-      }
-      busy.current = true
-      try {
-        const jobs = await posPrintApi.claim(point)
-        await printByPrinter(jobs, printOne, onFail)
-      } catch {
-        // Sin red o backend caído: se reintenta en el próximo ciclo.
-      } finally {
-        busy.current = false
-      }
-    }
-    const stop = startTicker(tick, TICK_MS)
-    tick()
-    return stop
-  }, [point, simulate, printOne, onFail, connect])
-
-  const choosePoint = (value) => { setPoint(value); write(POINT_KEY, value) }
+  const choosePoint = (value) => { setPoint(value); writePrintPoint(value) }
   const toggleSimulate = (value) => setSimulate(value)
   // Descarga el .bat que instala el certificado de Galia en QZ Tray (el mismo para todas las PCs).
   const downloadSetup = () => posPrintApi.qzSetup()
@@ -144,7 +61,17 @@ export default function PrintPage() {
         <Link to="/pos" className="text-sm underline">Volver al POS</Link>
       </header>
 
-      {!simulate && point && qzState !== 'ready' && (
+      {point && !active && (
+        <div className="rounded-lg bg-blue-50 p-4 text-blue-900">
+          La caja u otra pestaña de este navegador ya está imprimiendo para {point}. Esta página solo muestra el estado.
+        </div>
+      )}
+      {point && active && !simulate && (
+        <p className="text-sm text-gray-600">
+          Mientras la caja esté abierta en esta PC, imprime sola: no hace falta dejar esta página abierta.
+        </p>
+      )}
+      {active && !simulate && point && qzState !== 'ready' && (
         <div className="space-y-2 rounded-lg bg-amber-50 p-4 text-amber-900">
           <p>
             {qzState === 'connecting' ? 'Conectando con QZ Tray…' : 'QZ Tray no está abierto.'}{' '}
@@ -179,7 +106,7 @@ export default function PrintPage() {
               <li key={printer.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span>
                   {printer.name} · {printer.connection === 'network' ? `${printer.host}:${printer.port}` : printer.os_name}
-                  {' · '}{printer.paper_width} mm · {printer.is_cashier ? 'Caja' : (printer.station_name ?? 'Sin estación')}
+                  {' · '}{printer.paper_width} mm{printer.chars_per_line ? ` (${printer.chars_per_line} caracteres)` : ''} · {printer.is_cashier ? 'Caja' : (printer.station_name ?? 'Sin estación')}
                 </span>
                 <button type="button" className={btn('secondary', 'min-h-[36px]')} onClick={() => testPrint(printer.id)}>
                   Imprimir prueba

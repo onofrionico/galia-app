@@ -143,3 +143,25 @@ def test_config_is_admin_only_and_validates_printers(pos_app):
     assert len(listed) == 2
     stations = client.get(f'{BASE}/config/print-stations', headers=admin).get_json()['print_stations']
     assert [s['name'] for s in stations] == ['Cocina']
+
+
+def test_printer_chars_per_line_is_optional_and_reaches_the_print_point(pos_app):
+    client = pos_app.test_client()
+    admin = auth_headers(client, make_user('admin@test.com', role='admin'))
+    body = {'name': 'Térmica caja', 'connection': 'usb', 'os_name': 'POS-80', 'paper_width': 80,
+            'print_point': 'Caja', 'is_cashier': True}
+    created = client.post(f'{BASE}/config/printers', json=body, headers=admin).get_json()
+    assert created['chars_per_line'] is None
+    printer_id = created['id']
+    for bad in (20, 70, 'x', True):
+        response = client.put(f'{BASE}/config/printers/{printer_id}', json={'chars_per_line': bad}, headers=admin)
+        assert response.status_code == 400, bad
+    updated = client.put(f'{BASE}/config/printers/{printer_id}', json={'chars_per_line': 42}, headers=admin)
+    assert updated.get_json()['chars_per_line'] == 42
+
+    client.post(f'{BASE}/print/printers/{printer_id}/test', headers=admin)
+    claimed = client.post(f'{BASE}/print/claim', json={'print_point': 'Caja'}, headers=admin).get_json()['jobs']
+    assert claimed[0]['printer']['chars_per_line'] == 42
+
+    cleared = client.put(f'{BASE}/config/printers/{printer_id}', json={'chars_per_line': None}, headers=admin)
+    assert cleared.get_json()['chars_per_line'] is None

@@ -49,7 +49,7 @@ const TABS = {
   printers: {
     label: 'Impresoras',
     emptyItem: {
-      name: '', connection: 'network', host: '', port: 9100, os_name: '', paper_width: 80, print_point: 'Caja',
+      name: '', connection: 'network', host: '', port: 9100, os_name: '', paper_width: 80, chars_per_line: null, print_point: 'Caja',
       station_id: '', is_cashier: false, is_kitchen: false, is_active: true,
     },
     fields: [
@@ -59,6 +59,9 @@ const TABS = {
       { key: 'port', label: 'Puerto (red)', type: 'number' },
       { key: 'os_name', label: 'Nombre en Windows (USB)', type: 'text' },
       { key: 'paper_width', label: 'Papel', type: 'select', numeric: true, options: [[80, '80 mm'], [58, '58 mm']] },
+      // Si el ticket sale cortado a la derecha, bajar los caracteres (muchas de 80 mm entran 42).
+      { key: 'chars_per_line', label: 'Caracteres por renglón', type: 'select', numeric: true,
+        options: [['', 'Según el papel (48 / 32)'], [48, '48'], [42, '42'], [40, '40'], [32, '32']] },
       { key: 'print_point', label: 'Punto de impresión', type: 'text' },
       { key: 'station_id', label: 'Estación', type: 'select', numeric: true, options: [] },
       { key: 'is_cashier', label: 'Impresora de caja', type: 'checkbox' },

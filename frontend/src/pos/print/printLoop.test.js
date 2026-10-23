@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEAD_PRINTER_ERROR, printByPrinter, shouldReconnect } from './printLoop'
+import { DEAD_PRINTER_ERROR, printByPrinter, shouldReconnect, withTimeout } from './printLoop'
 import { startTicker } from './ticker'
 
 const job = (id, printerId) => ({ id, printer: { id: printerId, name: `P${printerId}` } })
@@ -53,5 +53,19 @@ describe('startTicker', () => {
     stop()
     vi.advanceTimersByTime(6000)
     expect(tick).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('withTimeout', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('devuelve el resultado si llega a tiempo', async () => {
+    await expect(withTimeout(Promise.resolve('ok'), 1000, 'tarde')).resolves.toBe('ok')
+  })
+  it('falla con el mensaje si la promesa queda colgada, así el bucle de impresión no se traba', async () => {
+    vi.useFakeTimers()
+    const hung = withTimeout(new Promise(() => {}), 1000, 'La impresora no respondió')
+    vi.advanceTimersByTime(1000)
+    await expect(hung).rejects.toThrow('La impresora no respondió')
   })
 })

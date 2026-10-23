@@ -28,6 +28,8 @@ class Printer(db.Model):
     port = db.Column(db.Integer, nullable=False, default=9100)
     os_name = db.Column(db.String(120), nullable=True)
     paper_width = db.Column(db.Integer, nullable=False, default=80)
+    # Caracteres por renglón; None = según el papel (48 en 80 mm, 32 en 58 mm). Hay impresoras de 80 mm que entran 42.
+    chars_per_line = db.Column(db.Integer, nullable=True)
     print_point = db.Column(db.String(60), nullable=False)
     station_id = db.Column(db.Integer, db.ForeignKey('print_stations.id'), nullable=True)
     is_cashier = db.Column(db.Boolean, nullable=False, default=False)
@@ -39,7 +41,7 @@ class Printer(db.Model):
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'connection': self.connection, 'host': self.host,
                 'port': self.port, 'os_name': self.os_name, 'paper_width': self.paper_width,
-                'print_point': self.print_point, 'station_id': self.station_id,
+                'chars_per_line': self.chars_per_line, 'print_point': self.print_point, 'station_id': self.station_id,
                 'station_name': self.station.name if self.station else None, 'is_cashier': self.is_cashier,
                 'is_kitchen': self.is_kitchen, 'is_active': self.is_active}
 
