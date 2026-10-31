@@ -12,8 +12,11 @@ from app.services.sales_sync_service import apply_fudo_sales
 from pos_helpers import auth_headers, make_catalog, make_floor, make_user, pos_app  # noqa: F401
 
 
-def _fudo_payload(sale_id='10', items=(('100', '7', 2, 1500, False),), closed='2026-10-01T15:00:00Z'):
-    """Venta de Fudo con ítems (id, product_id, quantity, price, canceled) en formato JSON:API."""
+def _fudo_payload(sale_id='10', items=(('100', '7', 2, 3000, False),), closed='2026-10-01T15:00:00Z'):
+    """Venta de Fudo con ítems (id, product_id, quantity, price, canceled) en formato JSON:API.
+
+    `price` es el total de la línea, como lo manda Fudo (2 x $1.500 llega con price 3000).
+    """
     included = [
         {'type': 'ProductCategory', 'id': '3', 'attributes': {'name': 'Cafetería'}},
         {'type': 'Product', 'id': '7', 'attributes': {'name': 'Cortado'},
@@ -59,7 +62,7 @@ def test_parse_fudo_sale_reads_real_attribute_names():
 
 
 def test_parse_fudo_items_skips_cancelled_and_computes_totals():
-    payload = _fudo_payload(items=(('100', '7', 2, 1500, False), ('101', '8', 1, 900, True)))
+    payload = _fudo_payload(items=(('100', '7', 2, 3000, False), ('101', '8', 1, 900, True)))
     items = parse_fudo_items(payload['data'][0], index_included(payload['included']))
     assert len(items) == 1
     item = items[0]
@@ -99,7 +102,7 @@ def test_existing_sale_without_items_gets_them_without_update(pos_app):
 def test_update_existing_replaces_items(pos_app):
     apply_fudo_sales(_fudo_payload())
     db.session.commit()
-    results = apply_fudo_sales(_fudo_payload(items=(('100', '7', 3, 1500, False), ('102', '8', 1, 900, False))),
+    results = apply_fudo_sales(_fudo_payload(items=(('100', '7', 3, 4500, False), ('102', '8', 1, 900, False))),
                                update_existing=True)
     db.session.commit()
     assert results['updated'] == 1
