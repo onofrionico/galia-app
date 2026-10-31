@@ -37,6 +37,9 @@ def token_required(f):
             if not current_user:
                 _debug("Usuario no encontrado en BD")
                 return jsonify({'error': 'Usuario no encontrado'}), 401
+            if not current_user.is_active:
+                _debug("Usuario inactivo")
+                return jsonify({'error': 'Usuario inactivo'}), 401
             _debug(f"Usuario autenticado: {current_user.id}")
         except jwt.ExpiredSignatureError:
             _debug("Token expirado")
