@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.sale import Sale
 from app.utils.jwt_utils import token_required
-from app.utils.decorators import module_required, authenticated_only
+from app.utils.decorators import module_required
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, extract
 import csv
@@ -130,7 +130,7 @@ def get_sales_stats(current_user):
 
 @bp.route('', methods=['POST'])
 @token_required
-@authenticated_only
+@module_required('Sales')
 def create_sale(current_user):
     """Create a new sale"""
     data = request.get_json()

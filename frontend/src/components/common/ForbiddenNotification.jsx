@@ -53,9 +53,6 @@ export default function ForbiddenNotification() {
                 </p>
               )}
             </div>
-            <div className="mt-3 text-xs text-red-600">
-              Serás redirigido al inicio en unos segundos...
-            </div>
           </div>
           <div className="ml-4 flex-shrink-0">
             <button

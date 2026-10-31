@@ -61,17 +61,6 @@ api.interceptors.response.use(
           path: error.config?.url
         }
       }))
-      
-      // Si no estamos en la página de inicio, redirigir después de 2 segundos.
-      // En el POS y en el Camarero no: una acción sin permiso no debe sacar a nadie de la pantalla.
-      if (!window.location.pathname.includes('/dashboard') &&
-          !window.location.pathname.includes('/home') &&
-          !window.location.pathname.startsWith('/pos') &&
-          !window.location.pathname.startsWith('/camarero')) {
-        setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 2000)
-      }
     }
     
     return Promise.reject(error)
