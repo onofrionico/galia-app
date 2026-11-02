@@ -16,7 +16,7 @@ export default function FloorPlan({ tables, selectedTableId, picking = false, on
 
   return (
     <div ref={ref} className={`w-full ${className}`}>
-      <div className="relative rounded-xl border border-gray-200 bg-white"
+      <div className="relative rounded-xl border border-gray-300 bg-gray-100"
         style={{
           width: fit && width ? LOGICAL_WIDTH * scale + BORDER : '100%',
           height: width ? canvasHeight(tables) * scale + BORDER : 400,
