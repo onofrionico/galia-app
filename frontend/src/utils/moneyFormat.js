@@ -22,7 +22,7 @@ export function formatMoney(amount) {
   const isNegative = numericAmount < 0;
   numericAmount = Math.abs(numericAmount);
 
-  const integerPart = Math.floor(numericAmount);
+  let integerPart = Math.floor(numericAmount);
   let decimalPart = Math.round((numericAmount - integerPart) * 100);
 
   if (decimalPart === 100) {
