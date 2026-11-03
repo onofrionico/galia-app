@@ -1,8 +1,10 @@
 """Resuelve el Supplier y la ExpenseCategory de Galia para un proveedor/categoría de Fudo."""
 import re
 
+from sqlalchemy import func
+
 from app.extensions import db
-from app.models.expense import ExpenseCategory, infer_expense_type
+from app.models.expense import Expense, ExpenseCategory, infer_expense_type
 from app.models.supplier import Supplier
 
 DEFAULT_CATEGORY_NAME = 'Sin categoría'
@@ -25,7 +27,7 @@ def add_capped(items, item, limit=MAX_LISTED):
 
 def new_link_stats():
     return {'suppliers_created': 0, 'suppliers_linked': 0, 'categories_created': 0,
-            'categories_linked': 0, 'warnings': []}
+            'categories_linked': 0, 'categories_inferred': 0, 'warnings': []}
 
 
 class Linker:
@@ -38,6 +40,7 @@ class Linker:
     def reset(self):
         self._suppliers = {}
         self._categories = {}
+        self._usual_categories = {}
         self._default_category = None
 
     def supplier_for(self, ref):
@@ -47,12 +50,31 @@ class Linker:
             self._suppliers[ref.fudo_id] = self._resolve_supplier(ref)
         return self._suppliers[ref.fudo_id]
 
-    def category_for(self, ref):
+    def category_for(self, ref, supplier=None):
+        """Sin categoría en Fudo: la que más usa el proveedor en Galia; si no tiene historial, "Sin categoría"."""
         if ref is None:
+            usual = self._usual_category(supplier)
+            if usual is not None:
+                self.stats['categories_inferred'] += 1
+                return usual
             return self._default()
         if ref.fudo_id not in self._categories:
             self._categories[ref.fudo_id] = self._resolve_category(ref)
         return self._categories[ref.fudo_id]
+
+    def _usual_category(self, supplier):
+        if supplier is None:
+            return None
+        if supplier.id not in self._usual_categories:
+            row = (db.session.query(Expense.category_id)
+                   .join(ExpenseCategory, ExpenseCategory.id == Expense.category_id)
+                   .filter(Expense.supplier_id == supplier.id, Expense.cancelado.is_(False),
+                           ExpenseCategory.is_active.is_(True), ExpenseCategory.name != DEFAULT_CATEGORY_NAME)
+                   .group_by(Expense.category_id)
+                   .order_by(func.count(Expense.id).desc(), Expense.category_id)
+                   .first())
+            self._usual_categories[supplier.id] = db.session.get(ExpenseCategory, row[0]) if row else None
+        return self._usual_categories[supplier.id]
 
     def _resolve_supplier(self, ref):
         supplier = Supplier.query.filter_by(fudo_provider_id=ref.fudo_id).first()

@@ -197,6 +197,65 @@ def test_new_expense_without_cash_flag_defaults_to_false(menu_app):
     assert Expense.query.filter_by(external_id=101).one().de_caja is False
 
 
+def _categorize_history(supplier_name, category_name, count):
+    category = ExpenseCategory(name=category_name)
+    db.session.add(category)
+    db.session.flush()
+    supplier = Supplier.query.filter_by(name=supplier_name).one()
+    for i in range(count):
+        db.session.add(Expense(fecha=date(2026, 9, 1), importe=Decimal('1'), supplier_id=supplier.id,
+                               category_id=category.id, comentario=f'{category_name} {i}'))
+    db.session.commit()
+    return category
+
+
+def test_expense_without_category_takes_the_suppliers_usual_category(menu_app):
+    _sync([fudo_expense(101, provider_id=7, category_id=3)])
+    mercaderia = _categorize_history('Molino Sur', 'Mercadería general', 2)
+
+    stats, _ = _sync([fudo_expense(102, provider_id=7)])
+
+    assert Expense.query.filter_by(external_id=102).one().category_id == mercaderia.id
+    assert stats['categories_inferred'] == 1
+
+
+def test_inferred_category_ignores_sin_categoria_and_cancelled(menu_app):
+    _sync([fudo_expense(101, provider_id=7), fudo_expense(102, provider_id=7), fudo_expense(103, provider_id=7)])
+    pasteleria = _categorize_history('Molino Sur', 'Pastelería', 1)
+    otra = _categorize_history('Molino Sur', 'Otra', 2)
+    Expense.query.filter_by(category_id=otra.id).update({'cancelado': True})
+    db.session.commit()
+
+    _sync([fudo_expense(104, provider_id=7)])
+
+    assert Expense.query.filter_by(external_id=104).one().category_id == pasteleria.id
+
+
+def test_resync_moves_uncategorized_expense_to_the_suppliers_category(menu_app):
+    _sync([fudo_expense(101, provider_id=7)])
+    mercaderia = _categorize_history('Molino Sur', 'Mercadería general', 1)
+
+    _sync([fudo_expense(101, provider_id=7)])
+
+    assert Expense.query.filter_by(external_id=101).one().category_id == mercaderia.id
+
+
+def test_fudo_category_wins_over_the_suppliers_history(menu_app):
+    _sync([fudo_expense(101, provider_id=7, category_id=3)])
+    _categorize_history('Molino Sur', 'Mercadería general', 5)
+
+    _sync([fudo_expense(102, provider_id=7, category_id=3)])
+
+    assert Expense.query.filter_by(external_id=102).one().category_rel.name == 'Insumos'
+
+
+def test_without_supplier_history_falls_back_to_sin_categoria(menu_app):
+    stats, _ = _sync([fudo_expense(101, provider_id=7), fudo_expense(102)])
+
+    assert {e.category_rel.name for e in Expense.query.all()} == {'Sin categoría'}
+    assert stats['categories_inferred'] == 0
+
+
 def test_errors_total_counts_beyond_the_listed_cap(menu_app):
     stats, _ = _sync([fudo_expense(i, date=None) for i in range(1, 61)], included=[])
 
