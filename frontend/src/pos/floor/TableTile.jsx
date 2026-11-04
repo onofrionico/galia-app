@@ -12,7 +12,7 @@ export default function TableTile({ table, scale, selected, picking, now, onClic
   return (
     <button type="button" onClick={onClick} disabled={disabled}
       aria-label={`${table.label}${status === 'free' ? ', libre' : `, ${formatMoney(summary.total)}`}`}
-      className={`absolute flex flex-col justify-between overflow-hidden rounded-lg border-2 p-1.5 text-left text-xs transition ${TABLE_STATUS_STYLES[status]} ${ring} ${disabled || dimmed ? 'opacity-40' : ''}`}
+      className={`absolute flex flex-col justify-between overflow-hidden rounded-lg border-2 p-1.5 text-left text-xs shadow-sm transition ${TABLE_STATUS_STYLES[status]} ${ring} ${disabled || dimmed ? 'opacity-40' : ''}`}
       style={{ left: table.pos_x * scale, top: table.pos_y * scale, width: table.width * scale, height: table.height * scale }}>
       <span className="flex w-full items-center justify-between gap-1 text-sm font-semibold">
         <span className="truncate">{tileLabel(table)}</span>
