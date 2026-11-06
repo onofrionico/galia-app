@@ -59,4 +59,5 @@ def customer_required(f):
         if customer is None:
             return jsonify({'error': 'Sesión inválida'}), 401
         return f(customer, *args, **kwargs)
+    decorated._access_control = 'customer'
     return decorated
