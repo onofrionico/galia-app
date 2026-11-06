@@ -2,9 +2,11 @@ import { ArrowLeft, X } from 'lucide-react'
 import StatusBadge from '../ui/StatusBadge'
 import { saleTitle } from '../modals/AddProductsModal'
 import { timeLabel } from '../utils/time'
+import CustomerButton from '../loyalty/CustomerButton'
 
 // closeLabel: en el celular, el cierre es un "← Mesas" arriba a la izquierda en lugar de la ✕.
-export default function SaleHeader({ sale, onClose, canChangeWaiter, onChangeWaiter, closeLabel = null }) {
+export default function SaleHeader({ sale, onClose, canChangeWaiter, onChangeWaiter, closeLabel = null, perms = null,
+  onPickCustomer, onRedeem }) {
   return (
     <div className="border-b px-4 py-3">
       {closeLabel && (
@@ -37,6 +39,7 @@ export default function SaleHeader({ sale, onClose, canChangeWaiter, onChangeWai
           <button type="button" className="ml-2 text-galia-plum underline" onClick={onChangeWaiter}>Cambiar</button>
         )}
       </p>
+      {perms && <CustomerButton sale={sale} perms={perms} onPick={onPickCustomer} onRedeem={onRedeem} />}
     </div>
   )
 }

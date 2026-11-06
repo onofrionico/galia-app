@@ -20,6 +20,7 @@ import InvoiceModal from '../fiscal/InvoiceModal'
 import PointWait from '../mercadopago/PointWait'
 import CancelReasonModal from './CancelReasonModal'
 import NumericKeypad from './NumericKeypad'
+import CustomerSearchModal from '../loyalty/CustomerSearchModal'
 import { saleTitle } from './AddProductsModal'
 
 const inputClass = (focused) =>
@@ -40,6 +41,7 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
   const [cancelling, setCancelling] = useState(null)
   const [pointOrderId, setPointOrderId] = useState(sale.point_order?.id ?? null)
   const [sendingPoint, setSendingPoint] = useState(false)
+  const [pickingCustomer, setPickingCustomer] = useState(false)
   const { data: pointConfig } = useQuery({
     queryKey: posKeys.mpPointConfig, queryFn: posMpApi.pointConfig, staleTime: 60_000, retry: false,
   })
@@ -174,6 +176,13 @@ export default function PaymentModal({ sale, onClose, onSaleClosed }) {
           No hay caja abierta: este pago queda sin caja.
         </p>
       )}
+      {perms.loyalty && !sale.customer && !sale.is_practice && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-dashed border-galia-plum/40 px-3 py-2">
+          <span className="text-sm">¿Cliente con cafecitos? <span className="text-gray-500">(opcional)</span></span>
+          <button type="button" className={btn('secondary')} onClick={() => setPickingCustomer(true)}>Buscar cliente</button>
+        </div>
+      )}
+      {pickingCustomer && <CustomerSearchModal sale={sale} onClose={() => setPickingCustomer(false)} />}
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <dl className="space-y-1 text-sm">
