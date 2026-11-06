@@ -3,6 +3,7 @@ from datetime import timedelta
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     database_url = os.environ.get('DATABASE_URL') or 'postgresql://galia_user:dev_password@localhost:5432/galia_db'
