@@ -7,10 +7,11 @@ export default defineConfig({
   server: { port: 5174 },
   build: {
     rollupOptions: {
-      // La carta (/) y la página de links que reemplaza al Linktree (/links)
+      // La carta (/), la página de links que reemplaza al Linktree (/links) y Mis cafecitos (/cafecitos)
       input: {
         main: resolve(__dirname, 'index.html'),
         links: resolve(__dirname, 'links.html'),
+        cafecitos: resolve(__dirname, 'cafecitos.html'),
       },
     },
   },
