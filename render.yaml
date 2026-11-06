@@ -50,6 +50,11 @@ services:
     env: static
     buildCommand: "cd menu-site && npm install && npm run build"
     staticPublishPath: menu-site/dist
+    routes:
+      # Hub de links que reemplaza al Linktree (bio de Instagram)
+      - type: rewrite
+        source: /links
+        destination: /links.html
     envVars:
       - key: VITE_MENU_URL
         sync: false
