@@ -10,6 +10,7 @@ from app.services.pos import audit, pricing, projection
 from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos.cash_service import current_session_id
 from app.services.pos.closing import close_sale_rows
+from app.services.loyalty import wallet
 from app.services.pos.common import (MAX_MONEY, active_payments, load_sale, now, parse_id, recalc)
 from app.services.pos.errors import PosError, bad_request, not_found
 from app.services.pos.sale_service import confirm_pending
@@ -113,6 +114,7 @@ def cancel_payment(user, payment_id, reason, reason_id=None):
     was_closed = sale.status == 'closed'
     if was_closed:
         projection.unproject(sale)
+        wallet.reverse_sale_credits(sale, user)
         sale.status = 'billing'
         sale.closed_at = None
         sale.closed_by = None
