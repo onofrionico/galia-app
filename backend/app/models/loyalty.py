@@ -87,6 +87,7 @@ class LoyaltyMovement(db.Model):
 
     customer = db.relationship('Customer')
     reward = db.relationship('Reward')
+    pos_sale_item = db.relationship('PosSaleItem')
 
 
 class LoyaltySettings(db.Model):

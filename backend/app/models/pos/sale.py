@@ -82,6 +82,7 @@ class PosSaleItem(db.Model):
     reward_id = db.Column(db.Integer, db.ForeignKey('loyalty_rewards.id'), nullable=True)
 
     sale = db.relationship('PosSale', back_populates='items')
+    variant = db.relationship('ProductVariant')
     modifiers = db.relationship('PosSaleItemModifier', back_populates='item', order_by='PosSaleItemModifier.id',
                                 cascade='all, delete-orphan')
     discounts = db.relationship('PosDiscount', back_populates='item', order_by='PosDiscount.id',
