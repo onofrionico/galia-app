@@ -17,3 +17,14 @@ body {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+@layer components {
+  /* Página de links (/links) */
+  .link-btn {
+    @apply flex min-h-[3.5rem] items-center justify-center rounded-2xl border-2 border-plum bg-cream px-5 py-3 text-center font-bold text-plum shadow-[0_3px_0_theme(colors.plum.DEFAULT)] transition hover:bg-lime active:translate-y-[3px] active:shadow-none;
+  }
+
+  .social-btn {
+    @apply flex h-12 w-12 items-center justify-center rounded-full bg-plum text-cream transition hover:bg-plum-dark;
+  }
+}
