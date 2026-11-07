@@ -195,6 +195,11 @@ export default function RecipeEditor() {
       setError('Elegí el insumo o la base de cada ingrediente, o quitá la fila vacía')
       return
     }
+    const untitled = steps.findIndex((s) => !s.title.trim())
+    if (untitled !== -1) {
+      setError(`Paso ${untitled + 1}: falta el título`)
+      return
+    }
     setSaving(true)
     try {
       if (isNew) {
@@ -216,7 +221,7 @@ export default function RecipeEditor() {
 
   const refreshRecipe = async () => {
     try {
-      applyRecipe(await recipesService.get(id))
+      setRecipe(await recipesService.get(id))
     } catch {
       /* el vínculo ya se guardó; el estado se refresca en la próxima carga */
     }

@@ -42,7 +42,7 @@ export default function StepEditor({ step, index, total, onChange, onRemove, onM
           </button>
         </div>
       </div>
-      <Field label="Título (opcional)">
+      <Field label="Título">
         <input type="text" value={step.title} onChange={(e) => onChange({ title: e.target.value })} className={inputClass} />
       </Field>
       <Field label="Indicación">
