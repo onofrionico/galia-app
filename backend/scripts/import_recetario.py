@@ -1,7 +1,10 @@
 """Carga inicial del recetario de pastelería (planilla "Recetario Galia") en el módulo de recetas.
 
 Uso (desde backend/):
-    python scripts/import_recetario.py --user-email admin@... [--apply] [--data ruta.json]
+    python scripts/import_recetario.py [--user-email admin@...] [--apply] [--if-empty] [--data ruta.json]
+
+En el deploy (build.sh) corre con --apply --if-empty: carga el recetario solo la primera vez,
+cuando todavía no hay ninguna receta; después no hace nada y no pisa lo que edite la cocina.
 
 Sin --apply es una prueba: hace todo dentro de una transacción, imprime el informe y
 deshace los cambios. Con --apply guarda (solo si no hubo errores).
@@ -287,11 +290,26 @@ def format_report(report, doubts=()):
     return '\n'.join(lines)
 
 
+def already_loaded():
+    """True si ya hay alguna receta, activa o no (la carga inicial ya pasó o hay recetas propias)."""
+    return db.session.query(Recipe.id).first() is not None
+
+
+def resolve_author(email):
+    """El admin activo con ese email, o el primer admin activo si no se indica. None si no hay."""
+    query = User.query.filter_by(role='admin', is_active=True)
+    if email:
+        return query.filter_by(email=email).first()
+    return query.order_by(User.id).first()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Carga inicial del recetario.')
     parser.add_argument('--apply', action='store_true', help='guardar (sin esto es una prueba)')
-    parser.add_argument('--user-email', required=True, help='admin que figura como autor de las recetas')
+    parser.add_argument('--user-email', help='admin que figura como autor (por defecto, el primer admin activo)')
     parser.add_argument('--data', default=DATA_PATH, help='JSON del recetario')
+    parser.add_argument('--if-empty', action='store_true',
+                        help='no hacer nada si ya hay recetas (para correrlo en cada deploy)')
     args = parser.parse_args(argv)
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
@@ -299,9 +317,12 @@ def main(argv=None):
     from app import create_app
     app = create_app(os.environ.get('FLASK_ENV', 'production'))
     with app.app_context():
-        user = User.query.filter_by(email=args.user_email).first()
-        if user is None or user.role != 'admin' or not user.is_active:
-            print(f'Negado: {args.user_email} no es un admin activo.')
+        if args.if_empty and already_loaded():
+            print('Recetario: ya hay recetas cargadas, no se hace nada.')
+            return 0
+        user = resolve_author(args.user_email)
+        if user is None:
+            print(f'Negado: {args.user_email or "no hay ningún admin activo"} no es un admin activo.')
             return 1
         with open(args.data, encoding='utf-8') as handle:
             data = json.load(handle)

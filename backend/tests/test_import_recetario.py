@@ -234,3 +234,47 @@ def test_curated_recetario_imports_cleanly(app, admin):
     assert float(cookie.yield_quantity) == 6.5
     assert Recipe.query.filter_by(name='Matilda').one().yield_quantity is None
     assert os.path.basename(DATA_PATH) == 'recetario_galia.json'
+
+
+def test_already_loaded_counts_inactive_recipes(app, admin):
+    from scripts.import_recetario import already_loaded
+    assert already_loaded() is False
+    db.session.add(Recipe(name='Vieja', yield_quantity=1, yield_unit='unidad', is_active=False))
+    db.session.commit()
+    assert already_loaded() is True
+
+
+def test_default_author_is_first_active_admin(app, admin):
+    from scripts.import_recetario import resolve_author
+    inactive = User(email='old@test.com', role='admin', is_active=False)
+    inactive.set_password('secret123')
+    employee = User(email='emp@test.com', role='employee', is_active=True)
+    employee.set_password('secret123')
+    db.session.add_all([inactive, employee])
+    db.session.commit()
+
+    assert resolve_author(None) == admin
+    assert resolve_author('admin@test.com') == admin
+    assert resolve_author('emp@test.com') is None
+    assert resolve_author('old@test.com') is None
+
+
+def test_if_empty_skips_when_recipes_exist(app, admin, monkeypatch, capsys):
+    import scripts.import_recetario as module
+    db.session.add(Recipe(name='Editada por la cocinera', yield_quantity=1, yield_unit='unidad'))
+    db.session.commit()
+    monkeypatch.setattr('app.create_app', lambda *_: app)
+
+    assert module.main(['--apply', '--if-empty']) == 0
+    assert 'no se hace nada' in capsys.readouterr().out
+    assert Recipe.query.count() == 1
+
+
+def test_if_empty_loads_curated_recetario_when_empty(app, admin, monkeypatch, capsys):
+    import scripts.import_recetario as module
+    monkeypatch.setattr('app.create_app', lambda *_: app)
+
+    assert module.main(['--apply', '--if-empty']) == 0
+    assert 'Guardado.' in capsys.readouterr().out
+    assert Recipe.query.count() > 0
+    assert all(r.updated_by == admin.id for r in Recipe.query.all())
