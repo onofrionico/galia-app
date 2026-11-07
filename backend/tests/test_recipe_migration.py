@@ -7,7 +7,7 @@ import sqlalchemy as sa
 
 from app import create_app
 from app.extensions import db
-from app.models import Product, ProductCategory, Recipe, Supply
+from app.models import Product, ProductCategory, Recipe, RecipeIngredient, Supply
 from app.services.recipe_service import expand_per_yield_unit
 
 MIGRATION = os.path.join(os.path.dirname(__file__), '..', 'migrations', 'versions', 'b7a0_add_recipes.py')
@@ -98,3 +98,29 @@ def test_copy_compositions_is_idempotent(app):
     recipe = Recipe.query.filter_by(product_id=product.id).one()
     assert Recipe.query.count() == 1
     assert len(recipe.ingredients) == 2
+
+
+def test_copy_compositions_keeps_free_text_supply_unit(app):
+    """Un insumo con unidad libre ('paquete') sigue expandiéndose con la cantidad vieja."""
+    category = ProductCategory(name='Tortas')
+    db.session.add(category)
+    db.session.flush()
+    product = Product(name='Caja de alfajores', category_id=category.id, has_recipe=True)
+    envase = Supply(name='Envase', unit='paquete')
+    db.session.add_all([product, envase])
+    db.session.flush()
+    db.session.execute(_legacy.insert(), [
+        {'product_id': product.id, 'supply_id': envase.id, 'quantity': Decimal('250.0000'), 'unit': 'paquete'},
+    ])
+    db.session.commit()
+    _migration().copy_compositions(db.session.connection())
+    db.session.commit()
+    recipe = Recipe.query.filter_by(product_id=product.id).one()
+    result = expand_per_yield_unit(recipe)
+    assert result.supplies == {envase.id: Decimal('250')}
+    assert result.issues == []
+
+
+def test_copy_compositions_accepts_long_supply_unit(app):
+    assert Recipe.__table__.c.yield_unit.type.length == 50
+    assert RecipeIngredient.__table__.c.unit.type.length == 50

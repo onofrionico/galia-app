@@ -22,21 +22,30 @@ _ALIAS = {
 }
 
 
-def normalize_unit(unit):
-    """Devuelve la unidad canónica ('g', 'kg', 'ml', 'l', 'unidad') o None."""
+def _limpiar(unit):
+    """Minúsculas, sin acentos, sin espacios ni punto final ('' si no hay unidad)."""
     if not unit:
-        return None
+        return ''
     texto = unicodedata.normalize('NFD', str(unit))
     texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
-    texto = ''.join(texto.lower().split()).rstrip('.')
-    return _ALIAS.get(texto)
+    return ''.join(texto.lower().split()).rstrip('.')
+
+
+def normalize_unit(unit):
+    """Devuelve la unidad canónica ('g', 'kg', 'ml', 'l', 'unidad') o None."""
+    return _ALIAS.get(_limpiar(unit))
 
 
 def convert(quantity, from_unit, to_unit):
     """Convierte `quantity` entre unidades de la misma familia.
 
-    Devuelve None si alguna unidad no se reconoce o son de familias distintas.
+    Devuelve None si alguna unidad no se reconoce o son de familias distintas,
+    salvo que ambas sean la misma unidad (texto libre como 'paquete'): ahí la
+    conversión es identidad y devuelve la cantidad sin cambios.
     """
+    limpia = _limpiar(from_unit)
+    if limpia and limpia == _limpiar(to_unit):
+        return Decimal(quantity)
     origen = normalize_unit(from_unit)
     destino = normalize_unit(to_unit)
     if origen is None or destino is None:

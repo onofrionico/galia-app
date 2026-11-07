@@ -34,3 +34,12 @@ def test_convert_cross_family_is_none():
 
 def test_convert_unknown_is_none():
     assert convert(Decimal('2'), 'cucharada', 'g') is None
+
+
+def test_convert_same_free_text_unit_is_identity():
+    assert convert(Decimal('2.5'), 'paquete', 'Paquete') == Decimal('2.5')
+    assert convert(Decimal('1'), ' Lata. ', 'lata') == Decimal('1')
+
+
+def test_convert_different_free_text_units_is_none():
+    assert convert(Decimal('1'), 'paquete', 'caja') is None

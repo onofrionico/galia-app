@@ -76,7 +76,7 @@ def upgrade():
         sa.Column('name', sa.String(length=150), nullable=False),
         sa.Column('product_id', sa.Integer(), sa.ForeignKey('products.id'), nullable=True),
         sa.Column('yield_quantity', sa.Numeric(10, 3), nullable=True),
-        sa.Column('yield_unit', sa.String(length=30), nullable=True),
+        sa.Column('yield_unit', sa.String(length=50), nullable=True),
         sa.Column('total_time_minutes', sa.Integer(), nullable=True),
         sa.Column('advance_notes', sa.Text(), nullable=True),
         sa.Column('notes', sa.Text(), nullable=True),
@@ -97,7 +97,7 @@ def upgrade():
         sa.Column('supply_id', sa.Integer(), sa.ForeignKey('supplies.id'), nullable=True),
         sa.Column('sub_recipe_id', sa.Integer(), sa.ForeignKey('recipes.id'), nullable=True),
         sa.Column('quantity', sa.Numeric(12, 4), nullable=True),
-        sa.Column('unit', sa.String(length=30), nullable=True),
+        sa.Column('unit', sa.String(length=50), nullable=True),
         sa.Column('note', sa.String(length=200), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.CheckConstraint('(supply_id IS NOT NULL AND sub_recipe_id IS NULL) OR '

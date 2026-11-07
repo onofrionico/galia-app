@@ -10,7 +10,7 @@ class Recipe(db.Model):
     name = db.Column(db.String(150), nullable=False, unique=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True, unique=True)
     yield_quantity = db.Column(db.Numeric(10, 3), nullable=True)
-    yield_unit = db.Column(db.String(30), nullable=True)
+    yield_unit = db.Column(db.String(50), nullable=True)
     total_time_minutes = db.Column(db.Integer, nullable=True)
     advance_notes = db.Column(db.Text, nullable=True)   # ej. "1 día de freezer antes de hornear"
     notes = db.Column(db.Text, nullable=True)
@@ -42,7 +42,7 @@ class RecipeIngredient(db.Model):
     supply_id = db.Column(db.Integer, db.ForeignKey('supplies.id'), nullable=True, index=True)
     sub_recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'), nullable=True, index=True)
     quantity = db.Column(db.Numeric(12, 4), nullable=True)  # null = a completar / a ojo
-    unit = db.Column(db.String(30), nullable=True)
+    unit = db.Column(db.String(50), nullable=True)
     note = db.Column(db.String(200), nullable=True)         # "pizca", "a ojo"
 
     supply = db.relationship('Supply')
