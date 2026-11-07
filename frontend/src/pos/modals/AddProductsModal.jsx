@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MoreHorizontal, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { posApi } from '../api/posApi'
 import { useCatalog } from '../hooks/usePosQueries'
 import { useSaleMutation } from '../hooks/useSaleMutation'
@@ -7,7 +7,7 @@ import Chip from '../ui/Chip'
 import Modal from '../ui/Modal'
 import { useModalPresentation } from '../ui/ModalPresentation'
 import { btn } from '../ui/buttons'
-import { addedSummary, filterProducts, needsDetail, priceLabel } from '../utils/catalog'
+import { addedSummary, filterProducts, priceLabel } from '../utils/catalog'
 import ProductDetailStep from './ProductDetailStep'
 
 export const saleTitle = (sale) => (sale.table ? sale.table.label : `Mostrador #${sale.number}`)
@@ -42,10 +42,8 @@ export default function AddProductsModal({ sale, onClose }) {
     }
   }
 
-  const choose = (product) => {
-    if (needsDetail(product)) setDetail(product)
-    else add(product, { variantId: product.variants[0].id })
-  }
+  // Siempre se abre el detalle, para poder poner nota y cantidad antes de agregar.
+  const choose = (product) => setDetail(product)
 
   const onSearchKey = (event) => {
     if (event.key === 'Enter' && products[0] && !busy) {
@@ -79,17 +77,11 @@ export default function AddProductsModal({ sale, onClose }) {
 
       <div className={`${searching ? 'mt-3' : 'mt-4'} grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4`}>
         {products.map((product) => (
-          <div key={product.id} className="relative">
-            <button type="button" disabled={busy} onClick={() => choose(product)}
-              className="flex h-20 w-full flex-col justify-between rounded-lg border border-gray-300 bg-white p-2 pr-7 text-left hover:border-galia-plum disabled:opacity-50">
-              <span className="line-clamp-2 text-sm font-medium">{product.name}</span>
-              <span className="text-xs text-gray-600">{priceLabel(product)}</span>
-            </button>
-            <button type="button" aria-label={`Opciones de ${product.name}`} onClick={() => setDetail(product)}
-              className="absolute right-1 top-1 rounded p-1 text-gray-500 hover:bg-gray-100">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
+          <button key={product.id} type="button" disabled={busy} onClick={() => choose(product)}
+            className="flex h-20 w-full flex-col justify-between rounded-lg border border-gray-300 bg-white p-2 text-left hover:border-galia-plum disabled:opacity-50">
+            <span className="line-clamp-2 text-sm font-medium">{product.name}</span>
+            <span className="text-xs text-gray-600">{priceLabel(product)}</span>
+          </button>
         ))}
       </div>
       {!isLoading && products.length === 0 && <p className="mt-6 text-center text-gray-500">Sin resultados.</p>}
@@ -111,7 +103,7 @@ export default function AddProductsModal({ sale, onClose }) {
       ) : (
         <>
           <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onSearchKey}
-            placeholder="Buscar producto… (Enter agrega el primero)" aria-label="Buscar producto"
+            placeholder="Buscar producto… (Enter abre el primero)" aria-label="Buscar producto"
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-galia-plum focus:outline-none" />
           {searching ? (
             <>
