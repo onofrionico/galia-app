@@ -6,7 +6,7 @@ from app.models.product_category import ProductCategory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.supply import Supply
-from app.models.product_recipe_item import ProductRecipeItem
+from app.models.recipe import Recipe
 import json
 from io import BytesIO
 
@@ -69,7 +69,6 @@ def test_create_product(client, admin_user, category):
             'name': 'Espresso',
             'description': 'Café espresso puro',
             'category_id': category,
-            'has_recipe': True
         },
         headers={'Authorization': f'Bearer {token}'}
     )
@@ -77,7 +76,7 @@ def test_create_product(client, admin_user, category):
     data = json.loads(response.data)
     assert data['name'] == 'Espresso'
     assert data['category_id'] == category
-    assert data['has_recipe'] == True
+    assert data['has_recipe'] == False
     assert data['is_active'] == True
 
 
@@ -191,34 +190,6 @@ def test_update_variant(client, admin_user, category):
     assert data['name'] == 'Double Shot'
     assert float(data['price']) == 3.50
     assert float(data['stock_quantity']) == 50
-
-
-def test_update_recipe(client, admin_user, category, supply):
-    token = get_auth_token(client, 'admin@test.com', 'admin123')
-
-    # Create product with recipe
-    prod_resp = client.post(
-        '/api/v1/products',
-        json={'name': 'Espresso', 'category_id': category, 'has_recipe': True},
-        headers={'Authorization': f'Bearer {token}'}
-    )
-    prod_id = json.loads(prod_resp.data)['id']
-
-    # Update recipe
-    response = client.put(
-        f'/api/v1/products/{prod_id}/recipe',
-        json={
-            'items': [
-                {'supply_id': supply, 'quantity': 20, 'unit': 'g'}
-            ]
-        },
-        headers={'Authorization': f'Bearer {token}'}
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert len(data['recipe']) == 1
-    assert data['recipe'][0]['supply_id'] == supply
-    assert float(data['recipe'][0]['quantity']) == 20
 
 
 def test_low_stock(client, admin_user, category):
@@ -693,43 +664,33 @@ def test_update_product_rejects_non_string_name(client, admin_user, category):
     assert response.status_code == 400
 
 
-def test_recipe_validates_whole_payload_before_replacing(client, admin_user, category, supply):
+def test_has_recipe_is_ignored_on_create_and_update(client, admin_user, category):
     headers = _auth(client)
     product_id = _product(client, headers, category, has_recipe=True)
-    ok = client.put(f'/api/v1/products/{product_id}/recipe',
-                    json={'items': [{'supply_id': supply, 'quantity': 0.5}]}, headers=headers)
-    assert ok.status_code == 200
-    assert ok.get_json()['recipe'][0]['unit'] == 'kg'  # unit por defecto = unidad del insumo
-    bad_payloads = [
-        {'items': 'x'},
-        {'items': ['x']},
-        {'items': [{'supply_id': supply, 'quantity': 0}]},
-        {'items': [{'supply_id': supply, 'quantity': -1}]},
-        {'items': [{'supply_id': supply, 'quantity': 'abc'}]},
-        {'items': [{'supply_id': 'a', 'quantity': 1}]},
-        {'items': [{'supply_id': True, 'quantity': 1}]},
-        {'items': [{'quantity': 1}]},
-        {'items': [{'supply_id': supply, 'quantity': 1}, {'supply_id': supply, 'quantity': 2}]},
-        {'items': [{'supply_id': 9999, 'quantity': 1}]},
-    ]
-    for payload in bad_payloads:
-        response = client.put(f'/api/v1/products/{product_id}/recipe', json=payload, headers=headers)
-        assert response.status_code in (400, 404), payload
-        assert response.status_code == 400, payload
-    # La receta original no se tocó
-    recipe = client.get(f'/api/v1/products/{product_id}/recipe', headers=headers).get_json()['recipe']
-    assert len(recipe) == 1 and recipe[0]['quantity'] == 0.5
+    assert client.get(f'/api/v1/products/{product_id}', headers=headers).get_json()['has_recipe'] is False
+    client.put(f'/api/v1/products/{product_id}', json={'has_recipe': True}, headers=headers)
+    assert client.get(f'/api/v1/products/{product_id}', headers=headers).get_json()['has_recipe'] is False
 
 
-def test_recipe_rejects_inactive_supply(client, app, admin_user, category, supply):
+def test_legacy_recipe_endpoints_are_gone(client, admin_user, category):
     headers = _auth(client)
+    product_id = _product(client, headers, category)
+    assert client.get(f'/api/v1/products/{product_id}/recipe', headers=headers).status_code in (404, 405)
+    assert client.put(f'/api/v1/products/{product_id}/recipe', json={'items': []},
+                      headers=headers).status_code in (404, 405)
+
+
+def test_product_detail_shows_linked_recipe(client, app, admin_user, category):
+    headers = _auth(client)
+    product_id = _product(client, headers, category)
+    assert client.get(f'/api/v1/products/{product_id}', headers=headers).get_json()['recipe'] is None
     with app.app_context():
-        db.session.get(Supply, supply).is_active = False
+        recipe = Recipe(name='Torta base', product_id=product_id, yield_quantity=1, yield_unit='unidad')
+        db.session.add(recipe)
         db.session.commit()
-    product_id = _product(client, headers, category, has_recipe=True)
-    response = client.put(f'/api/v1/products/{product_id}/recipe',
-                          json={'items': [{'supply_id': supply, 'quantity': 1}]}, headers=headers)
-    assert response.status_code == 400
+        recipe_id = recipe.id
+    detail = client.get(f'/api/v1/products/{product_id}', headers=headers).get_json()
+    assert detail['recipe'] == {'id': recipe_id, 'name': 'Torta base'}
 
 
 def test_list_products_caps_per_page(client, admin_user, category):
