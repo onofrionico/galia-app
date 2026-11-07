@@ -8,6 +8,8 @@ class Schedule(db.Model):
     start_date = db.Column(db.Date, nullable=False, index=True)
     end_date = db.Column(db.Date, nullable=False, index=True)
     status = db.Column(db.String(20), nullable=False, default='draft')
+    # Si está publicada y es pública, todos los empleados ven la grilla completa (no solo su horario)
+    is_public = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -25,6 +27,7 @@ class Schedule(db.Model):
             'start_date': self.start_date.isoformat(),
             'end_date': self.end_date.isoformat(),
             'status': self.status,
+            'is_public': bool(self.is_public),
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

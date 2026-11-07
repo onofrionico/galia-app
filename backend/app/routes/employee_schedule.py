@@ -118,3 +118,23 @@ def get_my_schedule_summary(current_user):
     summary = EmployeeScheduleService.get_employee_schedule_summary(employee.id, start_date, end_date)
     
     return jsonify(summary), 200
+
+@bp.route('/team/weekly', methods=['GET'])
+@token_required
+@authenticated_only
+def get_team_weekly_schedule(current_user):
+    """Grilla completa de la semana, solo con los turnos de grillas publicadas y marcadas como públicas."""
+    start_date = request.args.get('start_date')
+
+    if start_date:
+        try:
+            start_date = datetime.fromisoformat(start_date).date()
+        except (ValueError, AttributeError):
+            return jsonify({'error': 'Formato de fecha inválido'}), 400
+
+    employee = Employee.query.filter_by(user_id=current_user.id).first()
+    schedule = EmployeeScheduleService.get_team_weekly_schedule(
+        start_date, viewer_employee_id=employee.id if employee else None
+    )
+
+    return jsonify(schedule), 200

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { employeeScheduleService } from '../services/employeeScheduleService'
-import { Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Clock, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import WeeklyScheduleView from '../components/schedules/WeeklyScheduleView'
 import MonthlyScheduleView from '../components/schedules/MonthlyScheduleView'
+import TeamScheduleView from '../components/schedules/TeamScheduleView'
 
 const formatDateLocal = (date) => {
   const year = date.getFullYear()
@@ -15,6 +16,7 @@ const MySchedule = () => {
   const [view, setView] = useState('weekly')
   const [weeklySchedule, setWeeklySchedule] = useState(null)
   const [monthlySchedule, setMonthlySchedule] = useState(null)
+  const [teamSchedule, setTeamSchedule] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -32,6 +34,10 @@ const MySchedule = () => {
         const startDate = getWeekStart(currentDate)
         const data = await employeeScheduleService.getMyWeeklySchedule(formatDateLocal(startDate))
         setWeeklySchedule(data)
+      } else if (view === 'team') {
+        const startDate = getWeekStart(currentDate)
+        const data = await employeeScheduleService.getTeamWeeklySchedule(formatDateLocal(startDate))
+        setTeamSchedule(data)
       } else {
         const year = currentDate.getFullYear()
         const month = currentDate.getMonth() + 1
@@ -54,7 +60,7 @@ const MySchedule = () => {
 
   const navigatePrevious = () => {
     const newDate = new Date(currentDate)
-    if (view === 'weekly') {
+    if (view !== 'monthly') {
       newDate.setDate(newDate.getDate() - 7)
     } else {
       newDate.setMonth(newDate.getMonth() - 1)
@@ -64,7 +70,7 @@ const MySchedule = () => {
 
   const navigateNext = () => {
     const newDate = new Date(currentDate)
-    if (view === 'weekly') {
+    if (view !== 'monthly') {
       newDate.setDate(newDate.getDate() + 7)
     } else {
       newDate.setMonth(newDate.getMonth() + 1)
@@ -77,7 +83,7 @@ const MySchedule = () => {
   }
 
   const getDisplayTitle = () => {
-    if (view === 'weekly') {
+    if (view !== 'monthly') {
       const weekStart = getWeekStart(currentDate)
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
@@ -117,6 +123,17 @@ const MySchedule = () => {
             <Calendar className="w-4 h-4" />
             <span className="hidden sm:inline">Mensual</span>
             <span className="sm:hidden">Mes</span>
+          </button>
+          <button
+            onClick={() => setView('team')}
+            className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base flex items-center gap-1 md:gap-2 ${
+              view === 'team'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Equipo</span>
           </button>
         </div>
       </div>
@@ -164,6 +181,10 @@ const MySchedule = () => {
 
         {!loading && !error && view === 'weekly' && weeklySchedule && (
           <WeeklyScheduleView schedule={weeklySchedule} />
+        )}
+
+        {!loading && !error && view === 'team' && teamSchedule && (
+          <TeamScheduleView schedule={teamSchedule} />
         )}
 
         {!loading && !error && view === 'monthly' && monthlySchedule && (
