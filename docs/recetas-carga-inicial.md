@@ -196,7 +196,15 @@ receta los pasaría a stock de producto terminado.
 
 ## Cómo correrlo en producción
 
-Desde `backend/`, con `DATABASE_URL` de producción y la base ya migrada (con las
+**Automático en el deploy.** `build.sh` corre
+`python scripts/import_recetario.py --apply --if-empty` después de las migraciones.
+Con `--if-empty` solo carga si todavía no hay ninguna receta (ni siquiera
+desactivada). Así el recetario entra en el primer deploy y en los siguientes no se
+hace nada, aunque la cocinera haya renombrado o editado recetas. El informe queda en
+el log del build. Si la carga falla, el build sigue y el log muestra un `AVISO`. Si no
+se pasa `--user-email`, figura como autor el primer admin activo.
+
+**A mano** (por ejemplo, para probar otra versión del JSON): desde `backend/`, con `DATABASE_URL` de producción y la base ya migrada (con las
 migraciones de recetas aplicadas). `--user-email` es un admin activo: figura como
 quien cargó las recetas.
 
