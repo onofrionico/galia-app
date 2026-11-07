@@ -3,6 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import event
 
 from app import create_app
 from app.extensions import db
@@ -17,6 +18,12 @@ PASSWORD = 'secret123'
 def pos_app():
     app = create_app('testing')
     with app.app_context():
+        # Postgres aplica las claves foráneas; SQLite solo si se lo pedimos.
+        @event.listens_for(db.engine, 'connect')
+        def _fk_on(dbapi_connection, _record):
+            dbapi_connection.execute('PRAGMA foreign_keys=ON')
+
+        db.engine.dispose()
         db.create_all()
         yield app
         db.session.remove()

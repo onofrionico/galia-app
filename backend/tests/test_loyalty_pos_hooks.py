@@ -117,8 +117,9 @@ def test_delete_pending_redemption_item_refunds_once(pos_app):
     _seed(customer, 5)
     sale = _open_with(cashier, cat, customer, medialunas=0)
     sale = pos_hooks.add_redemption(cashier, sale.id, reward.id, None)
-    sale_service.delete_item(cashier, sale.id, sale.items[-1].id)
+    sale = sale_service.delete_item(cashier, sale.id, sale.items[-1].id)
     assert balance_of(customer) == 5
+    assert sale.items[-1].status == 'cancelled' and sale.total == 0
     assert LoyaltyMovement.query.filter_by(kind='redeem_reversal').count() == 1
 
 

@@ -1,6 +1,13 @@
 import { clearToken, getToken } from './session'
 
-const API = `${import.meta.env.VITE_API_URL || ''}/api/public/loyalty`
+// Sin VITE_API_URL en producción no hay backend al que llamar (la carta es un sitio estático).
+export function apiBase(env) {
+  if (env.VITE_API_URL) return `${env.VITE_API_URL}/api/public/loyalty`
+  return env.PROD ? null : '/api/public/loyalty'
+}
+
+const API = apiBase(import.meta.env)
+export const apiConfigured = API !== null
 
 export class ApiError extends Error {
   constructor(status, body) {
@@ -11,6 +18,7 @@ export class ApiError extends Error {
 }
 
 async function request(path, { method = 'GET', body, auth = true } = {}) {
+  if (!apiConfigured) throw new ApiError(503, { error: 'Mis cafecitos todavía no está configurado.' })
   const headers = { 'Content-Type': 'application/json' }
   const token = auth ? getToken() : null
   if (token) headers.Authorization = `Bearer ${token}`

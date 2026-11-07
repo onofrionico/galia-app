@@ -154,7 +154,16 @@ def delete_item(user, sale_id, item_id):
     if item.status != 'pending':
         raise PosError('El ítem ya fue confirmado; para quitarlo hay que anularlo')
     if item.is_redemption:
+        # El canje no se borra: queda anulado para que sus movimientos de cafecitos conserven el origen.
         wallet.reverse_redemption(item, user)
+        item.status = 'cancelled'
+        item.cancelled_at = now()
+        item.cancelled_by = user.id
+        item.cancel_reason = 'Canje quitado antes de confirmar'
+        audit.record(sale, user, 'item_deleted', item_id=item.id, product=item.product_name, redemption=True)
+        recalc(sale)
+        db.session.commit()
+        return sale
     audit.record(sale, user, 'item_deleted', item_id=item.id, product=item.product_name, variant=item.variant_name,
                  quantity=item.quantity, modifiers=[m.option_name for m in item.modifiers], note=item.note)
     sale.items.remove(item)

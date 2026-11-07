@@ -15,6 +15,7 @@ from app.services.loyalty.errors import LoyaltyError
 
 TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo'
 TOKEN_DAYS = 90
+GOOGLE_ISSUERS = ('accounts.google.com', 'https://accounts.google.com')
 
 
 def verify_google_credential(credential):
@@ -30,7 +31,8 @@ def verify_google_credential(credential):
     if resp.status_code != 200:
         raise LoyaltyError('Credencial de Google inválida', 401)
     data = resp.json()
-    if data.get('aud') != client_id or str(data.get('email_verified')).lower() != 'true' or not data.get('sub'):
+    if (data.get('aud') != client_id or data.get('iss') not in GOOGLE_ISSUERS
+            or str(data.get('email_verified')).lower() != 'true' or not data.get('sub')):
         raise LoyaltyError('Credencial de Google inválida', 401)
     return {'sub': data['sub'], 'email': data.get('email'), 'given_name': data.get('given_name'),
             'family_name': data.get('family_name')}
