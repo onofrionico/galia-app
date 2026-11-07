@@ -1,7 +1,7 @@
 """Fidelización: clientes, premios, movimientos de cafecitos, configuración, historial y módulo
 
 Revision ID: b7a0_loyalty
-Revises: b6c0_printer_chars_per_line
+Revises: b6e0_schedule_is_public
 Create Date: 2026-11-06 12:00:00.000000
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision = 'b7a0_loyalty'
-down_revision = 'b6c0_printer_chars_per_line'
+down_revision = 'b6e0_schedule_is_public'
 branch_labels = None
 depends_on = None
 
