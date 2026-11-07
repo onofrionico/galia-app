@@ -37,6 +37,56 @@ class EmployeeScheduleService:
         }
     
     @staticmethod
+    def get_team_weekly_schedule(start_date=None, viewer_employee_id=None):
+        """Turnos de todos los empleados en la semana, de grillas publicadas y públicas."""
+        if not start_date:
+            today = datetime.now().date()
+            start_date = today - timedelta(days=today.weekday())
+        else:
+            start_date = start_date - timedelta(days=start_date.weekday())
+
+        end_date = start_date + timedelta(days=6)
+
+        shifts = Shift.query.join(Schedule).filter(
+            and_(
+                Shift.shift_date >= start_date,
+                Shift.shift_date <= end_date,
+                Schedule.status == 'published',
+                Schedule.is_public.is_(True),
+            )
+        ).order_by(Shift.shift_date, Shift.start_time).all()
+
+        by_employee = {}
+        for shift in shifts:
+            row = by_employee.setdefault(shift.employee_id, {
+                'employee_id': shift.employee_id,
+                'employee_name': shift.employee.full_name if shift.employee else None,
+                'is_me': shift.employee_id == viewer_employee_id,
+                'total_hours': 0.0,
+                'shifts': [],
+            })
+            row['shifts'].append({
+                'id': shift.id,
+                'shift_date': shift.shift_date.isoformat(),
+                'start_time': shift.start_time.strftime('%H:%M'),
+                'end_time': shift.end_time.strftime('%H:%M'),
+                'hours': float(shift.hours),
+            })
+            row['total_hours'] += float(shift.hours)
+
+        employees = sorted(
+            by_employee.values(),
+            key=lambda r: (not r['is_me'], (r['employee_name'] or '').lower()),
+        )
+
+        return {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'days': [(start_date + timedelta(days=i)).isoformat() for i in range(7)],
+            'employees': employees,
+        }
+
+    @staticmethod
     def get_employee_monthly_schedule(employee_id, year=None, month=None):
         """Get employee's monthly schedule for a specific month"""
         if year is None or month is None:
