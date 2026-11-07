@@ -3,6 +3,20 @@ import { Link2, Info } from 'lucide-react'
 import productsService from '@/services/productsService'
 import recipesService from '@/services/recipesService'
 
+// El backend limita per_page a 200: se recorren todas las páginas para no dejar productos afuera.
+async function loadAllProducts() {
+  const all = []
+  let page = 1
+  let pages = 1
+  do {
+    const res = await productsService.getProducts({ per_page: 200, page })
+    all.push(...(res.products || []))
+    pages = res.pages || 1
+    page += 1
+  } while (page <= pages)
+  return all
+}
+
 // Vincula una receta ya guardada con un producto y decide si gobierna el stock.
 export default function ProductLinkPanel({ recipe, onLinked }) {
   const linked = recipe.product
@@ -16,9 +30,8 @@ export default function ProductLinkPanel({ recipe, onLinked }) {
 
   useEffect(() => {
     let cancelled = false
-    productsService
-      .getProducts({ per_page: 200 })
-      .then((res) => { if (!cancelled) setProducts(res.products || []) })
+    loadAllProducts()
+      .then((list) => { if (!cancelled) setProducts(list) })
       .catch(() => { if (!cancelled) setError('No se pudieron cargar los productos') })
     return () => { cancelled = true }
   }, [])
@@ -76,7 +89,14 @@ export default function ProductLinkPanel({ recipe, onLinked }) {
         Producto
         <select
           value={productId}
-          onChange={(e) => { setProductId(e.target.value); setUnits({}); setSaved(false) }}
+          onChange={(e) => {
+            const next = e.target.value
+            setProductId(next)
+            // Solo se hereda el stock por receta si es el producto ya vinculado.
+            setStockActive(Boolean(linked) && String(linked.id) === next && Boolean(linked.has_recipe))
+            setUnits({})
+            setSaved(false)
+          }}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900"
         >
           <option value="">Sin producto (receta base)</option>

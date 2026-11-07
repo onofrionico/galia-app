@@ -101,6 +101,17 @@ cucharadas y cucharaditas se cargaron como tales (por ejemplo "2 cditas." = 2
 cucharaditas): Galia no las puede pasar a gramos, así que el costo de esos
 ingredientes queda incompleto hasta que se cambien a gramos.
 
+**Unidades que no se convierten.** Si un ingrediente está en una unidad que no se puede
+pasar a la del insumo (por ejemplo gramos contra un insumo en unidades), la receta se
+carga igual, pero ese ingrediente **no descuenta stock y su costo queda incompleto**
+hasta corregir la unidad. Casos conocidos en la planilla:
+
+- **Masa de muffins**: "Huevo 350 g" (el insumo Huevo va en unidad) y "Aceite 300 g"
+  (el aceite se mide en ml).
+- **Souffle de nuez**: "Nuez 5 unidad" (el insumo Nuez va en kg).
+
+Ambas recetas lo avisan en su "a completar".
+
 ## Dudas para pastelería
 
 1. **Galletitas de nuez**: la lista dice "2 huevos" y el paso 4 dice "agregar la yema".
@@ -165,6 +176,23 @@ Harina común, Harina de almendras, Huevo, Leche, Mandioca, Manteca, Manzana, Me
 de frutos rojos, Miel, Nuez, Nuez y almendras, Nutella, Pasta de pistacho, Polvo de
 hornear, Premezcla, Queso reggianito, Queso sardo, Queso tybo, Sal, Sal fina, Sal
 gruesa. La lista exacta de los que se van a crear la da el informe de prueba.
+
+## Antes de correrlo: chequeos en producción
+
+Correr estas dos consultas primero y arreglar lo que devuelvan:
+
+```
+SELECT id,name,unit FROM supplies WHERE btrim(unit,' .')='';
+```
+
+Insumos cuya unidad no tiene letras: una unidad así deja de descontar stock.
+
+```
+SELECT id,name FROM products WHERE has_recipe AND track_stock;
+```
+
+Productos con receta y stock propio a la vez: guardar el vínculo desde el panel de la
+receta los pasaría a stock de producto terminado.
 
 ## Cómo correrlo en producción
 

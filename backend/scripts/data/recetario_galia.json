@@ -29,7 +29,7 @@
       "total_time_minutes": null,
       "advance_notes": null,
       "notes": "Base extraída: la planilla la trae igual en los tres muffins (chispitas de chocolate, frutos rojos, manzana y canela).",
-      "pending_notes": "Rendimiento cargado como \"1 tanda\": es la masa de una tanda de muffins (1 kg de premezcla).\nLa planilla no dice en qué momento se agrega la premezcla.",
+      "pending_notes": "Rendimiento cargado como \"1 tanda\": es la masa de una tanda de muffins (1 kg de premezcla).\nLa planilla no dice en qué momento se agrega la premezcla.\nUnidades que no convierten: \"Huevo 350 g\" (el insumo Huevo se usa en unidad) y \"Aceite 300 g\" (el aceite se mide en volumen): no descuentan stock y su costo queda incompleto hasta pasarlos a unidad y ml.",
       "ingredients": [
         {"supply_name": "Premezcla", "quantity": 1, "unit": "kg", "note": null},
         {"supply_name": "Huevo", "quantity": 350, "unit": "g", "note": "la planilla dice \"Huevos 350 gr\""},
@@ -467,7 +467,7 @@
       "total_time_minutes": null,
       "advance_notes": null,
       "notes": null,
-      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nLa planilla no dice en qué momento se incorporan las claras batidas.\nNueces caramelizadas: el azúcar para caramelizar no está en la lista.",
+      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nLa planilla no dice en qué momento se incorporan las claras batidas.\nNueces caramelizadas: el azúcar para caramelizar no está en la lista.\nUnidades que no convierten: \"Nuez 5 unidad\" (el insumo Nuez va en kg): no descuenta stock y su costo queda incompleto hasta pasarla a gramos.",
       "ingredients": [
         {"supply_name": "Nuez", "quantity": 275, "unit": "g", "note": null},
         {"supply_name": "Harina de almendras", "quantity": 40, "unit": "g", "note": null},

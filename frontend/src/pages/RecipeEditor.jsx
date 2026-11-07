@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Save } from 'lucide-react'
+import { ArrowLeft, Plus, Save, Power } from 'lucide-react'
 import recipesService from '@/services/recipesService'
-import suppliesService from '@/services/suppliesService'
 import IngredientRow, { UNIT_SUGGESTIONS } from '@/components/recipes/IngredientRow'
 import StepEditor from '@/components/recipes/StepEditor'
 import ProductLinkPanel from '@/components/recipes/ProductLinkPanel'
@@ -60,19 +59,6 @@ const fromRecipe = (r) => ({
   })),
 })
 
-async function loadAllSupplies() {
-  const all = []
-  let page = 1
-  let pages = 1
-  do {
-    const res = await suppliesService.getSupplies({ per_page: 200, page })
-    all.push(...(res.supplies || []))
-    pages = res.pages || 1
-    page += 1
-  } while (page <= pages)
-  return all
-}
-
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900'
 
 const Field = ({ label, className = '', children }) => (
@@ -108,11 +94,12 @@ export default function RecipeEditor() {
 
   useEffect(() => {
     let cancelled = false
-    loadAllSupplies()
+    recipesService
+      .supplies()
       .then((list) => { if (!cancelled) setSupplies(list) })
       .catch((err) => {
         if (!cancelled) setError(err.response?.status === 403
-          ? 'Necesitás acceso a Stock para elegir insumos'
+          ? 'No tenés permiso para elegir insumos'
           : 'No se pudieron cargar los insumos')
       })
     recipesService
@@ -215,6 +202,21 @@ export default function RecipeEditor() {
       setError(err.response?.data?.error || 'No se pudo guardar la receta')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeactivate = async () => {
+    if (!window.confirm(`¿Desactivar la receta "${recipe.name}"? Dejará de aparecer en la lista.`)) return
+    setError('')
+    setNotice('')
+    setSaving(true)
+    try {
+      await recipesService.remove(id)
+      navigate('/recipes')
+    } catch (err) {
+      setError(err.response?.data?.error || 'No se pudo desactivar la receta')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       setSaving(false)
     }
   }
@@ -337,7 +339,19 @@ export default function RecipeEditor() {
       {isNew ? (
         <p className="text-sm text-gray-500">Guardá la receta para poder vincularla a un producto.</p>
       ) : (
-        <ProductLinkPanel key={recipe.id} recipe={recipe} onLinked={refreshRecipe} />
+        <>
+          <ProductLinkPanel key={recipe.id} recipe={recipe} onLinked={refreshRecipe} />
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handleDeactivate}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium disabled:opacity-50"
+            >
+              <Power className="w-4 h-4" /> Desactivar receta
+            </button>
+          </div>
+        </>
       )}
     </div>
   )

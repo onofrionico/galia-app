@@ -9,6 +9,11 @@ const recipesService = {
     return response.data
   },
 
+  async supplies() {
+    const response = await api.get('/recipes/supplies')
+    return response.data
+  },
+
   async get(id) {
     const response = await api.get(`/recipes/${id}`)
     return response.data

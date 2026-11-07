@@ -55,7 +55,8 @@ export default function IngredientRow({ ingredient, options, onChange, onRemove 
       kind: o.kind,
       ref_id: o.id,
       name: o.name,
-      unit: ingredient.unit || o.unit || '',
+      // Al cambiar de insumo o base la unidad vieja puede no convertirse: se toma la del elegido.
+      unit: o.unit || '',
     })
 
   return (
