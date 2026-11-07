@@ -4,7 +4,6 @@ from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
-from app.models.product_recipe_item import ProductRecipeItem
 from app.models.product_category import ProductCategory
 from app.models.supply import Supply
 from app.models.menu import FudoProduct
@@ -25,7 +24,6 @@ UPLOAD_OVERHEAD_BYTES = 1024 * 1024  # overhead multipart
 # Límites según la capacidad de las columnas Numeric (exclusivos)
 MAX_PRICE = Decimal('100000000')      # Numeric(10, 2)
 MAX_STOCK = Decimal('10000000')       # Numeric(10, 3)
-MAX_RECIPE_QTY = Decimal('1000000')   # Numeric(10, 4)
 
 bp = Blueprint('products', __name__, url_prefix='/api/v1/products')
 
@@ -117,7 +115,6 @@ def create_product(current_user):
         description=description,
         category_id=data['category_id'],
         image_url=image_url,
-        has_recipe=bool(data.get('has_recipe', False)),
         track_stock=bool(data.get('track_stock', False)),
     )
 
@@ -168,9 +165,6 @@ def update_product(current_user, product_id):
     except ValueError as exc:
         db.session.rollback()
         return jsonify({'error': str(exc)}), 400
-
-    if 'has_recipe' in data:
-        product.has_recipe = bool(data['has_recipe'])
 
     if 'track_stock' in data:
         product.track_stock = bool(data['track_stock'])
@@ -288,68 +282,6 @@ def delete_variant(current_user, product_id, variant_id):
     variant.is_active = False
     db.session.commit()
     return jsonify({'message': 'Variante desactivada correctamente'}), 200
-
-
-@bp.route('/<int:product_id>/recipe', methods=['GET'])
-@token_required
-@authenticated_only
-def get_recipe(current_user, product_id):
-    product = Product.query.get_or_404(product_id)
-    if not product.has_recipe:
-        return jsonify({'recipe': []}), 200
-
-    items = ProductRecipeItem.query.filter_by(product_id=product_id).all()
-    return jsonify({'recipe': [i.to_dict() for i in items], 'total': len(items)}), 200
-
-
-@bp.route('/<int:product_id>/recipe', methods=['PUT'])
-@token_required
-@module_required('Products')
-def update_recipe(current_user, product_id):
-    Product.query.get_or_404(product_id)
-    data = json_object()
-    if data is None:
-        return _bad_body()
-    items = data.get('items', [])
-    if not isinstance(items, list):
-        return jsonify({'error': 'items debe ser una lista'}), 400
-
-    # Validar todo el payload antes de tocar la receta existente
-    validated = []
-    seen = set()
-    try:
-        for item in items:
-            if not isinstance(item, dict):
-                return jsonify({'error': 'Cada ítem de la receta debe ser un objeto'}), 400
-            supply_id = item.get('supply_id')
-            if not _valid_id(supply_id):
-                return jsonify({'error': 'supply_id inválido'}), 400
-            if supply_id in seen:
-                return jsonify({'error': f'Insumo {supply_id} repetido en la receta'}), 400
-            seen.add(supply_id)
-            supply = db.session.get(Supply, supply_id)
-            if not supply or not supply.is_active:
-                return jsonify({'error': f'Insumo {supply_id} no encontrado o inactivo'}), 400
-            quantity = parse_decimal(item.get('quantity'), 'La cantidad', maximum=MAX_RECIPE_QTY)
-            if quantity <= 0:
-                return jsonify({'error': 'La cantidad debe ser mayor a 0'}), 400
-            unit = clean_str(item.get('unit'), 50) or supply.unit
-            validated.append((supply_id, quantity, unit))
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
-
-    ProductRecipeItem.query.filter_by(product_id=product_id).delete()
-    for supply_id, quantity, unit in validated:
-        db.session.add(ProductRecipeItem(
-            product_id=product_id,
-            supply_id=supply_id,
-            quantity=quantity,
-            unit=unit,
-        ))
-
-    db.session.commit()
-    items = ProductRecipeItem.query.filter_by(product_id=product_id).all()
-    return jsonify({'recipe': [i.to_dict() for i in items]}), 200
 
 
 @bp.route('/low-stock', methods=['GET'])

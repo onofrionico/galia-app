@@ -124,3 +124,35 @@ def test_copy_compositions_keeps_free_text_supply_unit(app):
 def test_copy_compositions_accepts_long_supply_unit(app):
     assert Recipe.__table__.c.yield_unit.type.length == 50
     assert RecipeIngredient.__table__.c.unit.type.length == 50
+
+
+def test_drop_migration_downgrade_restores_unit_yield_recipes(app):
+    """El downgrade de b7a1 repuebla la tabla legada sólo con recetas de rinde 1, en unidad del insumo."""
+    spec = importlib.util.spec_from_file_location(
+        'b7a1', os.path.join(os.path.dirname(MIGRATION), 'b7a1_drop_product_recipe_items.py'))
+    drop = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(drop)
+
+    category = ProductCategory(name='Tortas')
+    db.session.add(category)
+    db.session.flush()
+    uno = Product(name='Uno', category_id=category.id, has_recipe=True)
+    lote = Product(name='Lote', category_id=category.id, has_recipe=True)
+    harina = Supply(name='Harina', unit='kg')
+    sal = Supply(name='Sal', unit='kg')
+    db.session.add_all([uno, lote, harina, sal])
+    db.session.flush()
+    for product, yield_quantity in ((uno, 1), (lote, 12)):
+        recipe = Recipe(name=product.name, product_id=product.id, yield_quantity=yield_quantity, yield_unit='u')
+        db.session.add(recipe)
+        db.session.flush()
+        db.session.add(RecipeIngredient(recipe_id=recipe.id, supply_id=harina.id, quantity=Decimal('250'), unit='g'))
+        if product is uno:
+            db.session.add(RecipeIngredient(recipe_id=recipe.id, position=1, supply_id=sal.id, quantity=None, unit='kg'))
+    db.session.commit()
+
+    drop.restore_compositions(db.session.connection())
+    db.session.commit()
+    rows = db.session.execute(_legacy.select()).fetchall()
+    assert [(r.product_id, r.supply_id, r.quantity, r.unit) for r in rows] == [
+        (uno.id, harina.id, Decimal('0.25'), 'kg')]

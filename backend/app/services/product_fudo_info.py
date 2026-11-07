@@ -2,7 +2,6 @@
 from decimal import Decimal, InvalidOperation
 
 from app.extensions import db
-from app.models.product_recipe_item import ProductRecipeItem
 from app.models.product_variant import ProductVariant
 
 FUDO_LOCKED_ERROR = 'Este dato se edita en Fudo'
@@ -81,11 +80,11 @@ def changes_locked(data, fields, obj):
 
 
 def product_detail(product):
-    """Formato de GET /products/<id>: todas las variantes, receta si tiene y datos de Fudo."""
+    """Formato de GET /products/<id>: todas las variantes, receta vinculada y datos de Fudo."""
     data = product.to_dict()
     variants = ProductVariant.query.filter_by(product_id=product.id).order_by(ProductVariant.id).all()
     data['variants'] = [v.to_dict() for v in variants]
-    if product.has_recipe:
-        data['recipe'] = [r.to_dict() for r in ProductRecipeItem.query.filter_by(product_id=product.id).all()]
+    recipe = product.recipe
+    data['recipe'] = {'id': recipe.id, 'name': recipe.name} if recipe is not None else None
     data.update(fudo_payload(fudo_info([product.id]).get(product.id)))
     return data
