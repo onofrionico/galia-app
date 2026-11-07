@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import Recipe
+from app.models import Recipe, Supply
 from app.services.recipe_service import (RecipeError, deactivate_recipe, link_product, save_recipe,
                                          serialize_recipe, serialize_recipe_summary)
 from app.utils.decorators import module_required
@@ -43,7 +43,7 @@ def _commit(action, user, status=200, full=True):
 
 @bp.route('', methods=['GET'])
 @token_required
-@module_required('Recipes')
+@module_required('Recipes', 'RecipesAdmin')
 def list_recipes(current_user):
     query = Recipe.query.filter(Recipe.is_active.is_(True))
     search = request.args.get('q', '').strip()
@@ -55,9 +55,18 @@ def list_recipes(current_user):
     return jsonify([serialize_recipe_summary(r, include_cost) for r in query.order_by(Recipe.name)]), 200
 
 
+@bp.route('/supplies', methods=['GET'])
+@token_required
+@module_required('RecipesAdmin')
+def list_recipe_supplies(current_user):
+    """Insumos activos para el editor, sin exigir el módulo Stock."""
+    supplies = Supply.query.filter(Supply.is_active.is_(True)).order_by(Supply.name).all()
+    return jsonify([{'id': s.id, 'name': s.name, 'unit': s.unit} for s in supplies]), 200
+
+
 @bp.route('/<int:recipe_id>', methods=['GET'])
 @token_required
-@module_required('Recipes')
+@module_required('Recipes', 'RecipesAdmin')
 def get_recipe(current_user, recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     return jsonify(serialize_recipe(recipe, _include_cost(current_user))), 200

@@ -29,12 +29,13 @@ def world(pos_app):
     cost_viewer = make_user('cost@x.com', modules=['Recipes', 'RecipeCosts'])
     editor = make_user('editor@x.com', modules=['Recipes', 'RecipesAdmin'])
     nobody = make_user('nobody@x.com')
+    admin_only = make_user('adminonly@x.com', modules=['RecipesAdmin'])
     db.session.add(variant)
     db.session.add(SupplyPrice(supply_id=harina.id, price=Decimal('1000'), recorded_at=date(2026, 1, 1),
                                created_by=viewer.id))
     db.session.commit()
     return dict(product=product, variant=variant, harina=harina, viewer=viewer, cost_viewer=cost_viewer,
-                editor=editor, nobody=nobody)
+                editor=editor, nobody=nobody, admin_only=admin_only)
 
 
 def _headers(client, user):
@@ -234,3 +235,18 @@ def test_list_filters_bases(client, world):
     assert [r['name'] for r in found] == ['Con producto']
     detail = client.get(f"/api/v1/recipes/{base['id']}", headers=headers).get_json()
     assert detail['used_in'] == []
+
+
+def test_recipes_admin_alone_can_use_editor_endpoints(client, world):
+    recipe = _create(client, world)
+    headers = _headers(client, world['admin_only'])
+    assert client.get('/api/v1/recipes', headers=headers).status_code == 200
+    assert client.get(f"/api/v1/recipes/{recipe['id']}", headers=headers).status_code == 200
+    response = client.get('/api/v1/recipes/supplies', headers=headers)
+    assert response.status_code == 200
+    assert response.get_json() == [{'id': world['harina'].id, 'name': 'Harina', 'unit': 'kg'}]
+
+
+def test_recipes_viewer_cannot_list_supplies(client, world):
+    response = client.get('/api/v1/recipes/supplies', headers=_headers(client, world['viewer']))
+    assert response.status_code == 403
