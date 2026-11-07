@@ -11,6 +11,7 @@ from app.services import cutover, menu_sync_service
 from app.utils.fudo_client import FudoClient
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
+from app.utils.permissions import check_module_access
 from app.utils.validation import clean_str, json_object, parse_decimal
 from app.services.menu_image_service import MAX_UPLOAD_BYTES, InvalidImageError, process_image
 from app.utils.menu_storage import get_menu_storage, public_url
@@ -36,6 +37,11 @@ def _bad_body():
 
 def _fudo_locked():
     return jsonify({'error': FUDO_LOCKED_ERROR}), 409
+
+
+def _include_cost(user):
+    """El costo de la receta sólo se muestra con el módulo RecipeCosts."""
+    return check_module_access(user, 'RecipeCosts')
 
 
 def _valid_id(value):
@@ -128,7 +134,7 @@ def create_product(current_user):
 @authenticated_only
 def get_product(current_user, product_id):
     product = Product.query.get_or_404(product_id)
-    return jsonify(product_detail(product)), 200
+    return jsonify(product_detail(product, _include_cost(current_user))), 200
 
 
 @bp.route('/<int:product_id>', methods=['PUT'])
@@ -173,7 +179,7 @@ def update_product(current_user, product_id):
         product.is_active = bool(data['is_active'])
 
     db.session.commit()
-    return jsonify(product_detail(product)), 200
+    return jsonify(product_detail(product, _include_cost(current_user))), 200
 
 
 @bp.route('/<int:product_id>', methods=['DELETE'])
@@ -416,7 +422,7 @@ def attach_fudo_variant(current_user, product_id):
         _refresh_active(source)
     _refresh_active(product)
     db.session.commit()
-    return jsonify(product_detail(product)), 200
+    return jsonify(product_detail(product, _include_cost(current_user))), 200
 
 
 @bp.route('/<int:product_id>/variants/<int:variant_id>/detach', methods=['POST'])
@@ -436,4 +442,4 @@ def detach_variant(current_user, product_id, variant_id):
     variant.product_id = new_product.id
     _refresh_active(product)
     db.session.commit()
-    return jsonify(product_detail(new_product)), 201
+    return jsonify(product_detail(new_product, _include_cost(current_user))), 201
