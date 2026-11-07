@@ -15,6 +15,12 @@ export default function ProductDetailStep({ product, busy, onBack, onAdd }) {
   const error = selectionError(groups, selected)
 
   const submit = () => onAdd({ variantId, quantity, optionIds: selected, note: note.trim() || null })
+  const onNoteKey = (event) => {
+    if (event.key === 'Enter' && !busy && !error) {
+      event.preventDefault()
+      submit()
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -54,7 +60,7 @@ export default function ProductDetailStep({ product, busy, onBack, onAdd }) {
 
       <label className="block">
         <span className="text-sm font-medium text-gray-700">Nota</span>
-        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={255} placeholder="Ej.: bien caliente"
+        <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onNoteKey} enterKeyHint="done" maxLength={255} placeholder="Ej.: bien caliente"
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-galia-plum focus:outline-none" />
       </label>
 
