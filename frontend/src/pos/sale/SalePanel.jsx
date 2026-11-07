@@ -12,6 +12,8 @@ import DiscountModal from '../modals/DiscountModal'
 import PaymentModal from '../modals/PaymentModal'
 import SplitModal from '../modals/SplitModal'
 import WaiterModal from '../modals/WaiterModal'
+import CustomerSearchModal from '../loyalty/CustomerSearchModal'
+import RedeemModal from '../loyalty/RedeemModal'
 import InvoiceModal from '../fiscal/InvoiceModal'
 import PointPendingNotice from '../mercadopago/PointPendingNotice'
 import PrintJobsList from '../print/PrintJobsList'
@@ -126,7 +128,8 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
   return (
     <PanelShell variant={variant}>
       <SaleHeader sale={sale} onClose={onClose} closeLabel={closeLabel}
-        canChangeWaiter={actions.changeWaiter} onChangeWaiter={handlers.changeWaiter} />
+        canChangeWaiter={actions.changeWaiter} onChangeWaiter={handlers.changeWaiter} perms={perms}
+        onPickCustomer={() => setModal({ type: 'customer' })} onRedeem={() => setModal({ type: 'redeem' })} />
       {siblings.length > 1 && (
         <div className="flex gap-1 overflow-x-auto border-b px-3 py-2" role="tablist" aria-label="Cuentas de la mesa">
           {siblings.map((s, index) => (
@@ -169,6 +172,8 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
         }} />
       )}
       {modal?.type === 'waiter' && <WaiterModal sale={sale} onClose={closeModal} />}
+      {modal?.type === 'customer' && <CustomerSearchModal sale={sale} onClose={closeModal} />}
+      {modal?.type === 'redeem' && <RedeemModal sale={sale} onClose={closeModal} />}
       {modal?.type === 'invoice' && <InvoiceModal saleId={sale.id} onClose={closeModal} />}
       {modal?.type === 'cancel-item' && (
         <CancelReasonModal title={`Anular ${modal.item.product_name}`} busy={busy} onClose={closeModal}
