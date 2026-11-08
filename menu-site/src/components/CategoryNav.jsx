@@ -20,11 +20,12 @@ export default function CategoryNav({ entries }) {
       frame = 0
       if (performance.now() < lockUntil.current) return
       const bar = navRef.current?.closest('.sticky')
-      const threshold = (bar ? bar.getBoundingClientRect().bottom : 0) + 8
-      const tops = entries.map((e) => {
-        const el = document.getElementById(e.targetId)
-        return el ? el.getBoundingClientRect().top : Infinity
-      })
+      const sections = entries.map((e) => document.getElementById(e.targetId))
+      // Al tocar un atajo la sección queda a su scroll-margin del borde (scroll-mt-48), que puede ser más que
+      // la altura de la barra: el umbral toma el mayor de los dos para que el atajo tocado quede activo.
+      const scrollMargin = sections[0] ? parseFloat(getComputedStyle(sections[0]).scrollMarginTop) || 0 : 0
+      const threshold = Math.max(bar ? bar.getBoundingClientRect().bottom : 0, scrollMargin) + 8
+      const tops = sections.map((el) => (el ? el.getBoundingClientRect().top : Infinity))
       setStoredSlug(entries[activeSectionIndex(tops, threshold)].slug)
     }
     const onScroll = () => {
