@@ -33,6 +33,12 @@ describe('formatMoney', () => {
     expect(formatMoney('')).toBe('0,00');
   });
 
+  test('carries cents that round up to the next unit', () => {
+    expect(formatMoney(1.999)).toBe('2,00');
+    expect(formatMoney(999.996)).toBe('1.000,00');
+    expect(formatMoney(-1.999)).toBe('-2,00');
+  });
+
   test('formats string number', () => {
     expect(formatMoney('1234.56')).toBe('1.234,56');
   });

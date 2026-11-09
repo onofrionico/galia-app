@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Save, X, Plus, Trash2, ArrowLeft, Lock, Link2, Unlink } from 'lucide-react'
 import productsService from '../services/productsService'
-import suppliesService from '../services/suppliesService'
+import recipesService from '../services/recipesService'
+import { useAuth } from '../context/AuthContext'
+import { formatMoney } from '../utils/moneyFormat'
+import { formatYield } from '../components/recipes/format'
 import productCategoriesService from '../services/productCategoriesService'
 import EditableNumberInput from '../components/EditableNumberInput'
 import ProductModifiersTab from '../components/products/ProductModifiersTab'
@@ -18,6 +21,7 @@ import {
 const ProductDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { hasModuleAccess } = useAuth()
   const isNew = id === undefined || id === 'new'
 
   const [product, setProduct] = useState(null)
@@ -32,29 +36,20 @@ const ProductDetail = () => {
     description: '',
     category_id: '',
     image_url: '',
-    has_recipe: false,
     track_stock: false,
   })
 
   const [variants, setVariants] = useState([])
-  const [recipe, setRecipe] = useState([])
+  const [recipeDetail, setRecipeDetail] = useState(null)
   const [newVariantForm, setNewVariantForm] = useState({
     name: '',
     price: '',
     stock_quantity: '',
     min_stock: '',
   })
-  const [newRecipeForm, setNewRecipeForm] = useState({
-    supply_id: '',
-    quantity: '',
-    unit: '',
-  })
-
   const [imageFile, setImageFile] = useState(null)
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState('')
-  const [supplies, setSupplies] = useState([])
-  const [suppliesForbidden, setSuppliesForbidden] = useState(false)
   const [fudoCandidates, setFudoCandidates] = useState(null)
 
   useEffect(() => {
@@ -69,34 +64,16 @@ const ProductDetail = () => {
   }, [id])
 
   useEffect(() => {
-    if (isNew) return
+    const linked = product?.recipe
+    setRecipeDetail(null)
+    if (!linked || !hasModuleAccess('Recipes')) return undefined
     let ignore = false
-    const loadSupplies = async () => {
-      try {
-        const all = []
-        let page = 1
-        let pages = 1
-        do {
-          const res = await suppliesService.getSupplies({ per_page: 200, page })
-          all.push(...(res.supplies || []))
-          pages = res.pages || 1
-          page += 1
-        } while (page <= pages)
-        if (!ignore) {
-          setSupplies(all)
-          setSuppliesForbidden(false)
-        }
-      } catch (err) {
-        if (ignore) return
-        if (err.response?.status === 403) setSuppliesForbidden(true)
-        else console.error('Error loading supplies:', err)
-      }
-    }
-    loadSupplies()
-    return () => {
-      ignore = true
-    }
-  }, [id])
+    recipesService
+      .get(linked.id)
+      .then((r) => { if (!ignore) setRecipeDetail(r) })
+      .catch(() => {})
+    return () => { ignore = true }
+  }, [product?.recipe?.id])
 
   const fetchCategories = async () => {
     try {
@@ -118,11 +95,9 @@ const ProductDetail = () => {
         description: response.description || '',
         category_id: response.category_id,
         image_url: response.image_url || '',
-        has_recipe: response.has_recipe,
         track_stock: response.track_stock || false,
       })
       setVariants(response.variants || [])
-      setRecipe(response.recipe || [])
       setError('')
     } catch (error) {
       console.error('Error fetching product:', error)
@@ -239,43 +214,6 @@ const ProductDetail = () => {
       fetchProduct()
     } catch (error) {
       setError(error.response?.data?.error || 'Error al separar la variante')
-    }
-  }
-
-  const toRecipePayload = (items) =>
-    items.map((i) => ({ supply_id: i.supply_id, quantity: i.quantity, unit: i.unit }))
-
-  const handleAddRecipeItem = async () => {
-    if (!newRecipeForm.supply_id || !newRecipeForm.quantity) {
-      setError('Insumo y cantidad son requeridos')
-      return
-    }
-
-    try {
-      const items = [
-        ...toRecipePayload(recipe),
-        {
-          supply_id: parseInt(newRecipeForm.supply_id, 10),
-          quantity: parseFloat(newRecipeForm.quantity),
-          unit: newRecipeForm.unit,
-        },
-      ]
-      const res = await productsService.saveRecipe(id || product.id, items)
-      setRecipe(res.recipe || [])
-      setNewRecipeForm({ supply_id: '', quantity: '', unit: '' })
-      setError('')
-    } catch (error) {
-      setError(error.response?.data?.error || 'Error al agregar a receta')
-    }
-  }
-
-  const handleDeleteRecipeItem = async (index) => {
-    try {
-      const items = toRecipePayload(recipe.filter((_, i) => i !== index))
-      const res = await productsService.saveRecipe(id || product.id, items)
-      setRecipe(res.recipe || [])
-    } catch (error) {
-      setError(error.response?.data?.error || 'Error al eliminar de receta')
     }
   }
 
@@ -471,21 +409,6 @@ const ProductDetail = () => {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  id="has_recipe"
-                  checked={formData.has_recipe}
-                  onChange={(e) =>
-                    setFormData({ ...formData, has_recipe: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <label htmlFor="has_recipe" className="font-medium">
-                  Este producto tiene receta (compuesto de insumos)
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
                   id="track_stock"
                   checked={formData.track_stock}
                   onChange={(e) =>
@@ -574,7 +497,7 @@ const ProductDetail = () => {
                             value={variant.stock_quantity}
                             onCommit={(raw) => handleUpdateVariant(variant.id, 'stock_quantity', raw)}
                             className="w-20 border rounded px-2 py-1"
-                            disabled={formData.has_recipe}
+                            disabled={Boolean(product?.has_recipe)}
                           />
                         </td>
                         <td className="px-4 py-2">
@@ -582,7 +505,7 @@ const ProductDetail = () => {
                             value={variant.min_stock}
                             onCommit={(raw) => handleUpdateVariant(variant.id, 'min_stock', raw)}
                             className="w-20 border rounded px-2 py-1"
-                            disabled={formData.has_recipe}
+                            disabled={Boolean(product?.has_recipe)}
                           />
                         </td>
                         <td className="px-4 py-2">
@@ -664,7 +587,7 @@ const ProductDetail = () => {
                       })
                     }
                     className="border rounded px-3 py-2 text-sm"
-                    disabled={formData.has_recipe}
+                    disabled={Boolean(product?.has_recipe)}
                   />
                   <input
                     type="number"
@@ -677,7 +600,7 @@ const ProductDetail = () => {
                       })
                     }
                     className="border rounded px-3 py-2 text-sm"
-                    disabled={formData.has_recipe}
+                    disabled={Boolean(product?.has_recipe)}
                   />
                 </div>
                 <button
@@ -690,113 +613,45 @@ const ProductDetail = () => {
             </div>
           )}
 
-          {activeTab === 'receta' && product?.has_recipe && product && (
-            <div>
-              {recipe.length > 0 && (
-                <table className="w-full mb-6 border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left px-4 py-2 text-sm font-medium">
-                        Insumo
-                      </th>
-                      <th className="text-left px-4 py-2 text-sm font-medium">
-                        Cantidad
-                      </th>
-                      <th className="text-left px-4 py-2 text-sm font-medium">
-                        Unidad
-                      </th>
-                      <th className="text-left px-4 py-2 text-sm font-medium">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recipe.map((item, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="px-4 py-2">{item.supply_name}</td>
-                        <td className="px-4 py-2">{item.quantity}</td>
-                        <td className="px-4 py-2">{item.unit}</td>
-                        <td className="px-4 py-2">
-                          <button
-                            onClick={() => handleDeleteRecipeItem(index)}
-                            className="text-red-600 hover:bg-red-50 p-1 rounded"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+          {activeTab === 'receta' && !product && (
+            <div className="text-gray-500 text-center py-8">Guardá el producto para poder vincularle una receta.</div>
+          )}
 
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Agregar Insumo a Receta</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  (Las cantidades se deducirán del stock de insumos al vender)
+          {activeTab === 'receta' && product && product.recipe && (
+            <div className="space-y-2 max-w-2xl">
+              <h3 className="text-lg font-semibold">{product.recipe.name}</h3>
+              {recipeDetail && formatYield(recipeDetail.yield_quantity, recipeDetail.yield_unit) && (
+                <p className="text-gray-700">
+                  Rinde {formatYield(recipeDetail.yield_quantity, recipeDetail.yield_unit)}
                 </p>
-                {suppliesForbidden && (
-                  <p className="text-sm text-red-600 mb-3">
-                    Necesitás acceso a Stock para editar recetas
-                  </p>
-                )}
-                <div className="grid grid-cols-3 gap-3">
-                  <select
-                    value={newRecipeForm.supply_id}
-                    onChange={(e) => {
-                      const chosen = supplies.find((s) => String(s.id) === e.target.value)
-                      setNewRecipeForm({
-                        ...newRecipeForm,
-                        supply_id: e.target.value,
-                        unit: chosen ? chosen.unit : newRecipeForm.unit,
-                      })
-                    }}
-                    className="border rounded px-3 py-2 text-sm"
-                  >
-                    <option value="">Seleccionar insumo</option>
-                    {supplies.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.unit})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Cantidad"
-                    value={newRecipeForm.quantity}
-                    onChange={(e) =>
-                      setNewRecipeForm({
-                        ...newRecipeForm,
-                        quantity: e.target.value,
-                      })
-                    }
-                    className="border rounded px-3 py-2 text-sm"
-                    step="0.01"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Unidad (kg, litro...)"
-                    value={newRecipeForm.unit}
-                    onChange={(e) =>
-                      setNewRecipeForm({ ...newRecipeForm, unit: e.target.value })
-                    }
-                    className="border rounded px-3 py-2 text-sm"
-                  />
-                </div>
-                <button
-                  onClick={handleAddRecipeItem}
-                  className="mt-3 flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
-                >
-                  <Plus size={16} /> Agregar a Receta
-                </button>
-              </div>
+              )}
+              <p className="text-gray-700">
+                {product.has_recipe
+                  ? 'Esta receta descuenta el stock de insumos al vender.'
+                  : 'Esta receta no descuenta stock.'}
+              </p>
+              {product.recipe_cost?.unit_cost != null && (
+                <p className="text-gray-700">
+                  Costo por unidad: {formatMoney(product.recipe_cost.unit_cost)}
+                  {!product.recipe_cost.complete && ' (incompleto)'}
+                </p>
+              )}
+              {hasModuleAccess('Recipes') && (
+                <Link to={`/recipes/${product.recipe.id}`} className="inline-block text-blue-600 underline">
+                  Ver receta
+                </Link>
+              )}
             </div>
           )}
 
-          {activeTab === 'receta' && !product?.has_recipe && (
-            <div className="text-gray-500 text-center py-8">
-              Este producto no tiene receta. Activa la opción "Tiene receta" en la
-              pestaña Información para poder definir insumos.
+          {activeTab === 'receta' && product && !product.recipe && (
+            <div className="text-gray-500 py-8 text-center">
+              <p>Sin receta</p>
+              {hasModuleAccess('RecipesAdmin') && (
+                <Link to="/recipes/new" className="inline-block mt-2 text-blue-600 underline">
+                  Crear receta
+                </Link>
+              )}
             </div>
           )}
 

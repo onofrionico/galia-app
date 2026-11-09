@@ -9,6 +9,14 @@ export const employeeScheduleService = {
     return response.data
   },
 
+  async getTeamWeeklySchedule(startDate = null) {
+    const params = {}
+    if (startDate) params.start_date = startDate
+
+    const response = await api.get('/employee/schedule/team/weekly', { params })
+    return response.data
+  },
+
   async getMyMonthlySchedule(year = null, month = null) {
     const params = {}
     if (year) params.year = year

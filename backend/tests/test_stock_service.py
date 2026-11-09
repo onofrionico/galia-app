@@ -1,9 +1,12 @@
+from decimal import Decimal
+
 import pytest
 
 from app import create_app
 from app.extensions import db
-from app.models import Product, ProductCategory, ProductRecipeItem, ProductVariant, Supply
-from app.services.stock_service import deduct_stock_for_sale
+from app.models import Product, ProductCategory, ProductVariant, RecipeIngredient, Supply
+from app.services.stock_service import deduct_stock_for_sale, move_stock, stock_requirements
+from pos_helpers import link_recipe
 
 
 @pytest.fixture
@@ -43,10 +46,7 @@ def _recipe_variant():
     leche = Supply(name='Leche', unit='L', stock_quantity=10, min_stock=2)
     db.session.add_all([cafe, leche])
     db.session.flush()
-    db.session.add_all([
-        ProductRecipeItem(product_id=product.id, supply_id=cafe.id, quantity=0.02, unit='kg'),
-        ProductRecipeItem(product_id=product.id, supply_id=leche.id, quantity=0.2, unit='L'),
-    ])
+    link_recipe(product, [(cafe, Decimal('0.02')), (leche, Decimal('0.2'))])
     variant = ProductVariant(product_id=product.id, name='Taza', price=2500, stock_quantity=0, min_stock=0)
     db.session.add(variant)
     db.session.commit()
@@ -137,3 +137,80 @@ def test_recipe_supplies_aggregate_across_variants(app):
 def test_unknown_variant_raises(app):
     with pytest.raises(ValueError, match='no encontrado'):
         deduct_stock_for_sale([{'product_variant_id': 999, 'quantity': 1}])
+
+
+def _supply(name, unit, stock):
+    supply = Supply(name=name, unit=unit, stock_quantity=stock, min_stock=0)
+    db.session.add(supply)
+    db.session.flush()
+    return supply
+
+
+def _product_with_variant(name, has_recipe=True, track_stock=False, recipe_units=1):
+    product = Product(name=name, category_id=_category().id, has_recipe=has_recipe, track_stock=track_stock)
+    db.session.add(product)
+    db.session.flush()
+    variant = ProductVariant(product_id=product.id, name='Unidad', price=1000, stock_quantity=0, min_stock=0,
+                             recipe_units=recipe_units)
+    db.session.add(variant)
+    db.session.flush()
+    return product, variant
+
+
+def test_recipe_batch_with_yield_deducts_per_unit(app):
+    mandioca = _supply('Mandioca', 'kg', 5)
+    product, variant = _product_with_variant('Chipa')
+    recipe = link_recipe(product, [], yield_quantity=Decimal('20'))
+    db.session.add(RecipeIngredient(recipe_id=recipe.id, supply_id=mandioca.id, quantity=Decimal('1000'), unit='g'))
+    db.session.commit()
+    deduct_stock_for_sale([{'product_variant_id': variant.id, 'quantity': 2}])
+    db.session.commit()
+    assert Decimal(db.session.get(Supply, mandioca.id).stock_quantity) == Decimal('4.900')
+
+
+def test_variant_recipe_units_multiplies(app):
+    harina = _supply('Harina', 'kg', 10)
+    product, porcion = _product_with_variant('Torta', recipe_units=1)
+    entera = ProductVariant(product_id=product.id, name='Entera', price=12000, stock_quantity=0, min_stock=0,
+                            recipe_units=12)
+    db.session.add(entera)
+    link_recipe(product, [(harina, Decimal('1.2'))], yield_quantity=Decimal('12'), yield_unit='porción')
+    db.session.commit()
+    _v, supplies = stock_requirements({porcion.id: Decimal('1')})
+    _v, supplies_entera = stock_requirements({entera.id: Decimal('1')})
+    assert supplies[harina.id] == Decimal('0.100')
+    assert supplies_entera[harina.id] == Decimal('1.200')
+
+
+def test_incomplete_ingredient_does_not_block_sale(app):
+    harina = _supply('Harina', 'kg', 5)
+    sal = _supply('Sal', 'kg', 5)
+    product, variant = _product_with_variant('Pan')
+    recipe = link_recipe(product, [(harina, Decimal('0.5'))])
+    db.session.add(RecipeIngredient(recipe_id=recipe.id, position=1, supply_id=sal.id, quantity=None, unit='kg'))
+    db.session.commit()
+    deduct_stock_for_sale([{'product_variant_id': variant.id, 'quantity': 2}])
+    db.session.commit()
+    assert Decimal(db.session.get(Supply, harina.id).stock_quantity) == Decimal('4.000')
+    assert Decimal(db.session.get(Supply, sal.id).stock_quantity) == Decimal('5')
+    # La devolución restituye exactamente lo descontado.
+    _v, supplies = stock_requirements({variant.id: Decimal('2')})
+    move_stock({}, supplies, sign=1)
+    db.session.commit()
+    assert Decimal(db.session.get(Supply, harina.id).stock_quantity) == Decimal('5.000')
+
+
+def test_linked_but_inactive_recipe_does_not_deduct(app):
+    harina = _supply('Harina', 'kg', 5)
+    product, variant = _product_with_variant('Pan', has_recipe=False, track_stock=False)
+    link_recipe(product, [(harina, Decimal('0.5'))])
+    db.session.commit()
+    deduct_stock_for_sale([{'product_variant_id': variant.id, 'quantity': 2}])
+    db.session.commit()
+    assert Decimal(db.session.get(Supply, harina.id).stock_quantity) == Decimal('5')
+
+
+def test_has_recipe_without_linked_recipe_deducts_nothing(app):
+    product, variant = _product_with_variant('Pan')
+    db.session.commit()
+    assert stock_requirements({variant.id: Decimal('2')}) == ({}, {})

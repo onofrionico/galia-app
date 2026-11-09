@@ -3,7 +3,7 @@ from app.extensions import db
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.employee import Employee
-from app.utils.decorators import module_required, authenticated_only
+from app.utils.decorators import module_required
 from app.utils.jwt_utils import token_required
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -12,7 +12,7 @@ bp = Blueprint('schedules', __name__, url_prefix='/api/v1/schedules')
 
 @bp.route('', methods=['GET'])
 @token_required
-@authenticated_only
+@module_required('Schedules')
 def get_schedules(current_user):
     schedules = Schedule.query.order_by(Schedule.start_date.desc()).all()
     return jsonify([schedule.to_dict() for schedule in schedules]), 200
@@ -48,7 +48,7 @@ def create_schedule(current_user):
 
 @bp.route('/<int:schedule_id>', methods=['GET'])
 @token_required
-@authenticated_only
+@module_required('Schedules')
 def get_schedule(current_user, schedule_id):
     schedule = Schedule.query.get_or_404(schedule_id)
     return jsonify(schedule.to_dict(include_shifts=True)), 200
@@ -80,6 +80,11 @@ def update_schedule(current_user, schedule_id):
             return jsonify({'error': 'Status inválido'}), 400
         update_data['status'] = data['status']
     
+    if 'is_public' in data:
+        if not isinstance(data['is_public'], bool):
+            return jsonify({'error': 'is_public debe ser true o false'}), 400
+        update_data['is_public'] = data['is_public']
+    
     schedule = ScheduleService.update_schedule(schedule_id, **update_data)
     
     if not schedule:
@@ -109,7 +114,7 @@ def delete_schedule(current_user, schedule_id):
 
 @bp.route('/coverage', methods=['GET'])
 @token_required
-@authenticated_only
+@module_required('Schedules')
 def get_daily_coverage(current_user):
     """Get daily coverage with employee details for a date range"""
     start_date = request.args.get('start_date')

@@ -101,7 +101,7 @@ export default function FloorEditor({ salon }) {
           {width > 0 && shown.map((table) => (
             <div key={table.id} onPointerDown={(e) => startDrag(e, table, 'move')}
               className={`absolute flex touch-none select-none items-center justify-center rounded-lg border-2 text-sm font-semibold ${
-                table.id === selectedId ? 'border-galia-plum bg-galia-cream' : 'border-gray-400 bg-white'
+                table.id === selectedId ? 'border-galia-plum bg-galia-cream' : 'border-emerald-500 bg-emerald-100 text-emerald-900'
               } ${table.is_active ? '' : 'opacity-40'}`}
               style={{ left: table.pos_x * scale, top: table.pos_y * scale, width: table.width * scale, height: table.height * scale, cursor: 'move' }}>
               {table.label}

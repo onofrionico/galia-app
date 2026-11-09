@@ -13,14 +13,18 @@ function Tags({ slugs, tagsBySlug }) {
   )
 }
 
-export default function MenuItem({ item, tagsBySlug, onOpenPhoto }) {
+export default function MenuItem({ item, tagsBySlug, flower, onOpenPhoto }) {
   const prices = item.variants.map(formatVariant).join(' · ')
   return (
     <li className={`flex gap-3 py-3 ${item.featured ? 'rounded-xl bg-white/70 px-3' : ''}`}>
-      {item.image && (
+      {item.image ? (
         <button type="button" onClick={() => onOpenPhoto(item)} className="flex-shrink-0" aria-label={`Ver foto de ${item.name}`}>
           <img src={item.image} alt="" loading="lazy" className="h-20 w-20 rounded-lg object-cover" />
         </button>
+      ) : (
+        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-plum/10">
+          <img src={flower} alt="" aria-hidden="true" loading="lazy" className="h-12 w-12 object-contain" />
+        </div>
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">

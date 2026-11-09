@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { scheduleService } from '@/services/scheduleService'
-import { Calendar, Plus, Eye, Trash2 } from 'lucide-react'
+import { Calendar, Plus, Eye, Trash2, Users, Lock } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -22,6 +22,16 @@ const ScheduleList = ({ onSelectSchedule, onCreateNew }) => {
     },
     onError: (error) => {
       alert(error.response?.data?.error || 'Error al eliminar la grilla')
+    }
+  })
+
+  const visibilityMutation = useMutation({
+    mutationFn: ({ id, isPublic }) => scheduleService.updateSchedule(id, { is_public: isPublic }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['schedules'])
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'Error al cambiar la visibilidad de la grilla')
     }
   })
 
@@ -100,6 +110,25 @@ const ScheduleList = ({ onSelectSchedule, onCreateNew }) => {
                   <p className="text-sm text-gray-500">
                     Creada el {format(new Date(schedule.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
                   </p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={schedule.is_public}
+                    onClick={() => visibilityMutation.mutate({ id: schedule.id, isPublic: !schedule.is_public })}
+                    disabled={visibilityMutation.isPending}
+                    className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium transition-colors disabled:opacity-50 ${
+                      schedule.is_public
+                        ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    title={schedule.is_public ? 'Todos los empleados ven esta grilla completa' : 'Cada empleado ve solo su horario'}
+                  >
+                    {schedule.is_public ? <Users className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                    {schedule.is_public ? 'Visible para el equipo' : 'Privada'}
+                  </button>
+                  {schedule.is_public && schedule.status === 'draft' && (
+                    <p className="mt-1 text-xs text-gray-500">El equipo la va a ver cuando la publiques.</p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <button

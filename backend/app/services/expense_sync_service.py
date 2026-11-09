@@ -9,7 +9,8 @@ from app.services.expense_fudo_parsing import index_included, parse_expense
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 200
-LINK_COUNTERS = ('suppliers_created', 'suppliers_linked', 'categories_created', 'categories_linked')
+LINK_COUNTERS = ('suppliers_created', 'suppliers_linked', 'categories_created', 'categories_linked',
+                 'categories_inferred')
 # Campos de enriquecimiento: si Fudo no los manda (None) se conserva lo que ya había (p. ej. lo del CSV).
 KEEP_WHEN_MISSING = ('caja', 'de_caja', 'medio_pago', 'tipo_comprobante', 'numero_comprobante',
                      'numero_fiscal', 'proveedor')
@@ -43,7 +44,7 @@ def sync_expenses(client, start_date, end_date):
 
 def _upsert(parsed, linker, stats):
     supplier = linker.supplier_for(parsed.provider)
-    category = linker.category_for(parsed.category)
+    category = linker.category_for(parsed.category, supplier)
     supplier_id = supplier.id if supplier else None
 
     expense = Expense.query.filter_by(external_id=parsed.external_id).first()

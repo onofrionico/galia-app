@@ -1,6 +1,6 @@
 import MenuItem from './MenuItem'
 
-export default function CategorySection({ category, nested = false, tagsBySlug, onOpenPhoto }) {
+export default function CategorySection({ category, nested = false, tagsBySlug, flower, onOpenPhoto }) {
   const Title = nested ? 'h3' : 'h2'
   const titleClass = nested
     ? 'mt-4 font-display text-2xl uppercase tracking-wide text-plum-light'
@@ -11,7 +11,7 @@ export default function CategorySection({ category, nested = false, tagsBySlug, 
       {category.description && <p className="mt-1 text-sm italic text-plum-light">{category.description}</p>}
       <ul className="mt-2 divide-y divide-plum/10">
         {category.items.map((item) => (
-          <MenuItem key={item.id} item={item} tagsBySlug={tagsBySlug} onOpenPhoto={onOpenPhoto} />
+          <MenuItem key={item.id} item={item} tagsBySlug={tagsBySlug} flower={flower} onOpenPhoto={onOpenPhoto} />
         ))}
       </ul>
     </section>

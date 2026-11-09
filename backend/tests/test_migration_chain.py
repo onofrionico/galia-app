@@ -70,3 +70,11 @@ def test_mercadopago_follows_expenses_fudo_link():
 
 def test_fudo_cutover_follows_sale_items():
     assert _revisions()['b6a0_fudo_cutover'] == ['b5d0_add_sale_items']
+
+
+def test_recipes_follows_schedule_is_public():
+    assert _revisions()['b7a0_add_recipes'] == ['b6e0_schedule_is_public']
+
+
+def test_drop_product_recipe_items_follows_recipes():
+    assert _revisions()['b7a1_drop_product_recipe_items'] == ['b7a0_add_recipes']

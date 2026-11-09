@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { loadMenu } from './lib/loadMenu'
 import { filterMenu } from './lib/filterMenu'
+import { flowerByCategory } from './lib/categoryFlower'
 import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import TagFilters from './components/TagFilters'
@@ -29,13 +30,13 @@ export default function App() {
     () => (menu ? filterMenu(menu.groups, { query, tagSlugs: activeTags }) : []),
     [menu, query, activeTags],
   )
-  const navEntries = useMemo(() => {
-    if (groups.length === 1 && groups[0].name === null) {
-      return groups[0].categories.map((c) => ({ slug: c.slug, label: c.name, targetId: `cat-${c.slug}` }))
-    }
-    return groups.map((g) => ({ slug: g.slug, label: g.name, targetId: `grupo-${g.slug}` }))
-  }, [groups])
+  // Un atajo por categoría (no por grupo): así se ve de entrada que hay Bebidas, Licuados, etc.
+  const navEntries = useMemo(
+    () => groups.flatMap((g) => g.categories.map((c) => ({ slug: c.slug, label: c.name, targetId: `cat-${c.slug}` }))),
+    [groups],
+  )
   const tagsBySlug = useMemo(() => Object.fromEntries((menu?.tags || []).map((t) => [t.slug, t])), [menu])
+  const flowers = useMemo(() => flowerByCategory(menu?.groups || []), [menu])
 
   const toggleTag = (slug) =>
     setActiveTags((tags) => (tags.includes(slug) ? tags.filter((t) => t !== slug) : [...tags, slug]))
@@ -59,7 +60,7 @@ export default function App() {
               <MenuMessage title="Sin resultados">Probá con otra palabra o sacá algún filtro.</MenuMessage>
             ) : (
               groups.map((group) => (
-                <GroupSection key={group.slug} group={group} tagsBySlug={tagsBySlug} onOpenPhoto={setPhotoItem} />
+                <GroupSection key={group.slug} group={group} tagsBySlug={tagsBySlug} flowers={flowers} onOpenPhoto={setPhotoItem} />
               ))
             )}
           </main>
