@@ -1,0 +1,547 @@
+{
+  "source": "Planilla \"Recetario Galia\" (Google Sheets 1grtlaZxzwFb3Fmy2WSiLqE7bJyvwU7s1L59bKSWAS30), transcripta el 2026-11-07. Lo que la planilla no dice queda con cantidad null o en pending_notes.",
+  "recipes": [
+    {
+      "name": "Almíbar de cacao",
+      "product_name": null,
+      "is_base": true,
+      "yield_quantity": 1,
+      "yield_unit": "tanda",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "Base extraída: la planilla la trae igual en Torta Galia y en Matilda (Almibar: cacao amargo 2 cucharadas, azúcar 4 cucharadas, leche 200 ml, dejar hervir 1 minuto).",
+      "pending_notes": "Rendimiento cargado como \"1 tanda\": es lo que lleva una Torta Galia o una Matilda; falta el volumen real (ml) si se quiere usar en otra receta.\nLa planilla solo dice \"dejar hervir 1 minuto\": falta cómo se arma.",
+      "ingredients": [
+        {"supply_name": "Cacao amargo", "quantity": 2, "unit": "cucharada", "note": null},
+        {"supply_name": "Azúcar", "quantity": 4, "unit": "cucharada", "note": "la planilla dice \"4 cuacharadas\""},
+        {"supply_name": "Leche", "quantity": 200, "unit": "ml", "note": null}
+      ],
+      "steps": [
+        {"title": "Hervir", "instruction": "Dejar hervir 1 minuto.", "temperature_c": null, "time_min": 1, "time_max": null, "doneness": null, "tip": null}
+      ]
+    },
+    {
+      "name": "Masa de muffins",
+      "product_name": null,
+      "is_base": true,
+      "yield_quantity": 1,
+      "yield_unit": "tanda",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "Base extraída: la planilla la trae igual en los tres muffins (chispitas de chocolate, frutos rojos, manzana y canela).",
+      "pending_notes": "Rendimiento cargado como \"1 tanda\": es la masa de una tanda de muffins (1 kg de premezcla).\nLa planilla no dice en qué momento se agrega la premezcla.\nUnidades que no convierten: \"Huevo 350 g\" (el insumo Huevo se usa en unidad) y \"Aceite 300 g\" (el aceite se mide en volumen): no descuentan stock y su costo queda incompleto hasta pasarlos a unidad y ml.",
+      "ingredients": [
+        {"supply_name": "Premezcla", "quantity": 1, "unit": "kg", "note": null},
+        {"supply_name": "Huevo", "quantity": 350, "unit": "g", "note": "la planilla dice \"Huevos 350 gr\""},
+        {"supply_name": "Agua", "quantity": 220, "unit": "ml", "note": "220 cc"},
+        {"supply_name": "Aceite", "quantity": 300, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null}
+      ],
+      "steps": [
+        {"title": "Batir los líquidos", "instruction": "Mezclar los huevos, aceite, agua con la lira de la batidora por 2 minutos, revolver que no quede en el fondo y volver a revolver por 2 minutos más.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null}
+      ]
+    },
+    {
+      "name": "Cookie red velvet",
+      "product_name": "Cookie red velvet",
+      "is_base": false,
+      "yield_quantity": 6.5,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": "Para cocinar tienen que tener 1 día de freezer.",
+      "notes": "NOTA: Con esta proporcion salen 6,5 cookies.",
+      "pending_notes": "Rendimiento: la planilla dice 6,5 cookies; confirmar.\nEsencia de vainilla: cantidad a completar.\nLleva chocolate blanco dos veces (60 g y 90 g) y crema 30 g: la planilla no dice para qué es cada uno.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Azúcar blanca", "quantity": 50, "unit": "g", "note": null},
+        {"supply_name": "Azúcar rubia", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 170, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate blanco", "quantity": 60, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Esencia de vainilla", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Cacao amargo", "quantity": 15, "unit": "g", "note": null},
+        {"supply_name": "Colorante RED", "quantity": 2, "unit": "g", "note": null},
+        {"supply_name": "Chocolate blanco", "quantity": 90, "unit": "g", "note": null},
+        {"supply_name": "Crema", "quantity": 30, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Mezclar la masa", "instruction": "Mezclar la manteca derretida con el azúcar, la esencia de vainilla y los huevos, agregar la harina con el polvo de hornear y la sal; integrar los ingredientes y sumar el chocolate si lleva.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar las bolitas", "instruction": "Preparar bolitas de 90gr aprox para las de chispitas, 80gr aprox para las rellenas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar", "instruction": "Las que son rellenas aplastar y rellenar, luego hacer bolitas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Freezar", "instruction": "Para cocinar tienen que tener 1 dia de freezer", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° por 10/12 minutos, para chequear que estan tocar el centro y el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "temperature_c": 180, "time_min": 10, "time_max": 12, "doneness": "Tocar el centro: el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "tip": null}
+      ]
+    },
+    {
+      "name": "Cookie chispitas de chocolate y frutos secos",
+      "product_name": "Cookie chispitas de chocolate y frutos secos",
+      "is_base": false,
+      "yield_quantity": 6.5,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": "Para cocinar tienen que tener 1 día de freezer.",
+      "notes": "NOTA: Con esta proporcion salen 6,5 cookies.",
+      "pending_notes": "Rendimiento: la planilla dice 6,5 cookies; confirmar.\nEsencia de vainilla: cantidad a completar.\n\"Nuez y almendras\" vienen juntas (40 g): separar si se compran por separado.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Azúcar blanca", "quantity": 50, "unit": "g", "note": null},
+        {"supply_name": "Azúcar rubia", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 200, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate", "quantity": 90, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Esencia de vainilla", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Nuez y almendras", "quantity": 40, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Mezclar la masa", "instruction": "Mezclar la manteca derretida con el azúcar, la esencia de vainilla y los huevos, agregar la harina con el polvo de hornear y la sal; integrar los ingredientes y sumar el chocolate si lleva.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar las bolitas", "instruction": "Preparar bolitas de 90gr aprox para las de chispitas, 80gr aprox para las rellenas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar", "instruction": "Las que son rellenas aplastar y rellenar, luego hacer bolitas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Freezar", "instruction": "Para cocinar tienen que tener 1 dia de freezer", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° por 10/12 minutos, para chequear que estan tocar el centro y el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "temperature_c": 180, "time_min": 10, "time_max": 12, "doneness": "Tocar el centro: el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "tip": null}
+      ]
+    },
+    {
+      "name": "Cookie Nutella",
+      "product_name": "Cookie Nutella",
+      "is_base": false,
+      "yield_quantity": 6.5,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": "Para cocinar tienen que tener 1 día de freezer.",
+      "notes": "NOTA: Con esta proporcion salen 6,5 cookies.",
+      "pending_notes": "Rendimiento: la planilla dice 6,5 cookies; confirmar.\nEsta variedad no trae esencia de vainilla en la lista, aunque el paso de mezclar la nombra.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Azúcar blanca", "quantity": 50, "unit": "g", "note": null},
+        {"supply_name": "Azúcar rubia", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 160, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate", "quantity": 60, "unit": "g", "note": null},
+        {"supply_name": "Cacao amargo", "quantity": 30, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Nutella", "quantity": 14, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Mezclar la masa", "instruction": "Mezclar la manteca derretida con el azúcar, la esencia de vainilla y los huevos, agregar la harina con el polvo de hornear y la sal; integrar los ingredientes y sumar el chocolate si lleva.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar las bolitas", "instruction": "Preparar bolitas de 90gr aprox para las de chispitas, 80gr aprox para las rellenas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar", "instruction": "Las que son rellenas aplastar y rellenar, luego hacer bolitas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Freezar", "instruction": "Para cocinar tienen que tener 1 dia de freezer", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° por 10/12 minutos, para chequear que estan tocar el centro y el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "temperature_c": 180, "time_min": 10, "time_max": 12, "doneness": "Tocar el centro: el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "tip": null}
+      ]
+    },
+    {
+      "name": "Cookie chispitas de chocolate",
+      "product_name": "Cookie chispitas de chocolate",
+      "is_base": false,
+      "yield_quantity": 6.5,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": "Para cocinar tienen que tener 1 día de freezer.",
+      "notes": "NOTA: Con esta proporcion salen 6,5 cookies.",
+      "pending_notes": "Rendimiento: la planilla dice 6,5 cookies; confirmar.\nEsencia de vainilla: cantidad a completar.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Azúcar blanca", "quantity": 50, "unit": "g", "note": null},
+        {"supply_name": "Azúcar rubia", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 200, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate", "quantity": 90, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Esencia de vainilla", "quantity": null, "unit": null, "note": null}
+      ],
+      "steps": [
+        {"title": "Mezclar la masa", "instruction": "Mezclar la manteca derretida con el azúcar, la esencia de vainilla y los huevos, agregar la harina con el polvo de hornear y la sal; integrar los ingredientes y sumar el chocolate si lleva.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar las bolitas", "instruction": "Preparar bolitas de 90gr aprox para las de chispitas, 80gr aprox para las rellenas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar", "instruction": "Las que son rellenas aplastar y rellenar, luego hacer bolitas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Freezar", "instruction": "Para cocinar tienen que tener 1 dia de freezer", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° por 10/12 minutos, para chequear que estan tocar el centro y el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "temperature_c": 180, "time_min": 10, "time_max": 12, "doneness": "Tocar el centro: el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "tip": null}
+      ]
+    },
+    {
+      "name": "Cookie pistacho",
+      "product_name": "Cookie pistacho",
+      "is_base": false,
+      "yield_quantity": 6.5,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": "Para cocinar tienen que tener 1 día de freezer.",
+      "notes": "NOTA: Con esta proporcion salen 6,5 cookies.",
+      "pending_notes": "Rendimiento: la planilla dice 6,5 cookies; confirmar.\nEsencia de vainilla: cantidad a completar.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Azúcar blanca", "quantity": 50, "unit": "g", "note": null},
+        {"supply_name": "Azúcar rubia", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 170, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Cacao amargo", "quantity": 20, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Esencia de vainilla", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Pasta de pistacho", "quantity": 10, "unit": "g", "note": null},
+        {"supply_name": "Chocolate blanco", "quantity": 60, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Mezclar la masa", "instruction": "Mezclar la manteca derretida con el azúcar, la esencia de vainilla y los huevos, agregar la harina con el polvo de hornear y la sal; integrar los ingredientes y sumar el chocolate si lleva.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar las bolitas", "instruction": "Preparar bolitas de 90gr aprox para las de chispitas, 80gr aprox para las rellenas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar", "instruction": "Las que son rellenas aplastar y rellenar, luego hacer bolitas.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Freezar", "instruction": "Para cocinar tienen que tener 1 dia de freezer", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° por 10/12 minutos, para chequear que estan tocar el centro y el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "temperature_c": 180, "time_min": 10, "time_max": 12, "doneness": "Tocar el centro: el dedo no se deberia andar, tiene que tener solo un poco de resistencia.", "tip": null}
+      ]
+    },
+    {
+      "name": "Chipa",
+      "product_name": "Chipa",
+      "is_base": false,
+      "yield_quantity": 20,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "NOTA: Con esta proporción salen aproximadamente 20 chipa.",
+      "pending_notes": "Leche: la planilla da un rango (200-230 ml); fijar la cantidad.",
+      "ingredients": [
+        {"supply_name": "Mandioca", "quantity": 1, "unit": "kg", "note": null},
+        {"supply_name": "Manteca", "quantity": 200, "unit": "g", "note": "a temperatura ambiente (según el paso)"},
+        {"supply_name": "Queso reggianito", "quantity": 150, "unit": "g", "note": "la planilla dice \"Queso regianito\""},
+        {"supply_name": "Queso sardo", "quantity": 150, "unit": "g", "note": null},
+        {"supply_name": "Queso tybo", "quantity": 400, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 5, "unit": "unidad", "note": null},
+        {"supply_name": "Leche", "quantity": null, "unit": null, "note": "200-230 ml"},
+        {"supply_name": "Polvo de hornear", "quantity": 2, "unit": "cucharadita", "note": "2 cditas."},
+        {"supply_name": "Sal", "quantity": 1, "unit": "cucharadita", "note": "1 cdita."}
+      ],
+      "steps": [
+        {"title": "Mezclar los quesos", "instruction": "Mezclar los quesos con la mandioca", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Agregar polvo de hornear y manteca", "instruction": "Agregar el polvo de hornear y la manteca a temperatura ambiente e integrar", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Formar la masa", "instruction": "Sumarle la sal, los huevos y por ultimo la leche de a poco hasta lograr una masa uniforme.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Masa uniforme.", "tip": null},
+        {"title": "Armar lingotes", "instruction": "Armar lingotes de 135 gr", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 180° aproximadamente por 15/20 minutos, hasta que esten un poco dorados.", "temperature_c": 180, "time_min": 15, "time_max": 20, "doneness": "Hasta que esten un poco dorados.", "tip": null}
+      ]
+    },
+    {
+      "name": "Muffin chispitas de chocolate",
+      "product_name": "Muffin chispitas de chocolate",
+      "is_base": false,
+      "yield_quantity": 14,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "NOTA: Con esta proporción salen aproximadamente 14 muffins. Tener en cuenta que los de frutos rojos o manzana tienen mucho humedad, les puede costar un poco más la cocción.",
+      "pending_notes": "La planilla no dice en qué momento se agrega el chocolate.",
+      "ingredients": [
+        {"sub_recipe_name": "Masa de muffins", "quantity": 1, "unit": "tanda", "note": null},
+        {"supply_name": "Chocolate", "quantity": 200, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Preparar los pirotines", "instruction": "Poner los pirotines en el contenedor de silicona.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar los pirotines", "instruction": "Rellenar con aproximadamente 130 gr, es 3/4 de pirotin lleno.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 170° aproximadamente por 25 minutos, puede que tarden unos minutos más, para chequear clavar un cuchillo y que salga limpio.", "temperature_c": 170, "time_min": 25, "time_max": null, "doneness": "Clavar un cuchillo y que salga limpio.", "tip": "Puede que tarden unos minutos más."}
+      ]
+    },
+    {
+      "name": "Muffin frutos rojos",
+      "product_name": "Muffin frutos rojos",
+      "is_base": false,
+      "yield_quantity": 14,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "NOTA: Con esta proporción salen aproximadamente 14 muffins. Tener en cuenta que los de frutos rojos o manzana tienen mucho humedad, les puede costar un poco más la cocción.",
+      "pending_notes": "La planilla no dice en qué momento se agregan los frutos rojos.\nLa planilla no dice qué se hace con la harina, la manteca, el azúcar y la sal de esta variedad.\nSal: \"una pizca\", cantidad a completar.",
+      "ingredients": [
+        {"sub_recipe_name": "Masa de muffins", "quantity": 1, "unit": "tanda", "note": null},
+        {"supply_name": "Frutos rojos", "quantity": 200, "unit": "g", "note": null},
+        {"supply_name": "Harina", "quantity": 120, "unit": "g", "note": null},
+        {"supply_name": "Manteca", "quantity": 80, "unit": "g", "note": null},
+        {"supply_name": "Azúcar", "quantity": 80, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "una pizca"}
+      ],
+      "steps": [
+        {"title": "Preparar los pirotines", "instruction": "Poner los pirotines en el contenedor de silicona.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar los pirotines", "instruction": "Rellenar con aproximadamente 130 gr, es 3/4 de pirotin lleno.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 170° aproximadamente por 25 minutos, puede que tarden unos minutos más, para chequear clavar un cuchillo y que salga limpio.", "temperature_c": 170, "time_min": 25, "time_max": null, "doneness": "Clavar un cuchillo y que salga limpio.", "tip": "Puede que tarden unos minutos más. Los de frutos rojos tienen mucha humedad: les puede costar un poco más la cocción."}
+      ]
+    },
+    {
+      "name": "Muffin manzana y canela",
+      "product_name": "Muffin manzana y canela",
+      "is_base": false,
+      "yield_quantity": 14,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "NOTA: Con esta proporción salen aproximadamente 14 muffins. Tener en cuenta que los de frutos rojos o manzana tienen mucho humedad, les puede costar un poco más la cocción.",
+      "pending_notes": "Canela: cantidad a completar, y la planilla no dice cuándo se agrega.\nManzana: la lista no trae cantidad; se cargó la del paso (1 manzana rallada).",
+      "ingredients": [
+        {"sub_recipe_name": "Masa de muffins", "quantity": 1, "unit": "tanda", "note": null},
+        {"supply_name": "Canela", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Manzana", "quantity": 1, "unit": "unidad", "note": "rallada (cantidad tomada del paso)"}
+      ],
+      "steps": [
+        {"title": "Sumar la manzana", "instruction": "Para los muffins de manzana sumar 1 manzana rallada a la masa.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Preparar los pirotines", "instruction": "Poner los pirotines en el contenedor de silicona.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Rellenar los pirotines", "instruction": "Rellenar con aproximadamente 130 gr, es 3/4 de pirotin lleno.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Cocinar con horno a 170° aproximadamente por 25 minutos, puede que tarden unos minutos más, para chequear clavar un cuchillo y que salga limpio.", "temperature_c": 170, "time_min": 25, "time_max": null, "doneness": "Clavar un cuchillo y que salga limpio.", "tip": "Puede que tarden unos minutos más. Los de manzana tienen mucha humedad: les puede costar un poco más la cocción."}
+      ]
+    },
+    {
+      "name": "Crumble de manzana",
+      "product_name": "Crumble de manzana",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": null,
+      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nManzana cortada: la planilla da un rango (750/800 gr); fijar la cantidad.\nÚltimo paso \"Agregar queso por encima\": no dice qué queso ni cuánto (ver dudas).",
+      "ingredients": [
+        {"supply_name": "Harina", "quantity": 170, "unit": "g", "note": "Masa sable"},
+        {"supply_name": "Azúcar", "quantity": 70, "unit": "g", "note": "Masa sable"},
+        {"supply_name": "Manteca", "quantity": 90, "unit": "g", "note": "Masa sable; fría (según el paso)"},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": "Masa sable"},
+        {"supply_name": "Manzana", "quantity": null, "unit": null, "note": "Relleno; cortada, 750/800 gr"},
+        {"supply_name": "Azúcar", "quantity": 90, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Canela", "quantity": 1, "unit": "cucharada", "note": "Relleno"},
+        {"supply_name": "Harina común", "quantity": 25, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Harina", "quantity": 120, "unit": "g", "note": "Crumble"},
+        {"supply_name": "Manteca", "quantity": 80, "unit": "g", "note": "Crumble; fría (según el paso)"},
+        {"supply_name": "Azúcar rubia", "quantity": 80, "unit": "g", "note": "Crumble"},
+        {"supply_name": "Nuez", "quantity": 40, "unit": "g", "note": "Crumble; la planilla dice \"Nueces\""}
+      ],
+      "steps": [
+        {"title": "Masa sable", "instruction": "Para la masa, hacer un arenado con la manteca fria y la harina, agregar el huevo y amasar poco.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Relleno", "instruction": "Para el relleno cortar las manzanas no tan chicas, agregarle el harina, azucar y canela y dejar asi crudo.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Crumble", "instruction": "Para el crumble, mezclar la harina con el azucar y agregar la manteca fria, hacer un arenado y agregar las nueces.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Armar", "instruction": "Poner papel manteca en el molde y estirar la masa. Tirarle prolijo el relleno y por encima el crumble.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Hornear a 180°C por 45 minutos.", "temperature_c": 180, "time_min": 45, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Queso por encima", "instruction": "Agregar queso por encima", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null}
+      ]
+    },
+    {
+      "name": "Galletitas de nuez",
+      "product_name": "Galletitas de nuez",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": "La masa va a la heladera 1 hora como mínimo antes de estirar. Una vez armados, los alfajores van a la heladera unas horas; idealmente, hasta el día siguiente.",
+      "notes": null,
+      "pending_notes": "Rendimiento a completar: el paso 8 dice \"cortar 6 discos de 8 cm\", pero no dice cuántos salen de la tanda.\nEsencia de vainilla: cantidad a completar (la lista dice solo \"vainilla\").\nRellenos del armado (crema, mermelada de frutos rojos, dulce de leche): cantidades a completar.\nHuevos: la lista dice 2 huevos y el paso 4 dice \"la yema\" (ver dudas).",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 320, "unit": "g", "note": null},
+        {"supply_name": "Azúcar impalpable", "quantity": 180, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 2, "unit": "unidad", "note": null},
+        {"supply_name": "Nuez", "quantity": 400, "unit": "g", "note": "tostadas y molidas"},
+        {"supply_name": "Harina 0000", "quantity": 360, "unit": "g", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": "pizca"},
+        {"supply_name": "Esencia de vainilla", "quantity": null, "unit": null, "note": "la lista dice \"vainilla\""},
+        {"supply_name": "Crema", "quantity": null, "unit": null, "note": "para armar los alfajores"},
+        {"supply_name": "Mermelada de frutos rojos", "quantity": null, "unit": null, "note": "para armar los alfajores"},
+        {"supply_name": "Dulce de leche", "quantity": null, "unit": null, "note": "para armar los alfajores"}
+      ],
+      "steps": [
+        {"title": "Tostar las nueces", "instruction": "Colocar las nueces en una placa y llevarlas a horno a 160 °C durante 8–10 minutos, hasta que estén apenas doradas y aromáticas. Dejar enfriar completamente.", "temperature_c": 160, "time_min": 8, "time_max": 10, "doneness": "Apenas doradas y aromáticas.", "tip": null},
+        {"title": "Moler las nueces", "instruction": "Procesar las nueces hasta obtener una textura de harina gruesa.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Textura de harina gruesa.", "tip": "No procesar de más para evitar que se conviertan en una pasta. Si querés más textura, podés dejar algunas partículas un poquito más grandes."},
+        {"title": "Cremar la manteca", "instruction": "Batir la manteca pomada con el azúcar impalpable hasta obtener una crema homogénea y suave.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Crema homogénea y suave.", "tip": "No hace falta batir demasiado ni incorporar mucho aire."},
+        {"title": "Incorporar la yema", "instruction": "Agregar la yema y la esencia de vainilla. Mezclar hasta integrar.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Agregar los secos", "instruction": "Incorporar la harina, las nueces molidas y la pizca de sal. Mezclar con espátula o a mano solo hasta que se forme la masa. No amasar.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": "La masa puede quedar bastante blanda en este punto. Es normal."},
+        {"title": "Enfriar", "instruction": "Formar un bloque, envolver en film y llevar a la heladera durante 1 hora como mínimo.", "temperature_c": null, "time_min": 60, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Estirar", "instruction": "Estirar la masa entre dos papeles manteca hasta obtener aproximadamente 5–6 mm de espesor.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Cortar", "instruction": "Cortar 6 discos de 8 cm de diámetro. Colocarlos en una placa con papel manteca o silicona.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": "Si la masa se ablanda mientras cortás, llevar los discos nuevamente a la heladera durante 10–15 minutos."},
+        {"title": "Hornear", "instruction": "Hornear a 160–170 °C durante aproximadamente 12–15 minutos.", "temperature_c": null, "time_min": 12, "time_max": 15, "doneness": "Deben quedar cocidos pero sin tomar demasiado color. Apenas dorados en los bordes es suficiente.", "tip": "La planilla da un rango de temperatura: 160–170 °C."},
+        {"title": "Enfriar", "instruction": "Dejar enfriar completamente antes de manipularlos.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": "Recién fríos van a adquirir la estructura definitiva."},
+        {"title": "Armar los alfajores", "instruction": "Colocar sobre un disco: un aro de crema alrededor del borde; en el centro, mermelada de frutos rojos; un aro de dulce de leche entre la crema y la mermelada, o según el diseño que quieras hacer. Cubrir con el segundo disco de nuez.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Reposar", "instruction": "Una vez armados, llevar a la heladera unas horas. Idealmente, dejarlos reposar hasta el día siguiente.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": "La humedad de los rellenos va a ablandar ligeramente la galletita y hará que se corte mucho mejor, manteniendo el sabor intenso a nuez."}
+      ]
+    },
+    {
+      "name": "Scones de queso",
+      "product_name": "Scones de queso",
+      "is_base": false,
+      "yield_quantity": 12,
+      "yield_unit": "unidad",
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": "Para 12 unidades de 95/100 gr.",
+      "pending_notes": "Horneado a completar: la planilla no dice temperatura ni tiempo.\nLeche: \"a ojo\", cantidad a completar.\nSal gruesa: la planilla no dice en qué paso se usa.",
+      "ingredients": [
+        {"supply_name": "Manteca", "quantity": 150, "unit": "g", "note": null},
+        {"supply_name": "Harina 0000", "quantity": 500, "unit": "g", "note": null},
+        {"supply_name": "Queso tybo", "quantity": 80, "unit": "g", "note": null},
+        {"supply_name": "Queso reggianito", "quantity": 110, "unit": "g", "note": null},
+        {"supply_name": "Queso sardo", "quantity": 125, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 2, "unit": "unidad", "note": null},
+        {"supply_name": "Leche", "quantity": null, "unit": null, "note": "a ojo (la planilla dice \"a ojota\")"},
+        {"supply_name": "Polvo de hornear", "quantity": 2.5, "unit": "cucharada", "note": "2 y 1/2 cucharadas"},
+        {"supply_name": "Bicarbonato", "quantity": 0.5, "unit": "cucharadita", "note": "1/2 cucharadita"},
+        {"supply_name": "Sal fina", "quantity": 1, "unit": "g", "note": null},
+        {"supply_name": "Sal gruesa", "quantity": 5, "unit": "g", "note": null}
+      ],
+      "steps": [
+        {"title": "Unificar harina y sal", "instruction": "Unificar harina y sal", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Arenado", "instruction": "Agregar la manteca y lograr un arenado", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Sumar quesos y leudantes", "instruction": "Mezclar los quesos, el polvo de hornear y el bicarbonato", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Agregar leche y huevos", "instruction": "Agregar la leche de a poco + huevos", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Homogeneizar", "instruction": "Homogeneizar sin amasar demasiado", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Cortar", "instruction": "Cortar en triangulos de aprox 95-100gr", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null}
+      ]
+    },
+    {
+      "name": "Banoffee",
+      "product_name": "Banoffee",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": "La masa reposa en la heladera 1 hora como mínimo.",
+      "notes": "NOTA: Con esta proporcion salen 4/5 tarteletitas.",
+      "pending_notes": "Rendimiento a completar: la planilla dice 4/5 tarteletitas.\nBanana: la planilla dice \"2/3 bananas\"; fijar la cantidad.\nFaltan los pasos del relleno, la ganache y el armado (la planilla solo explica la masa).",
+      "ingredients": [
+        {"supply_name": "Harina 0000", "quantity": 250, "unit": "g", "note": "Masa"},
+        {"supply_name": "Manteca", "quantity": 100, "unit": "g", "note": "Masa"},
+        {"supply_name": "Azúcar", "quantity": 120, "unit": "g", "note": "Masa"},
+        {"supply_name": "Huevo", "quantity": 1, "unit": "unidad", "note": "Masa; mediano"},
+        {"supply_name": "Banana", "quantity": null, "unit": null, "note": "Relleno; 2/3 bananas"},
+        {"supply_name": "Dulce de leche", "quantity": 50, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Crema", "quantity": 50, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Chocolate", "quantity": null, "unit": null, "note": "Relleno; rallado, para decorar"},
+        {"supply_name": "Chocolate negro", "quantity": 90, "unit": "g", "note": "Ganache"},
+        {"supply_name": "Crema", "quantity": 90, "unit": "g", "note": "Ganache"},
+        {"supply_name": "Manteca", "quantity": 10, "unit": "g", "note": "Ganache"}
+      ],
+      "steps": [
+        {"title": "Cremar manteca y azúcar", "instruction": "Con la manteca pomada, batir la manteca con el azúcar hasta que quede cremosa. Añade el huevo a la crema y vuelve a batir.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Cremosa.", "tip": null},
+        {"title": "Formar la masa y reposar", "instruction": "Incorpora la harina y con la ayuda de las manos forma una masa homogénea. Forma una pelota, cúbrela con una película transparente y déjala reposar en la nevera 1 hora mínimo.", "temperature_c": null, "time_min": 60, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Estirar", "instruction": "Saca la masa de la nevera y con el rodillo haz una placa de 2 milímetros de espesor.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Pinchar", "instruction": "Haz unos agujeros con un tenedor para que no se hinchen durante el horneado.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Hornea a 170 grados durante 15 minutos o hasta que la superficie sea dorada.", "temperature_c": 170, "time_min": 15, "time_max": null, "doneness": "Hasta que la superficie sea dorada.", "tip": null}
+      ]
+    },
+    {
+      "name": "Matilda",
+      "product_name": "Matilda",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": null,
+      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nSal: cantidad a completar.\nFaltan el armado y en qué momento se usa el almíbar.",
+      "ingredients": [
+        {"supply_name": "Harina 0000", "quantity": 400, "unit": "g", "note": null},
+        {"supply_name": "Aceite", "quantity": 150, "unit": "ml", "note": null},
+        {"supply_name": "Azúcar", "quantity": 400, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 5, "unit": "unidad", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Cacao amargo", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Leche", "quantity": 150, "unit": "ml", "note": null},
+        {"supply_name": "Café", "quantity": 100, "unit": "ml", "note": "caliente"},
+        {"supply_name": "Polvo de hornear", "quantity": 12, "unit": "g", "note": null},
+        {"supply_name": "Bicarbonato", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate semiamargo", "quantity": 500, "unit": "g", "note": "Ganache"},
+        {"supply_name": "Crema", "quantity": 600, "unit": "g", "note": "Ganache"},
+        {"supply_name": "Manteca", "quantity": 30, "unit": "g", "note": "Ganache"},
+        {"supply_name": "Miel", "quantity": 1, "unit": "cucharada", "note": "Ganache; opcional (según el paso)"},
+        {"sub_recipe_name": "Almíbar de cacao", "quantity": 1, "unit": "tanda", "note": null}
+      ],
+      "steps": [
+        {"title": "Batir huevos y azúcar", "instruction": "Batir con el globo de la batidora los huevos con el azucar hasta que este espumoso.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Espumoso.", "tip": null},
+        {"title": "Sumar leche y aceite", "instruction": "Agregamos la leche y el aceite.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Sumar los secos", "instruction": "Sumar la harina, cacao, sal, polvo de hornear y bicarbonato", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Agregar el café", "instruction": "Por ultimo agregar el cafe caliente.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Llevar al un horno de 170°C por 50/55 minutos.", "temperature_c": 170, "time_min": 50, "time_max": 55, "doneness": null, "tip": null},
+        {"title": "Ganache", "instruction": "Para la ganache, calentar la crema con la manteca, agregar el chocolate y dejarlo 2/3 minutos, se puede batir en con la minipimer que queda muy bien, por ultimo agregar la miel (opcional, si no hay no pasa nada solo da brillo)", "temperature_c": null, "time_min": 2, "time_max": 3, "doneness": null, "tip": "La miel es opcional: si no hay no pasa nada, solo da brillo."}
+      ]
+    },
+    {
+      "name": "Souffle de nuez",
+      "product_name": "Souffle de nuez",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": null,
+      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nLa planilla no dice en qué momento se incorporan las claras batidas.\nNueces caramelizadas: el azúcar para caramelizar no está en la lista.\nUnidades que no convierten: \"Nuez 5 unidad\" (el insumo Nuez va en kg): no descuenta stock y su costo queda incompleto hasta pasarla a gramos.",
+      "ingredients": [
+        {"supply_name": "Nuez", "quantity": 275, "unit": "g", "note": null},
+        {"supply_name": "Harina de almendras", "quantity": 40, "unit": "g", "note": null},
+        {"supply_name": "Azúcar", "quantity": 225, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 5, "unit": "unidad", "note": null},
+        {"supply_name": "Polvo de hornear", "quantity": 10, "unit": "g", "note": null},
+        {"supply_name": "Esencia de vainilla", "quantity": 1, "unit": "cucharada", "note": null},
+        {"supply_name": "Crema", "quantity": 250, "unit": "g", "note": "Para decorar"},
+        {"supply_name": "Dulce de leche", "quantity": 300, "unit": "g", "note": "Para decorar"},
+        {"supply_name": "Nuez", "quantity": 5, "unit": "unidad", "note": "Para decorar; caramelizadas"},
+        {"supply_name": "Frutos rojos", "quantity": 150, "unit": "g", "note": "Para decorar"}
+      ],
+      "steps": [
+        {"title": "Batir yemas y claras", "instruction": "Batir con el globo de la batidora las yemas con el azucar hasta que este espumoso. Por separado batir las claras a punto nieve.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Yemas: espumoso. Claras: a punto nieve.", "tip": null},
+        {"title": "Tostar y moler las nueces", "instruction": "Tostar las nueces en el horno a 170°C por 10 minutos. Una vez que esten frias molerlas.", "temperature_c": 170, "time_min": 10, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Mezclar", "instruction": "Con la espatula y haciendo movimiento envolvente mezclar las yemas espumosas con las nueces molidas, la harina de almedras, la esencia de vainilla y el polvo de hornear", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Integrar", "instruction": "Integrar todo de manera suave para mantener la textura.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Llevar al un horno de 170°C por 15 minutos", "temperature_c": 170, "time_min": 15, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Bajar el horno", "instruction": "Luego bajar el horno a 155°C y cocinar por 40 minutos mas.", "temperature_c": 155, "time_min": 40, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Decorar", "instruction": "Para decorar, una vez que este frio, poner el dulce de leche con la manga y agregar la crema batida arriba. Poner las nueces con un poquito de azucar en una sarten y poner sin mover hasta que se hace el caramelo, luego picar y decorar.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null}
+      ]
+    },
+    {
+      "name": "Torta Galia",
+      "product_name": "Torta Galia",
+      "is_base": false,
+      "yield_quantity": null,
+      "yield_unit": null,
+      "total_time_minutes": null,
+      "advance_notes": null,
+      "notes": null,
+      "pending_notes": "Rendimiento a completar (la planilla no lo dice).\nSal: cantidad a completar.\nFaltan el armado completo (capas) y en qué momento se usa el almíbar.",
+      "ingredients": [
+        {"supply_name": "Harina 0000", "quantity": 400, "unit": "g", "note": null},
+        {"supply_name": "Aceite", "quantity": 150, "unit": "ml", "note": null},
+        {"supply_name": "Azúcar", "quantity": 400, "unit": "g", "note": null},
+        {"supply_name": "Huevo", "quantity": 5, "unit": "unidad", "note": null},
+        {"supply_name": "Sal", "quantity": null, "unit": null, "note": null},
+        {"supply_name": "Cacao amargo", "quantity": 100, "unit": "g", "note": null},
+        {"supply_name": "Leche", "quantity": 150, "unit": "ml", "note": null},
+        {"supply_name": "Café", "quantity": 100, "unit": "ml", "note": "caliente"},
+        {"supply_name": "Polvo de hornear", "quantity": 10, "unit": "g", "note": null},
+        {"supply_name": "Bicarbonato", "quantity": 5, "unit": "g", "note": null},
+        {"supply_name": "Chocolate semiamargo", "quantity": 200, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Crema", "quantity": 250, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Manteca", "quantity": 5, "unit": "g", "note": "Relleno"},
+        {"supply_name": "Crema", "quantity": 400, "unit": "g", "note": "Relleno; chantilly, 400 gr (aprox)"},
+        {"supply_name": "Mermelada de frutos rojos", "quantity": 200, "unit": "g", "note": "Relleno; 200 gr (aprox)"},
+        {"sub_recipe_name": "Almíbar de cacao", "quantity": 1, "unit": "tanda", "note": null}
+      ],
+      "steps": [
+        {"title": "Batir huevos y azúcar", "instruction": "Batir con el globo de la batidora los huevos con el azucar hasta que este espumoso.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": "Espumoso.", "tip": null},
+        {"title": "Sumar leche y aceite", "instruction": "Agregamos la leche y el aceite.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Sumar los secos", "instruction": "Sumar la harina, cacao, sal, polvo de hornear y bicarbonato", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Agregar el café", "instruction": "Por ultimo agregar el cafe caliente.", "temperature_c": null, "time_min": null, "time_max": null, "doneness": null, "tip": null},
+        {"title": "Hornear", "instruction": "Llevar al un horno de 170°C por 50/55 minutos.", "temperature_c": 170, "time_min": 50, "time_max": 55, "doneness": null, "tip": null},
+        {"title": "Ganache y relleno", "instruction": "Para la ganache, calentar la crema con la manteca, agregar el chocolate y dejarlo 2/3 minutos, se puede batir en con la minipimer que queda muy bien. En la capa de la crema batida agregar una capa de mermelada de frutos rojos.", "temperature_c": null, "time_min": 2, "time_max": 3, "doneness": null, "tip": null}
+      ]
+    }
+  ],
+  "doubts": [
+    "Galletitas de nuez: la lista de ingredientes dice \"2 huevos\" y el paso 4 dice \"Agregar la yema\". Se cargó tal cual (2 huevos). ¿Van los 2 huevos enteros, 2 yemas o una sola yema?",
+    "Galletitas de nuez: el paso 8 dice \"cortar 6 discos de 8 cm\", pero la tanda tiene unos 1,2 kg de masa. ¿Cuántos discos (o alfajores) salen de la tanda?",
+    "Matilda: la ganache lleva 500 g de chocolate semiamargo y 600 g de crema (más 30 g de manteca y miel); en Torta Galia el relleno lleva 200 g de chocolate y 250 g de crema (y 5 g de manteca). Se cargó cada una como está. ¿Está bien la de Matilda?",
+    "Cookies: la nota dice \"Con esta proporcion salen 6,5 cookies\". Se cargó un rendimiento de 6,5 unidades en las cinco variedades. ¿Es así?",
+    "Crumble de manzana: el último paso es \"Agregar queso por encima\", pero la lista no trae queso. ¿Va queso? ¿Cuál y cuánto?",
+    "Bizcocho de chocolate: Torta Galia lleva 10 g de polvo de hornear y Matilda 12 g; el resto del bizcocho es igual. Por esa diferencia no se unificó en una base: cada torta tiene su bizcocho. ¿Cuál es el correcto, o son distintos a propósito?",
+    "Cookies: la masa no es igual en las cinco variedades (la harina cambia: 170 g red velvet, 200 g chispitas con frutos secos, 160 g Nutella, 200 g chispitas, 170 g pistacho), así que no se armó una \"masa de cookies\" común. ¿Las diferencias son a propósito?",
+    "Cookies: el paso dice \"80gr aprox para las rellenas\". ¿Cuáles son las rellenas, y con qué se rellenan?",
+    "Cookie red velvet: lleva chocolate blanco dos veces (60 g y 90 g) y 30 g de crema. ¿Una parte es el relleno?",
+    "Muffin frutos rojos: trae harina 120 g, manteca 80 g, azúcar 80 g y una pizca de sal, pero ningún paso dice qué se hace con eso. ¿Es un crumble por encima?",
+    "Muffins: el paso de mezclar no nombra la premezcla. ¿En qué momento se agrega?",
+    "Souffle de nuez: se baten las claras a punto nieve, pero ningún paso dice cuándo se incorporan. ¿Van al final, con movimiento envolvente?",
+    "Harinas: la planilla usa \"Harina 0000\", \"Harina\" (crumble y muffin de frutos rojos) y \"Harina comun\" (relleno del crumble). Se cargaron como insumos distintos. ¿Son la misma harina?",
+    "Chipa: dice \"Mandioca 1 kilo\". ¿Es almidón (fécula) de mandioca?"
+  ]
+}

@@ -16,7 +16,6 @@ class Product(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     variants = db.relationship('ProductVariant', backref='product', lazy='dynamic', cascade='all, delete-orphan')
-    recipe_items = db.relationship('ProductRecipeItem', backref='product', lazy='dynamic', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {

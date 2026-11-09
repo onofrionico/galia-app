@@ -1,7 +1,7 @@
 """Fidelización: clientes, premios, movimientos de cafecitos, configuración, historial y módulo
 
-Revision ID: b7a0_loyalty
-Revises: b6e0_schedule_is_public
+Revision ID: b8a0_loyalty
+Revises: b7a1_drop_product_recipe_items
 Create Date: 2026-11-06 12:00:00.000000
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = 'b7a0_loyalty'
-down_revision = 'b6e0_schedule_is_public'
+revision = 'b8a0_loyalty'
+down_revision = 'b7a1_drop_product_recipe_items'
 branch_labels = None
 depends_on = None
 

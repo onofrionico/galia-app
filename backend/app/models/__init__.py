@@ -14,7 +14,7 @@ from app.models.supply import Supply, SupplyPrice
 from app.models.product_category import ProductCategory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
-from app.models.product_recipe_item import ProductRecipeItem
+from app.models.recipe import Recipe, RecipeIngredient, RecipeStep
 from app.models.payroll import Payroll
 from app.models.payroll_claim import PayrollClaim
 from app.models.notification import Notification, ScheduleChangeLog
@@ -62,7 +62,9 @@ __all__ = [
     'ProductCategory',
     'Product',
     'ProductVariant',
-    'ProductRecipeItem',
+    'Recipe',
+    'RecipeIngredient',
+    'RecipeStep',
     'Payroll',
     'PayrollClaim',
     'Notification',

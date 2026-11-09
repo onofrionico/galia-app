@@ -43,6 +43,9 @@ import MenuInbox from './pages/MenuInbox'
 import { RoleProtectedRoute } from './components/RoleProtectedRoute'
 import Permissions from './pages/Permissions'
 import Products from './pages/Products'
+import Recipes from './pages/Recipes'
+import RecipeView from './pages/RecipeView'
+import RecipeEditor from './pages/RecipeEditor'
 import ProductDetail from './pages/ProductDetail'
 import ProductCategories from './pages/ProductCategories'
 import ModifierGroups from './pages/ModifierGroups'
@@ -92,6 +95,10 @@ function App() {
             <Route path="/time-tracking" element={<TimeTracking />} />
             <Route path="/admin-time-tracking" element={<RoleProtectedRoute moduleName="Schedules"><AdminTimeTracking /></RoleProtectedRoute>} />
             <Route path="/import-time-tracking" element={<RoleProtectedRoute moduleName="Schedules"><ImportTimeTracking /></RoleProtectedRoute>} />
+            <Route path="/recipes" element={<RoleProtectedRoute moduleName="Recipes"><Recipes /></RoleProtectedRoute>} />
+            <Route path="/recipes/new" element={<RoleProtectedRoute moduleName="RecipesAdmin"><RecipeEditor /></RoleProtectedRoute>} />
+            <Route path="/recipes/:id/edit" element={<RoleProtectedRoute moduleName="RecipesAdmin"><RecipeEditor /></RoleProtectedRoute>} />
+            <Route path="/recipes/:id" element={<RoleProtectedRoute moduleName="Recipes"><RecipeView /></RoleProtectedRoute>} />
             <Route path="/sales" element={<RoleProtectedRoute moduleName="Sales"><Sales /></RoleProtectedRoute>} />
             <Route path="/expenses" element={<RoleProtectedRoute moduleName="Expenses"><Expenses /></RoleProtectedRoute>} />
             <Route path="/cash-sessions" element={<RoleProtectedRoute moduleName="POS"><CashSessions /></RoleProtectedRoute>} />

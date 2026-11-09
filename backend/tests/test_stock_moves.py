@@ -4,8 +4,9 @@ import pytest
 
 from app import create_app
 from app.extensions import db
-from app.models import Product, ProductCategory, ProductRecipeItem, ProductVariant, Supply
+from app.models import Product, ProductCategory, ProductVariant, RecipeIngredient, Supply
 from app.services.stock_service import deduct_stock_for_sale, move_stock, stock_requirements
+from pos_helpers import link_recipe
 
 
 @pytest.fixture
@@ -29,7 +30,7 @@ def _setup():
     recipe = Product(name='Cortado', category_id=cat.id, has_recipe=True)
     db.session.add_all([simple, untracked, recipe])
     db.session.flush()
-    db.session.add(ProductRecipeItem(product_id=recipe.id, supply_id=cafe.id, quantity=Decimal('0.02'), unit='kg'))
+    link_recipe(recipe, [(cafe, Decimal('0.02'))])
     v_simple = ProductVariant(product_id=simple.id, name='Unidad', price=900, stock_quantity=Decimal('2'), min_stock=0)
     v_untracked = ProductVariant(product_id=untracked.id, name='Botella', price=1000, stock_quantity=0, min_stock=0)
     v_recipe = ProductVariant(product_id=recipe.id, name='Taza', price=2000, stock_quantity=0, min_stock=0)
@@ -58,7 +59,7 @@ def test_move_stock_rejects_negative_quantities(app):
 
 def test_requirements_quantize_to_three_decimals(app):
     cafe, _s, _u, v_recipe = _setup()
-    recipe_item = ProductRecipeItem.query.one()
+    recipe_item = RecipeIngredient.query.one()
     recipe_item.quantity = Decimal('0.0333')
     db.session.commit()
     _variants, supplies = stock_requirements({v_recipe.id: Decimal('3')})

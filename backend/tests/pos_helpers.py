@@ -7,7 +7,7 @@ from sqlalchemy import event
 
 from app import create_app
 from app.extensions import db
-from app.models import Module, Product, ProductCategory, ProductRecipeItem, ProductVariant, Supply, User, UserPermission
+from app.models import Module, Product, ProductCategory, ProductVariant, Recipe, RecipeIngredient, Supply, User, UserPermission
 from app.models.pos import (DiscountTemplate, ModifierGroup, ModifierOption, PaymentMethod, PosTable,
                             ProductModifierGroup, Salon)
 
@@ -62,6 +62,19 @@ def make_floor():
     return salon, t1, t2
 
 
+def link_recipe(product, ingredients, name=None, yield_quantity=Decimal('1'), yield_unit='unidad'):
+    """Vincula a `product` una receta con [(insumo, cantidad)], cada uno en la unidad del insumo."""
+    recipe = Recipe(name=name or f'Receta {product.name}', product_id=product.id,
+                    yield_quantity=yield_quantity, yield_unit=yield_unit)
+    db.session.add(recipe)
+    db.session.flush()
+    for position, (supply, quantity) in enumerate(ingredients):
+        db.session.add(RecipeIngredient(recipe_id=recipe.id, position=position, supply_id=supply.id,
+                                        quantity=quantity, unit=supply.unit))
+    db.session.flush()
+    return recipe
+
+
 def make_catalog():
     """Cortado (receta: 0,02 kg de café; modificador obligatorio de leche) y Medialuna (stock 5)."""
     cat = ProductCategory(name='Cafetería')
@@ -83,7 +96,7 @@ def make_catalog():
                                supply_id=almendras_supply.id, supply_quantity=Decimal('0.2'), position=1)
     canela = ModifierOption(group_id=extras.id, name='Canela', price_delta=Decimal('100'), position=0)
     db.session.add_all([taza, unidad, entera, almendras, canela])
-    db.session.add(ProductRecipeItem(product_id=cortado.id, supply_id=cafe.id, quantity=Decimal('0.02'), unit='kg'))
+    link_recipe(cortado, [(cafe, Decimal('0.02'))])
     db.session.add(ProductModifierGroup(product_id=cortado.id, group_id=group.id, position=0))
     db.session.add(ProductModifierGroup(product_id=cortado.id, group_id=extras.id, position=1))
     efectivo = PaymentMethod(name='Efectivo', kind='cash', position=0)

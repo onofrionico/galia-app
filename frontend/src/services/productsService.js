@@ -46,16 +46,6 @@ const productsService = {
     return response.data
   },
 
-  async getRecipe(productId) {
-    const response = await api.get(`/products/${productId}/recipe`)
-    return response.data
-  },
-
-  async saveRecipe(productId, items) {
-    const response = await api.put(`/products/${productId}/recipe`, { items })
-    return response.data
-  },
-
   async getLowStock() {
     const response = await api.get('/products/low-stock')
     return response.data

@@ -99,6 +99,7 @@ const navGroups = [
       { to: '/products', icon: UtensilsCrossed, label: 'Productos', module: 'Products', end: true },
       { to: '/products/modifiers', icon: Tag, label: 'Modificadores', subItem: true, module: 'Products' },
       { to: '/product-categories', icon: Tag, label: 'Categorías', subItem: true, module: 'Products' },
+      { to: '/recipes', icon: BookOpen, label: 'Recetas', module: 'Recipes' },
       { to: '/supplies', icon: Package, label: 'Insumos', module: 'Stock' },
       { to: '/stock', icon: Package, label: 'Stock', module: 'Stock' },
     ],

@@ -30,12 +30,11 @@ export default function App() {
     () => (menu ? filterMenu(menu.groups, { query, tagSlugs: activeTags }) : []),
     [menu, query, activeTags],
   )
-  const navEntries = useMemo(() => {
-    if (groups.length === 1 && groups[0].name === null) {
-      return groups[0].categories.map((c) => ({ slug: c.slug, label: c.name, targetId: `cat-${c.slug}` }))
-    }
-    return groups.map((g) => ({ slug: g.slug, label: g.name, targetId: `grupo-${g.slug}` }))
-  }, [groups])
+  // Un atajo por categoría (no por grupo): así se ve de entrada que hay Bebidas, Licuados, etc.
+  const navEntries = useMemo(
+    () => groups.flatMap((g) => g.categories.map((c) => ({ slug: c.slug, label: c.name, targetId: `cat-${c.slug}` }))),
+    [groups],
+  )
   const tagsBySlug = useMemo(() => Object.fromEntries((menu?.tags || []).map((t) => [t.slug, t])), [menu])
   const flowers = useMemo(() => flowerByCategory(menu?.groups || []), [menu])
 

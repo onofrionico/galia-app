@@ -3,8 +3,8 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from app.extensions import db
 from app.models.product_variant import ProductVariant
-from app.models.product_recipe_item import ProductRecipeItem
 from app.models.supply import Supply
+from app.services.recipe_service import expand_per_yield_unit
 from app.utils.validation import parse_decimal
 
 MAX_SALE_QUANTITY = Decimal('1000000')
@@ -51,10 +51,12 @@ def stock_requirements(variant_quantities, extra_supplies=None):
 
     variant_quantities: {product_variant_id: Decimal}; extra_supplies: {supply_id: Decimal}
     (por ejemplo, insumos de modificadores). Devuelve (variantes, insumos) como {id: Decimal}:
-    - producto con receta: insumos de la receta × cantidad;
+    - producto con receta (has_recipe y receta vinculada): insumos de la receta expandida por
+      unidad de rendimiento × recipe_units de la variante × cantidad. Los ingredientes
+      incompletos se ignoran (nunca bloquean la venta); sin receta vinculada no descuenta insumos;
     - producto sin receta con track_stock: la propia variante;
     - producto sin receta sin track_stock: nada.
-    Levanta ValueError si una variante no existe.
+    Levanta ValueError si una variante no existe o si las recetas tienen un ciclo.
     """
     variants = defaultdict(Decimal)
     supplies = defaultdict(Decimal)
@@ -64,8 +66,11 @@ def stock_requirements(variant_quantities, extra_supplies=None):
             raise ValueError(f'ProductVariant {variant_id} no encontrado')
         product = variant.product
         if product.has_recipe:
-            for recipe_item in ProductRecipeItem.query.filter_by(product_id=product.id).all():
-                supplies[recipe_item.supply_id] += Decimal(recipe_item.quantity) * quantity
+            recipe = product.recipe
+            if recipe is not None:
+                per_unit = Decimal(variant.recipe_units if variant.recipe_units is not None else 1)
+                for supply_id, per_yield in expand_per_yield_unit(recipe).supplies.items():
+                    supplies[supply_id] += per_yield * per_unit * quantity
         elif product.track_stock:
             variants[variant_id] += quantity
     for supply_id, quantity in (extra_supplies or {}).items():
