@@ -6,16 +6,16 @@ daba +25 % sobre las ventas). Se recalcula: total = price (lo que estaba en unit
 unit_price = price / cantidad. Solo filas de Fudo (external_id no nulo); las del POS ya
 estaban bien.
 
-Revision ID: b6d0_fix_fudo_item_price
-Revises: b6c0_printer_chars_per_line
-Create Date: 2026-10-24 12:00:00.000000
+Revision ID: b7b0_fix_fudo_item_price
+Revises: b7a1_drop_product_recipe_items
+Create Date: 2026-11-08 12:00:00.000000
 
 """
 from alembic import op
 
 
-revision = 'b6d0_fix_fudo_item_price'
-down_revision = 'b6c0_printer_chars_per_line'
+revision = 'b7b0_fix_fudo_item_price'
+down_revision = 'b7a1_drop_product_recipe_items'
 branch_labels = None
 depends_on = None
 
