@@ -15,6 +15,7 @@ from app.models.product_category import ProductCategory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.recipe import Recipe, RecipeIngredient, RecipeStep
+from app.models.production import SalesDayPart, ProductionSettings, ProductComponent
 from app.models.payroll import Payroll
 from app.models.payroll_claim import PayrollClaim
 from app.models.notification import Notification, ScheduleChangeLog
@@ -101,4 +102,7 @@ __all__ = [
     'PosSaleItemModifier',
     'PosSaleEvent',
     'CancelReason',
+    'SalesDayPart',
+    'ProductionSettings',
+    'ProductComponent',
 ]
