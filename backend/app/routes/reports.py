@@ -1434,8 +1434,9 @@ from app.models.product_variant import ProductVariant  # noqa: E402
 from app.models.production import ProductComponent, ProductionSettings, SalesDayPart  # noqa: E402
 from app.services import production_forecast as pf  # noqa: E402
 from app.utils.timezone_utils import get_current_date_argentina  # noqa: E402
+from dateutil.relativedelta import relativedelta  # noqa: E402
 
-FORECAST_LOOKBACK_DAYS = 366
+WEEKS_LOOKBACK_DAYS = 7 * 53  # búsqueda de días iguales de la semana (hasta 52 semanas atrás)
 HOLIDAY_TYPES = ('national', 'local')
 
 
@@ -1503,10 +1504,13 @@ def production_forecast(current_user):
     parts_rows = SalesDayPart.query.filter_by(is_active=True).order_by(SalesDayPart.position).all()
     parts = [pf.DayPart(p.id, p.name, p.start_time, p.end_time) for p in parts_rows]
 
-    start = target - timedelta(days=FORECAST_LOOKBACK_DAYS)
+    start = min(target - timedelta(days=WEEKS_LOOKBACK_DAYS),
+                target - relativedelta(months=settings.holiday_window_months))
     holiday_names = _holidays(start, target)
     holidays = set(holiday_names)
-    lines, sale_days, labels = _forecast_lines(start, target - timedelta(days=1))
+    # Solo días completos: el de hoy todavía tiene ventas a medias.
+    last_complete = min(target, get_current_date_argentina()) - timedelta(days=1)
+    lines, sale_days, labels = _forecast_lines(start, last_complete)
     lines = pf.expand_components(lines, _active_components())
 
     days = pf.comparable_days(target, sale_days, holidays, settings.comparable_weeks,

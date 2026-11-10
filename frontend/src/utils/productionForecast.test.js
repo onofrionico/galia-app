@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, formatUnits, groupByCategory, productName } from './productionForecast'
+import { addDays, formatUnits, groupByCategory, latestOnly, productName } from './productionForecast'
 
 const products = [
   { key: 'v:1', producto: 'Café con leche', variante: 'Taza', categoria: 'Cafetería', total: 30 },
@@ -41,5 +41,21 @@ describe('addDays', () => {
   it('suma días a una fecha ISO sin pasar por UTC', () => {
     expect(addDays('2026-11-30', 1)).toBe('2026-12-01')
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+  })
+})
+
+describe('latestOnly', () => {
+  it('descarta respuestas de pedidos viejos que llegan tarde', async () => {
+    let resolveSlow
+    const calls = [
+      new Promise((r) => { resolveSlow = r }),
+      Promise.resolve('día 2'),
+    ]
+    const fetcher = latestOnly(() => calls.shift())
+    const first = fetcher()
+    const second = fetcher()
+    expect(await second).toEqual({ stale: false, value: 'día 2' })
+    resolveSlow('día 1')
+    expect(await first).toEqual({ stale: true, value: 'día 1' })
   })
 })

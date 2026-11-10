@@ -42,6 +42,17 @@ export const shortDay = (iso) => {
   return `${WEEKDAYS[new Date(year, month - 1, day).getDay()]} ${day}/${month}`
 }
 
+// Envuelve un pedido async: cada resultado viene marcado `stale` si después se lanzó otro pedido,
+// para que una respuesta lenta de un día anterior no pise la del día elegido.
+export const latestOnly = (fn) => {
+  let latest = 0
+  return async (...args) => {
+    const id = ++latest
+    const value = await fn(...args)
+    return { stale: id !== latest, value }
+  }
+}
+
 // Mañana en hora Argentina, como 'YYYY-MM-DD'.
 export const tomorrowArgentina = () => {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())

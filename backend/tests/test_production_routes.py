@@ -279,3 +279,35 @@ def test_components_require_products_module(pos_app):
     cat = make_catalog()
     client, headers = _client(pos_app, user)
     assert client.get(f'/api/v1/products/{cat.cortado.id}/components', headers=headers).status_code == 403
+
+
+# ---- Arreglos de la revisión final ----
+
+def test_holiday_window_beyond_twelve_months(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    _day_parts()
+    cat = make_catalog()
+    settings = ProductionSettings.get()
+    settings.holiday_window_months = 24
+    old_holiday = TARGET - timedelta(days=540)  # ~18 meses antes
+    db.session.add_all([Holiday(date=TARGET, name='Hoy', type='national'),
+                        Holiday(date=old_holiday, name='Viejo', type='national')])
+    db.session.commit()
+    _sale(old_holiday, 12, [(cat.unidad, 'Medialuna', 8)])
+    data = _get(pos_app, user, f'?date={TARGET}').get_json()
+    assert old_holiday.isoformat() in data['based_on']
+    assert _row(data, 'Medialuna')['semana']['feriado'] == 8.0
+
+
+def test_today_partial_sales_not_comparable(pos_app):
+    from app.utils.timezone_utils import get_current_date_argentina
+    user = make_user('dueno@test.com', modules=('Reports',))
+    _day_parts()
+    cat = make_catalog()
+    today = get_current_date_argentina()
+    _sale(today, 12, [(cat.unidad, 'Medialuna', 1)])
+    _sale(today - timedelta(days=7), 12, [(cat.unidad, 'Medialuna', 10)])
+    data = _get(pos_app, user, f'?date={today + timedelta(days=7)}').get_json()
+    assert today.isoformat() not in data['based_on']
+    assert _row(data, 'Medialuna')['total'] == 10.0
+    assert _row(data, 'Medialuna')['semana'][str(today.weekday())] == 10.0

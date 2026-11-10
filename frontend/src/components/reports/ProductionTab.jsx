@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Search, Settings } from 'lucide-react'
 import { reportsService } from '@/services/reportsService'
-import { addDays, formatUnits, groupByCategory, productName, shortDay, tomorrowArgentina } from '@/utils/productionForecast'
+import { addDays, formatUnits, groupByCategory, latestOnly, productName, shortDay, tomorrowArgentina } from '@/utils/productionForecast'
 import ProductionSettingsModal from './ProductionSettingsModal'
 
 const WEEK_COLUMNS = [['0', 'Lun'], ['1', 'Mar'], ['2', 'Mié'], ['3', 'Jue'], ['4', 'Vie'], ['5', 'Sáb'], ['6', 'Dom'], ['feriado', 'Feriado']]
@@ -16,14 +16,20 @@ const ProductionTab = () => {
   const [view, setView] = useState('day') // 'day' | 'week'
   const [showSettings, setShowSettings] = useState(false)
 
+  const fetchForecast = useMemo(() => latestOnly(reportsService.getProductionForecast), [])
+
   const load = async () => {
     setLoading(true)
     setError(null)
     try {
-      setData(await reportsService.getProductionForecast(date))
+      const { stale, value } = await fetchForecast(date)
+      if (stale) return
+      setData(value)
+      setLoading(false)
     } catch (err) {
+      // Sin datos: no dejar en pantalla la tabla de otro día debajo del error.
+      setData(null)
       setError(err.response?.data?.error || 'No se pudo cargar el pronóstico')
-    } finally {
       setLoading(false)
     }
   }
