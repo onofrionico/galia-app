@@ -144,3 +144,138 @@ def test_forecast_defaults_to_tomorrow(pos_app):
 def test_forecast_requires_reports_module(pos_app):
     user = make_user('mozo@test.com', modules=('POS',))
     assert _get(pos_app, user).status_code == 403
+
+
+# ---- Configuración de turnos ----
+
+SETTINGS_URL = '/api/v1/reports/production-settings'
+
+
+def _client(pos_app, user):
+    client = pos_app.test_client()
+    return client, auth_headers(client, user)
+
+
+def test_settings_put_updates_and_creates(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    parts = _day_parts()
+    client, headers = _client(pos_app, user)
+    body = client.get(SETTINGS_URL, headers=headers).get_json()
+    assert body['comparable_weeks'] == 4 and len(body['day_parts']) == 3
+    body['comparable_weeks'] = 6
+    body['day_parts'][0]['start'] = '07:30'
+    body['day_parts'].append({'name': 'Noche', 'start': '20:00', 'end': '22:00', 'is_active': True})
+    response = client.put(SETTINGS_URL, json=body, headers=headers)
+    assert response.status_code == 200, response.get_json()
+    after = client.get(SETTINGS_URL, headers=headers).get_json()
+    assert after['comparable_weeks'] == 6
+    assert after['day_parts'][0]['start'] == '07:30'
+    assert [p['name'] for p in after['day_parts']] == ['Desayuno', 'Almuerzo', 'Merienda', 'Noche']
+    assert db.session.get(SalesDayPart, parts[0].id).updated_by == user.id
+    assert ProductionSettings.get().updated_by == user.id
+
+
+def test_overlapping_day_parts_rejected(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    _day_parts()
+    client, headers = _client(pos_app, user)
+    body = client.get(SETTINGS_URL, headers=headers).get_json()
+    body['comparable_weeks'] = 8
+    body['day_parts'][0]['end'] = '13:00'
+    response = client.put(SETTINGS_URL, json=body, headers=headers)
+    assert response.status_code == 400 and 'se superpone' in response.get_json()['error']
+    after = client.get(SETTINGS_URL, headers=headers).get_json()
+    assert after['day_parts'][0]['end'] == '12:00' and after['comparable_weeks'] == 4
+
+
+def test_invalid_settings_rejected(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    _day_parts()
+    client, headers = _client(pos_app, user)
+    body = client.get(SETTINGS_URL, headers=headers).get_json()
+    for change in ({'comparable_weeks': 0}, {'holiday_window_months': 99}):
+        assert client.put(SETTINGS_URL, json={**body, **change}, headers=headers).status_code == 400
+    bad = dict(body, day_parts=[dict(body['day_parts'][0], start='12:00', end='08:00')])
+    assert client.put(SETTINGS_URL, json=bad, headers=headers).status_code == 400
+    bad = dict(body, day_parts=[dict(body['day_parts'][0], name='  ')])
+    assert client.put(SETTINGS_URL, json=bad, headers=headers).status_code == 400
+
+
+def test_day_part_deactivated_not_deleted(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    merienda = _day_parts()[2]
+    cat = make_catalog()
+    _sale(TARGET - timedelta(days=7), 20, [(cat.unidad, 'Medialuna', 4)])  # 17:00 local
+    client, headers = _client(pos_app, user)
+    body = client.get(SETTINGS_URL, headers=headers).get_json()
+    body['day_parts'][2]['is_active'] = False
+    assert client.put(SETTINGS_URL, json=body, headers=headers).status_code == 200
+    after = client.get(SETTINGS_URL, headers=headers).get_json()
+    assert after['day_parts'][2]['is_active'] is False
+    data = _get(pos_app, user, f'?date={TARGET}').get_json()
+    assert merienda.id not in [p['id'] for p in data['day_parts']]
+    assert _row(data, 'Medialuna')['fuera_de_turno'] == 4.0
+
+
+def test_settings_require_reports_module(pos_app):
+    user = make_user('mozo@test.com', modules=('POS',))
+    client, headers = _client(pos_app, user)
+    assert client.get(SETTINGS_URL, headers=headers).status_code == 403
+
+
+# ---- Componentes ----
+
+def _combo(cat):
+    combo = ProductVariant(product_id=cat.cortado.id, name='Combo', price=Decimal('3000'), stock_quantity=0,
+                           min_stock=0)
+    db.session.add(combo)
+    db.session.commit()
+    return combo
+
+
+def test_components_put_replaces_and_soft_deletes(pos_app):
+    user = make_user('dueno@test.com', modules=('Products',))
+    cat = make_catalog()
+    combo = _combo(cat)
+    client, headers = _client(pos_app, user)
+    url = f'/api/v1/products/{cat.cortado.id}/components'
+    both = {'components': [{'variant_id': combo.id, 'component_variant_id': cat.unidad.id, 'quantity': 2},
+                           {'variant_id': combo.id, 'component_variant_id': cat.taza.id, 'quantity': 1}]}
+    assert client.put(url, json=both, headers=headers).status_code == 200
+    one = {'components': [{'variant_id': combo.id, 'component_variant_id': cat.unidad.id, 'quantity': 3}]}
+    assert client.put(url, json=one, headers=headers).status_code == 200
+    body = client.get(url, headers=headers).get_json()
+    assert [(c['component_variant_id'], c['quantity']) for c in body['components']] == [(cat.unidad.id, 3.0)]
+    assert body['components'][0]['component_label'] == 'Medialuna — Unidad'
+    assert {v['name'] for v in body['variants']} == {'Taza', 'Combo'}
+    removed = ProductComponent.query.filter_by(component_variant_id=cat.taza.id).one()
+    assert removed.is_active is False and removed.updated_by == user.id
+
+
+def test_component_cannot_be_itself(pos_app):
+    user = make_user('dueno@test.com', modules=('Products',))
+    cat = make_catalog()
+    combo = _combo(cat)
+    client, headers = _client(pos_app, user)
+    url = f'/api/v1/products/{cat.cortado.id}/components'
+    for item in ({'variant_id': combo.id, 'component_variant_id': combo.id, 'quantity': 1},
+                 {'variant_id': cat.unidad.id, 'component_variant_id': cat.taza.id, 'quantity': 1},
+                 {'variant_id': combo.id, 'component_variant_id': cat.unidad.id, 'quantity': 0},
+                 {'variant_id': combo.id, 'component_variant_id': 9999, 'quantity': 1}):
+        assert client.put(url, json={'components': [item]}, headers=headers).status_code == 400
+    assert ProductComponent.query.count() == 0
+
+
+def test_variant_search(pos_app):
+    user = make_user('dueno@test.com', modules=('Products',))
+    cat = make_catalog()
+    client, headers = _client(pos_app, user)
+    body = client.get('/api/v1/products/variants/search?q=medi', headers=headers).get_json()
+    assert body == [{'id': cat.unidad.id, 'label': 'Medialuna — Unidad'}]
+
+
+def test_components_require_products_module(pos_app):
+    user = make_user('dueno@test.com', modules=('Reports',))
+    cat = make_catalog()
+    client, headers = _client(pos_app, user)
+    assert client.get(f'/api/v1/products/{cat.cortado.id}/components', headers=headers).status_code == 403

@@ -1539,3 +1539,89 @@ def production_forecast(current_user):
         'coverage': _coverage(days),
         'products': products,
     }), 200
+
+
+def _parse_hhmm(value, label):
+    try:
+        return datetime.strptime(str(value), '%H:%M').time()
+    except (TypeError, ValueError):
+        raise ValueError(f'{label}: la hora tiene que ser HH:MM')
+
+
+def _bounded_int(value, label, low, high):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{label} tiene que ser un número')
+    if not low <= number <= high:
+        raise ValueError(f'{label} tiene que estar entre {low} y {high}')
+    return number
+
+
+def _production_settings_payload():
+    settings = ProductionSettings.get()
+    parts = SalesDayPart.query.order_by(SalesDayPart.position, SalesDayPart.id).all()
+    return {'comparable_weeks': settings.comparable_weeks, 'holiday_window_months': settings.holiday_window_months,
+            'day_parts': [p.to_dict() for p in parts]}
+
+
+@bp.route('/production-settings', methods=['GET'])
+@token_required
+@module_required('Reports')
+def get_production_settings(current_user):
+    payload = _production_settings_payload()
+    db.session.commit()
+    return jsonify(payload), 200
+
+
+@bp.route('/production-settings', methods=['PUT'])
+@token_required
+@module_required('Reports')
+def update_production_settings(current_user):
+    """Actualiza semanas, meses de feriados y turnos. Los turnos no se borran: se desactivan."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('day_parts', []), list):
+        return jsonify({'error': 'Cuerpo inválido'}), 400
+    try:
+        weeks = _bounded_int(data.get('comparable_weeks'), 'Semanas a comparar', 1, 26)
+        months = _bounded_int(data.get('holiday_window_months'), 'Meses de feriados', 1, 36)
+        parsed = []
+        for index, raw in enumerate(data.get('day_parts', [])):
+            name = str(raw.get('name') or '').strip()[:50]
+            if not name:
+                raise ValueError('Cada turno necesita un nombre')
+            start = _parse_hhmm(raw.get('start'), name)
+            end = _parse_hhmm(raw.get('end'), name)
+            if start >= end:
+                raise ValueError(f'{name}: el inicio tiene que ser anterior al fin')
+            parsed.append({'id': raw.get('id'), 'name': name, 'start': start, 'end': end,
+                           'is_active': bool(raw.get('is_active', True)), 'position': index})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    existing = {p.id: p for p in SalesDayPart.query.all()}
+    if any(p['id'] is not None and p['id'] not in existing for p in parsed):
+        return jsonify({'error': 'Turno inexistente'}), 400
+    sent_ids = {p['id'] for p in parsed if p['id'] is not None}
+    active = [(p['name'], p['start'], p['end']) for p in parsed if p['is_active']]
+    active += [(p.name, p.start_time, p.end_time) for pid, p in existing.items()
+               if pid not in sent_ids and p.is_active]
+    active.sort(key=lambda item: item[1])
+    for (name_a, _start_a, end_a), (name_b, start_b, _end_b) in zip(active, active[1:]):
+        if start_b < end_a:
+            return jsonify({'error': f'{name_b} se superpone con {name_a}'}), 400
+
+    now = datetime.utcnow()
+    settings = ProductionSettings.get()
+    if (settings.comparable_weeks, settings.holiday_window_months) != (weeks, months):
+        settings.comparable_weeks, settings.holiday_window_months = weeks, months
+        settings.updated_by, settings.updated_at = current_user.id, now
+    for item in parsed:
+        part = existing.get(item['id']) or SalesDayPart()
+        values = (item['name'], item['start'], item['end'], item['is_active'], item['position'])
+        if part.id is None or (part.name, part.start_time, part.end_time, part.is_active, part.position) != values:
+            part.name, part.start_time, part.end_time, part.is_active, part.position = values
+            part.updated_by, part.updated_at = current_user.id, now
+            db.session.add(part)
+    db.session.commit()
+    return jsonify(_production_settings_payload()), 200
