@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { reportsService } from '@/services/reportsService'
 import ProductsTab from '@/components/reports/ProductsTab'
+import ProductionTab from '@/components/reports/ProductionTab'
 
 // 'YYYY-MM-DD' → 'D/M/YYYY' sin pasar por Date (new Date('2026-10-01') es UTC y en Argentina muestra el 30/9)
 const formatISODate = (iso) => {
@@ -325,7 +326,8 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Filtros */}
+        {/* Filtros (Producción tiene su propio selector de día) */}
+        {activeTab !== 'production' && (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* Toggle modo de filtro */}
@@ -443,6 +445,7 @@ const Reports = () => {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Tab navigation */}
@@ -476,6 +479,16 @@ const Reports = () => {
           }`}
         >
           Productos
+        </button>
+        <button
+          onClick={() => setActiveTab('production')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'production'
+              ? 'bg-white border border-b-white border-gray-200 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Producción
         </button>
       </div>
 
@@ -887,6 +900,8 @@ const Reports = () => {
           formatCurrency={formatCurrency}
         />
       )}
+
+      {activeTab === 'production' && <ProductionTab />}
 
       {activeTab === 'time' && (
         <TimeAnalysisTab
