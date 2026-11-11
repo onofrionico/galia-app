@@ -31,6 +31,15 @@ export const posApi = {
   getDiscountTemplates: () => data(api.get('/pos/discount-templates')).then((d) => d.discount_templates),
 }
 
+export const posLoyaltyApi = {
+  searchCustomers: (q) => data(api.get('/loyalty/customers/search', { params: { q } })),
+  getRewards: () => data(api.get('/loyalty/rewards')),
+  setSaleCustomer: (saleId, customerId) => data(api.put(`/loyalty/pos-sales/${saleId}/customer`, { customer_id: customerId })),
+  addRedemption: (saleId, rewardId, modifierOptionIds) => data(api.post(`/loyalty/pos-sales/${saleId}/redemptions`, {
+    reward_id: rewardId, modifier_option_ids: modifierOptionIds,
+  })),
+}
+
 export const posCashApi = {
   registers: () => data(api.get('/pos/cash/registers')).then((d) => d.registers),
   session: (id) => data(api.get(`/pos/cash/sessions/${id}`)),

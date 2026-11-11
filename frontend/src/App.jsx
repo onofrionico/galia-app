@@ -17,6 +17,7 @@ import FudoCutover from './pages/admin/FudoCutover'
 import MpReconciliation from './pages/MpReconciliation'
 import CashSessionDetail from './pages/CashSessionDetail'
 import Reports from './pages/Reports'
+import Loyalty from './pages/Loyalty'
 import Employees from './pages/Employees'
 import EmployeeForm from './pages/EmployeeForm'
 import EmployeeDetail from './pages/EmployeeDetail'
@@ -104,6 +105,7 @@ function App() {
             <Route path="/fiscal/invoices" element={<RoleProtectedRoute moduleName="POS"><Invoices /></RoleProtectedRoute>} />
             <Route path="/cash-sessions/:id" element={<RoleProtectedRoute moduleName="POS"><CashSessionDetail /></RoleProtectedRoute>} />
             <Route path="/expense-categories" element={<RoleProtectedRoute moduleName="Expenses"><ExpenseCategories /></RoleProtectedRoute>} />
+            <Route path="/fidelizacion" element={<RoleProtectedRoute moduleName="Fidelizacion"><Loyalty /></RoleProtectedRoute>} />
             <Route path="/reports" element={<RoleProtectedRoute moduleName="Reports"><Reports /></RoleProtectedRoute>} />
             <Route path="/employees" element={<RoleProtectedRoute moduleName="Employees"><Employees /></RoleProtectedRoute>} />
             <Route path="/employees/new" element={<RoleProtectedRoute moduleName="Employees"><EmployeeForm /></RoleProtectedRoute>} />

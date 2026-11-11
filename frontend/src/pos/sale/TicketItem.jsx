@@ -23,6 +23,7 @@ export default function TicketItem({ item, sale, perms, discounts, handlers, bus
         className="flex w-full items-start justify-between gap-3 rounded-lg px-1 py-1 text-left hover:bg-gray-50 disabled:hover:bg-transparent">
         <span className={`min-w-0 ${cancelled ? 'text-gray-400 line-through' : ''}`}>
           <span className="font-medium">{formatQuantity(item.quantity)} × {item.product_name}</span>
+          {item.is_redemption && <span className="ml-1 rounded bg-galia-plum/10 px-1.5 text-xs text-galia-plum">canje</span>}
           <span className="block text-xs text-gray-500">{details}</span>
           {item.note && <span className="block text-xs italic text-gray-600">“{item.note}”</span>}
         </span>

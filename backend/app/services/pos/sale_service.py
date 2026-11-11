@@ -14,6 +14,7 @@ from app.models import ProductVariant
 from app.models.pos import (ACTIVE_SALE_STATUSES, ModifierGroup, ModifierOption, PosDiscount, PosSale,
                             PosSaleItem, PosSaleItemModifier, PosTable, ProductModifierGroup)
 from app.services.pos import audit, pricing, projection, stock_hooks
+from app.services.loyalty import wallet
 from app.services.pos.cancel_reasons import resolve_reason
 from app.services.pos import waiters
 from app.services.pos import print_service
@@ -104,6 +105,21 @@ def _parse_quantity(value):
     return quantity.quantize(Decimal('0.001'))
 
 
+def build_item(user, variant, quantity, options, note=None, free=False, reward_id=None):
+    """Arma un ítem pendiente con sus modificadores. `free`: ítem de canje en $0 (recargos incluidos)."""
+    modifiers_total = Decimal('0') if free else sum((Decimal(o.price_delta) for o in options), Decimal('0'))
+    unit_price = Decimal('0') if free else variant.price
+    item = PosSaleItem(product_variant_id=variant.id, product_name=variant.product.name, variant_name=variant.name,
+                       unit_price=unit_price, quantity=quantity, modifiers_total=modifiers_total, note=note,
+                       line_total=pricing.line_total(quantity, unit_price, modifiers_total), status='pending',
+                       created_by=user.id, created_at=now(), reward_id=reward_id)
+    for option in options:
+        item.modifiers.append(PosSaleItemModifier(
+            option_id=option.id, group_name=option.group.name, option_name=option.name,
+            price_delta=option.price_delta, supply_id=option.supply_id, supply_quantity=option.supply_quantity))
+    return item
+
+
 def add_item(user, sale_id, product_variant_id, quantity=1, modifier_option_ids=None, note=None):
     sale = load_sale(sale_id)
     require_status(sale, ('open',), 'Solo se agregan ítems a una venta abierta')
@@ -114,15 +130,7 @@ def add_item(user, sale_id, product_variant_id, quantity=1, modifier_option_ids=
     quantity = _parse_quantity(quantity)
     note = clean_str(note, 255)
     options = _validate_modifiers(variant.product_id, modifier_option_ids)
-    modifiers_total = sum((Decimal(o.price_delta) for o in options), Decimal('0'))
-    item = PosSaleItem(product_variant_id=variant.id, product_name=variant.product.name, variant_name=variant.name,
-                       unit_price=variant.price, quantity=quantity, modifiers_total=modifiers_total, note=note,
-                       line_total=pricing.line_total(quantity, variant.price, modifiers_total), status='pending',
-                       created_by=user.id, created_at=now())
-    for option in options:
-        item.modifiers.append(PosSaleItemModifier(
-            option_id=option.id, group_name=option.group.name, option_name=option.name,
-            price_delta=option.price_delta, supply_id=option.supply_id, supply_quantity=option.supply_quantity))
+    item = build_item(user, variant, quantity, options, note)
     sale.items.append(item)
     recalc(sale)
     audit.record(sale, user, 'item_added', item=item, product=item.product_name, variant=item.variant_name,
@@ -145,6 +153,17 @@ def delete_item(user, sale_id, item_id):
     item = _find_item(sale, item_id)
     if item.status != 'pending':
         raise PosError('El ítem ya fue confirmado; para quitarlo hay que anularlo')
+    if item.is_redemption:
+        # El canje no se borra: queda anulado para que sus movimientos de cafecitos conserven el origen.
+        wallet.reverse_redemption(item, user)
+        item.status = 'cancelled'
+        item.cancelled_at = now()
+        item.cancelled_by = user.id
+        item.cancel_reason = 'Canje quitado antes de confirmar'
+        audit.record(sale, user, 'item_deleted', item_id=item.id, product=item.product_name, redemption=True)
+        recalc(sale)
+        db.session.commit()
+        return sale
     audit.record(sale, user, 'item_deleted', item_id=item.id, product=item.product_name, variant=item.variant_name,
                  quantity=item.quantity, modifiers=[m.option_name for m in item.modifiers], note=item.note)
     sale.items.remove(item)
@@ -226,6 +245,8 @@ def cancel_item(user, sale_id, item_id, reason, reason_id=None):
     if item.status == 'cancelled':
         raise PosError('El ítem ya está anulado')
     _cancel_item_row(item, user, reason, reason_id)
+    if item.is_redemption:
+        wallet.reverse_redemption(item, user)
     print_service.jobs_for_void(sale, [item], user, reason)
     stock_hooks.restore([item])
     recalc(sale)
@@ -241,6 +262,10 @@ def cancel_item(user, sale_id, item_id, reason, reason_id=None):
 def cancel_sale_rows(sale, user, reason, reason_id=None):
     """Anula una venta sin pagos activos: ítems, descuentos y stock. No hace commit."""
     confirmed = [i for i in sale.items if i.status == 'confirmed']
+    for item in sale.items:
+        if item.is_redemption:
+            wallet.reverse_redemption(item, user)
+    wallet.reverse_sale_credits(sale, user)
     for item in sale.items:
         if item.status != 'cancelled':
             _cancel_item_row(item, user, reason, reason_id)
@@ -350,10 +375,13 @@ def split_sale(user, sale_id, lines):
             raise bad_request('Solo se separan ítems confirmados de esta venta')
         if quantity > Decimal(item.quantity):
             raise bad_request(f'No hay tantas unidades de {item.product_name}')
+        if item.is_redemption and quantity != Decimal(item.quantity):
+            raise bad_request('Un canje se separa entero')
     new = PosSale(business_date=get_current_date_argentina(), sale_type=sale.sale_type, table_id=sale.table_id,
                   people=1 if sale.sale_type == 'salon' else None, customer_name=sale.customer_name,
                   waiter_id=sale.waiter_id, status='billing', opened_at=now(), opened_by=user.id,
-                  billing_at=now(), split_from_id=sale.id, is_practice=sale.is_practice)
+                  billing_at=now(), split_from_id=sale.id, is_practice=sale.is_practice,
+                  customer_id=sale.customer_id)
     assign_number(new)
     moved = []
     for item_id, quantity in requested.items():

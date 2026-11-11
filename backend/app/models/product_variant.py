@@ -14,6 +14,7 @@ class ProductVariant(db.Model):
     fudo_product_id = db.Column(db.String(20), unique=True, nullable=True)
     fudo_status = db.Column(db.String(20), nullable=True)  # 'ok' | 'inactive' | 'missing' | None (no vinculada)
     # Ignorada en la carta: la sync desde el catálogo no le crea un ítem.
+    cafecitos = db.Column(db.Integer, nullable=False, default=0, server_default='0')
     menu_ignored = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     # Unidades de receta que rinde una unidad vendida de esta variante (ej. porción = 1/8 de torta).
     recipe_units = db.Column(db.Numeric(10, 3), nullable=False, default=1, server_default='1')

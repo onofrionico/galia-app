@@ -19,6 +19,7 @@ class PosSale(db.Model):
     table_id = db.Column(db.Integer, db.ForeignKey('pos_tables.id'), nullable=True, index=True)
     people = db.Column(db.Integer, nullable=True)
     customer_name = db.Column(db.String(100), nullable=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True, index=True)
     comment = db.Column(db.String(500), nullable=True)
     waiter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     status = db.Column(db.String(10), nullable=False, default='open', index=True)
@@ -42,6 +43,7 @@ class PosSale(db.Model):
 
     table = db.relationship('PosTable')
     waiter = db.relationship('User', foreign_keys=[waiter_id])
+    customer = db.relationship('Customer')
     items = db.relationship('PosSaleItem', back_populates='sale', order_by='PosSaleItem.id',
                             cascade='all, delete-orphan')
     discounts = db.relationship('PosDiscount', back_populates='sale', order_by='PosDiscount.id',
@@ -77,12 +79,18 @@ class PosSaleItem(db.Model):
     cancelled_at = db.Column(db.DateTime, nullable=True)
     cancel_reason = db.Column(db.String(255), nullable=True)
     cancel_reason_id = db.Column(db.Integer, db.ForeignKey('cancel_reasons.id'), nullable=True)
+    reward_id = db.Column(db.Integer, db.ForeignKey('loyalty_rewards.id'), nullable=True)
 
     sale = db.relationship('PosSale', back_populates='items')
+    variant = db.relationship('ProductVariant')
     modifiers = db.relationship('PosSaleItemModifier', back_populates='item', order_by='PosSaleItemModifier.id',
                                 cascade='all, delete-orphan')
     discounts = db.relationship('PosDiscount', back_populates='item', order_by='PosDiscount.id',
                                passive_deletes='all')
+
+    @property
+    def is_redemption(self):
+        return self.reward_id is not None
 
 
 class PosSaleItemModifier(db.Model):

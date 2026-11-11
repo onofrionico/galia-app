@@ -1,4 +1,5 @@
 """Cierre de ventas del POS (compartido por cobros, anulaciones y descuentos)."""
+from app.services.loyalty import wallet
 from app.services.pos import audit, projection
 from app.services.pos.common import now
 
@@ -9,6 +10,7 @@ def close_sale_rows(sale, user):
     sale.closed_at = now()
     sale.closed_by = user.id
     projection.project(sale)
+    wallet.credit_sale(sale, user)
     audit.record(sale, user, 'closed', total=sale.total, paid_total=sale.paid_total)
 
 

@@ -37,8 +37,10 @@ from app.models.pos import (Salon, PosTable, ModifierGroup, ModifierOption, Prod
 from app.models.fiscal import ArcaToken, FiscalCustomer, FiscalSettings, Invoice, InvoicePayment
 from app.models.mercadopago import MpFetchDay, MpMovement, MpPointOrder, MpReconciliation, MpSettings
 from app.models.operation_settings import FudoImportMonth, OperationSettings
+from app.models.loyalty import Customer, LoyaltyChangeLog, LoyaltyMovement, LoyaltySettings, Reward
 
 __all__ = [
+    'Customer', 'LoyaltyChangeLog', 'LoyaltyMovement', 'LoyaltySettings', 'Reward',
     'FudoImportMonth', 'OperationSettings',
     'MpFetchDay', 'MpMovement', 'MpPointOrder', 'MpReconciliation', 'MpSettings',
     'ArcaToken', 'FiscalCustomer', 'FiscalSettings', 'Invoice', 'InvoicePayment',
