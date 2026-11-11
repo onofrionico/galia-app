@@ -142,7 +142,7 @@ def parse_fudo_items(raw, index):
             continue
         quantity = _decimal(_attr(item, 'quantity'))
         price = _decimal(_attr(item, 'price'))
-        if quantity is None or price is None:
+        if quantity is None or price is None or quantity <= 0:
             continue
         product = _related(item, 'product', index)
         product_ref = _rel_data(item, 'product')
@@ -155,9 +155,10 @@ def parse_fudo_items(raw, index):
             'variant_name': None,
             'category_name': _text(_attr(category, 'name'), 100),
             'quantity': quantity,
-            # price de Fudo es unitario (a confirmar con scripts/inspect_fudo_sales.py)
-            'unit_price': price.quantize(CENT),
-            'total': (price * quantity).quantize(CENT),
+            # `price` de Fudo es el total de la línea, no el unitario: verificado contra producción el 2026-10-24
+            # (en octubre 750 de 762 ventas cierran con la suma de price; con price x cantidad el reporte daba +25 %).
+            'unit_price': (price / quantity).quantize(CENT),
+            'total': price.quantize(CENT),
             'unit_cost': cost.quantize(CENT) if cost is not None else None,
         })
     return items
