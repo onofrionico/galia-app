@@ -1,7 +1,7 @@
 """Fidelización: clientes, premios, movimientos de cafecitos, configuración, historial y módulo
 
 Revision ID: b8a0_loyalty
-Revises: b7a1_drop_product_recipe_items
+Revises: b7b0_fix_fudo_item_price
 Create Date: 2026-11-06 12:00:00.000000
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision = 'b8a0_loyalty'
-down_revision = 'b7a1_drop_product_recipe_items'
+down_revision = 'b7b0_fix_fudo_item_price'
 branch_labels = None
 depends_on = None
 
