@@ -4,7 +4,7 @@ Tablas nuevas, no toca las existentes. Idempotente: crea cada tabla solo si falt
 turnos iniciales (Desayuno 8-12, Almuerzo 12-16, Merienda 16-20) solo si la tabla está vacía.
 
 Revision ID: b7c0_production_forecast
-Revises: b7b0_fix_fudo_item_price
+Revises: b8a0_loyalty
 Create Date: 2026-11-10 12:00:00.000000
 
 """
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 
 
 revision = 'b7c0_production_forecast'
-down_revision = 'b7b0_fix_fudo_item_price'
+down_revision = 'b8a0_loyalty'
 branch_labels = None
 depends_on = None
 
