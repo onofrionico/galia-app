@@ -14,6 +14,7 @@ import pytz
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required, authenticated_only
 from app.utils.payroll_utils import calculate_employee_cost, calculate_total_hours_from_dict
+from app.utils.permissions import check_module_access
 from app.utils.timezone_utils import get_current_time_argentina, get_current_time_only_argentina, get_current_date_argentina
 
 logger = logging.getLogger(__name__)
@@ -36,11 +37,11 @@ def check_in(current_user):
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
     try:
-        tracking_date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else date.today()
+        tracking_date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else get_current_date_argentina()
     except (ValueError, AttributeError):
         return jsonify({'error': 'Formato de fecha inválido'}), 400
     
-    if tracking_date > date.today():
+    if tracking_date > get_current_date_argentina():
         return jsonify({'error': 'No se pueden registrar horarios futuros'}), 400
     
     try:
@@ -98,11 +99,11 @@ def check_out(current_user):
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
     try:
-        tracking_date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else date.today()
+        tracking_date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else get_current_date_argentina()
     except (ValueError, AttributeError):
         return jsonify({'error': 'Formato de fecha inválido'}), 400
     
-    if tracking_date > date.today():
+    if tracking_date > get_current_date_argentina():
         return jsonify({'error': 'No se pueden registrar horarios futuros'}), 400
     
     try:
@@ -226,7 +227,7 @@ def get_current_week_worked(current_user):
     if not current_user.employee:
         return jsonify({'error': 'Usuario no es un empleado'}), 403
     
-    today = date.today()
+    today = get_current_date_argentina()
     days_since_monday = today.weekday()
     this_monday = today - timedelta(days=days_since_monday)
     this_sunday = this_monday + timedelta(days=6)
@@ -281,7 +282,7 @@ def record_hours(current_user):
     except (ValueError, AttributeError):
         return jsonify({'error': 'Formato de fecha u hora inválido'}), 400
     
-    if tracking_date > date.today():
+    if tracking_date > get_current_date_argentina():
         return jsonify({'error': 'No se pueden registrar horarios futuros'}), 400
     
     if check_in_time >= check_out_time:
@@ -360,6 +361,7 @@ def get_calendar_data(current_user):
     - employee_id: filtrar por empleado (opcional)
     - shift_id: filtrar por turno programado (opcional)
     """
+    can_see_cost = check_module_access(current_user, 'Payroll')
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     employee_id = request.args.get('employee_id', type=int)
@@ -401,9 +403,10 @@ def get_calendar_data(current_user):
             'total_hours': 0,
             'total_minutes': 0,
             'employee_count': 0,
-            'employees': [],
-            'daily_cost': 0.0
+            'employees': []
         }
+        if can_see_cost:
+            calendar_data[day_date.isoformat()]['daily_cost'] = 0.0
     
     total_cost = 0.0
     
@@ -421,7 +424,7 @@ def get_calendar_data(current_user):
                 'minutes': record_data['total_minutes']
             })
             
-            if record.employee.job_position and record.employee.job_position.hourly_rate:
+            if can_see_cost and record.employee.job_position and record.employee.job_position.hourly_rate:
                 employee_total_hours = calculate_total_hours_from_dict(record_data['total_hours'], record_data['total_minutes'])
                 hourly_rate = record.employee.job_position.hourly_rate
                 employee_cost = calculate_employee_cost(
@@ -433,7 +436,7 @@ def get_calendar_data(current_user):
                 calendar_data[day_key]['daily_cost'] += employee_cost
                 total_cost += employee_cost
                 logger.info(f"Added cost for {record.employee.full_name} on {day_key}: ${employee_cost:.2f} (total now: ${total_cost:.2f})")
-            else:
+            elif can_see_cost:
                 logger.warning(f"Employee {record.employee.full_name} (ID: {record.employee_id}) missing job_position or hourly_rate")
     
     for day_key in calendar_data:
@@ -441,12 +444,14 @@ def get_calendar_data(current_user):
         calendar_data[day_key]['total_hours'] += extra_hours
         calendar_data[day_key]['total_minutes'] = calendar_data[day_key]['total_minutes'] % 60
     
-    return jsonify({
+    response = {
         'year': year,
         'month': month,
-        'days': list(calendar_data.values()),
-        'total_cost': round(total_cost, 2)
-    }), 200
+        'days': list(calendar_data.values())
+    }
+    if can_see_cost:
+        response['total_cost'] = round(total_cost, 2)
+    return jsonify(response), 200
 
 
 @bp.route('/calendar/day-detail', methods=['GET'])

@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, extract
 from decimal import Decimal
 import calendar
+import logging
 import os
 from io import BytesIO
 from reportlab.lib.pagesizes import letter, A4
@@ -29,6 +30,8 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+logger = logging.getLogger(__name__)
 
 payroll_bp = Blueprint('payroll', __name__, url_prefix='/api/v1/payroll')
 
@@ -299,13 +302,28 @@ def get_payroll_work_blocks(current_user, payroll_id):
     
     return jsonify(records)
 
+def _block_period_locked(block):
+    """True si la nómina del mes del bloque ya fue validada (no se puede tocar)."""
+    tracking = block.time_tracking
+    payroll = Payroll.query.filter_by(
+        employee_id=tracking.employee_id,
+        month=tracking.tracking_date.month,
+        year=tracking.tracking_date.year
+    ).first()
+    return payroll is not None and payroll.status in ('validated', 'employee_validated')
+
+LOCKED_MSG = 'La nómina de ese mes ya fue validada; reabrila antes de modificar las horas'
+
 @payroll_bp.route('/work-blocks/<int:block_id>', methods=['PUT'])
 @token_required
 @module_required('Payroll')
 def update_work_block(current_user, block_id):
     
     block = WorkBlock.query.get_or_404(block_id)
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+    
+    if _block_period_locked(block):
+        return jsonify({'error': LOCKED_MSG}), 409
     
     if 'start_time' in data:
         try:
@@ -319,6 +337,11 @@ def update_work_block(current_user, block_id):
         except ValueError:
             return jsonify({'error': 'Formato de hora inválido'}), 400
     
+    if block.start_time >= block.end_time:
+        db.session.rollback()
+        return jsonify({'error': 'La hora de inicio debe ser anterior a la de fin'}), 400
+    
+    logger.info(f"[AUDIT] work_block {block.id} editado por user {current_user.id}: {block.start_time}-{block.end_time}")
     db.session.commit()
     
     return jsonify(block.to_dict())
@@ -330,6 +353,10 @@ def delete_work_block(current_user, block_id):
     
     block = WorkBlock.query.get_or_404(block_id)
     
+    if _block_period_locked(block):
+        return jsonify({'error': LOCKED_MSG}), 409
+    
+    logger.info(f"[AUDIT] work_block {block.id} (tracking {block.time_tracking_id}, {block.start_time}-{block.end_time}) eliminado por user {current_user.id}")
     db.session.delete(block)
     db.session.commit()
     
