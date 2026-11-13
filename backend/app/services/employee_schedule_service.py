@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models.schedule import Schedule
 from app.models.shift import Shift
 from app.models.employee import Employee
+from app.utils.timezone_utils import get_current_date_argentina, get_current_time_only_argentina
 
 class EmployeeScheduleService:
     
@@ -11,7 +12,7 @@ class EmployeeScheduleService:
     def get_employee_weekly_schedule(employee_id, start_date=None):
         """Get employee's weekly schedule starting from a specific date"""
         if start_date is None:
-            start_date = date.today()
+            start_date = get_current_date_argentina()
         elif isinstance(start_date, str):
             start_date = datetime.fromisoformat(start_date).date()
         
@@ -40,7 +41,7 @@ class EmployeeScheduleService:
     def get_team_weekly_schedule(start_date=None, viewer_employee_id=None):
         """Turnos de todos los empleados en la semana, de grillas publicadas y públicas."""
         if not start_date:
-            today = datetime.now().date()
+            today = get_current_date_argentina()
             start_date = today - timedelta(days=today.weekday())
         else:
             start_date = start_date - timedelta(days=start_date.weekday())
@@ -90,7 +91,7 @@ class EmployeeScheduleService:
     def get_employee_monthly_schedule(employee_id, year=None, month=None):
         """Get employee's monthly schedule for a specific month"""
         if year is None or month is None:
-            today = date.today()
+            today = get_current_date_argentina()
             year = today.year
             month = today.month
         
@@ -133,9 +134,9 @@ class EmployeeScheduleService:
     @staticmethod
     def get_employee_upcoming_shifts(employee_id, days_ahead=30):
         """Get employee's upcoming shifts for the next N days"""
-        start_date = date.today()
+        start_date = get_current_date_argentina()
         end_date = start_date + timedelta(days=days_ahead)
-        current_time = datetime.now().time()
+        current_time = get_current_time_only_argentina()
         
         shifts = Shift.query.join(Schedule).filter(
             and_(
@@ -173,7 +174,7 @@ class EmployeeScheduleService:
     def get_employee_schedule_summary(employee_id, start_date=None, end_date=None):
         """Get summary of employee's schedule for a date range"""
         if start_date is None:
-            start_date = date.today()
+            start_date = get_current_date_argentina()
         elif isinstance(start_date, str):
             start_date = datetime.fromisoformat(start_date).date()
         
@@ -219,7 +220,7 @@ class EmployeeScheduleService:
     @staticmethod
     def get_next_week_schedule(employee_id):
         """Get employee's schedule for next week (starting from next Monday)"""
-        today = date.today()
+        today = get_current_date_argentina()
         days_until_next_monday = (7 - today.weekday()) % 7
         if days_until_next_monday == 0:
             days_until_next_monday = 7
@@ -231,7 +232,7 @@ class EmployeeScheduleService:
     @staticmethod
     def get_current_week_schedule(employee_id):
         """Get employee's schedule for current week (starting from this Monday)"""
-        today = date.today()
+        today = get_current_date_argentina()
         days_since_monday = today.weekday()
         this_monday = today - timedelta(days=days_since_monday)
         

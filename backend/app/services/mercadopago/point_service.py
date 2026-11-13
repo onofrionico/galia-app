@@ -115,13 +115,16 @@ def start(user, sale_id, amount):
         logger.exception('Error inesperado creando la orden %s', order.id)
         _fail_creation(order, UNAVAILABLE)
         raise PosError(UNAVAILABLE)
-    if response is None or not response.get('id'):
-        if response is not None:
-            logger.error('MercadoPago devolvió una orden sin id (%s): %s', order.id, response)
-        _fail_creation(order, UNAVAILABLE)
-        if response is not None:
-            raise PosError(UNAVAILABLE)
+    if response is None:
+        # Timeout en los dos intentos: MercadoPago pudo haber creado la orden igual y el cliente pagar en el Point.
+        # Se deja en 'creating' (reserva la terminal) y apply() la recupera repitiendo la creación con la misma
+        # clave de idempotencia, que devuelve la orden original en vez de duplicarla.
+        logger.warning('Orden %s sin respuesta de MercadoPago: queda en creating para recuperarla', order.id)
         return order
+    if not response.get('id'):
+        logger.error('MercadoPago devolvió una orden sin id (%s): %s', order.id, response)
+        _fail_creation(order, UNAVAILABLE)
+        raise PosError(UNAVAILABLE)
     order.mp_order_id = str(response['id'])
     order.status = 'created'
     order.updated_at = order.last_checked_at = now()
@@ -149,8 +152,8 @@ def _busy_order(terminal_id):
         return None
     if busy.mp_order_id is None:
         if busy.status == 'creating' and busy.created_at < now() - STALE_CREATING:
-            _fail_creation(busy, UNAVAILABLE)  # quedó trabada (el proceso murió creándola)
-            return None
+            busy = apply(busy.id)  # quedó trabada: se intenta recuperar y, si no hay forma, se da por fallida
+            return busy if busy.status in ACTIVE_STATUSES else None
         return busy
     if busy.last_checked_at is None or busy.last_checked_at < now() - REFRESH_AFTER:
         busy = apply(busy.id)
@@ -214,10 +217,45 @@ def _register_or_flag(order_id, order, state=None):
     return order
 
 
+def _recover_creation(order):
+    """Orden 'creating' sin mp_order_id: repite la creación con la misma clave de idempotencia."""
+    stale = order.created_at < now() - STALE_CREATING
+    client = mercadopago.get_client(mp_settings.get_settings())
+    try:
+        response = client.create_order(order.terminal_id, order.amount, order.external_reference,
+                                       order.idempotency_key)
+    except MpUnavailable as exc:
+        logger.warning('No se pudo recuperar la orden %s: %s', order.id, exc)
+        if stale:
+            _fail_creation(order, UNAVAILABLE)
+            return _load(order.id)
+        db.session.commit()
+        return order
+    except MpRejected as exc:
+        logger.warning('MercadoPago rechazó recuperar la orden %s: %s', order.id, exc)
+        _fail_creation(order, NOT_READY if exc.status in (400, 404, 409) else exc.message[:255])
+        return _load(order.id)
+    if response is None or not response.get('id'):
+        if stale:
+            _fail_creation(order, UNAVAILABLE)
+            return _load(order.id)
+        db.session.commit()
+        return order
+    order.mp_order_id = str(response['id'])
+    order.status = 'created'
+    order.updated_at = order.last_checked_at = now()
+    audit.record(order.sale, db.session.get(User, order.created_by), 'point_order_created',
+                 order_id=order.id, amount=order.amount, recovered=True)
+    db.session.commit()
+    return order
+
+
 def apply(order_id):
     order = _load(order_id, lock=True)
     if _needs_registration(order):
         return _register_or_flag(order_id, order)
+    if order.status == 'creating' and not order.mp_order_id:
+        return _recover_creation(order)
     if order.status in FINAL_STATUSES or not order.mp_order_id:
         db.session.commit()
         return order

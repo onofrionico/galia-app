@@ -9,6 +9,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 import csv
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('expenses', __name__, url_prefix='/api/v1/expenses')
 
@@ -315,11 +318,16 @@ def update_expense(current_user, expense_id):
 @token_required
 @module_required('Expenses')
 def delete_expense(current_user, expense_id):
-    """Delete an expense"""
+    """Anula un gasto (borrado lógico: queda en la base con cancelado=True)."""
+    from app.models.pos.cash import CashMovement
     expense = Expense.query.get_or_404(expense_id)
-    db.session.delete(expense)
-    db.session.commit()
-    return jsonify({'message': 'Gasto eliminado correctamente'}), 200
+    if CashMovement.query.filter_by(expense_id=expense.id).first():
+        return jsonify({'error': 'El gasto está ligado a un movimiento de caja; anulalo desde la caja'}), 409
+    if not expense.cancelado:
+        expense.cancelado = True
+        logger.info(f"[AUDIT] gasto {expense.id} anulado por user {current_user.id} (importe {expense.importe})")
+        db.session.commit()
+    return jsonify({'message': 'Gasto anulado correctamente'}), 200
 
 
 @bp.route('/import', methods=['POST'])

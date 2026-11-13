@@ -210,3 +210,46 @@ def test_requires_charge_permission_and_configuration(ctx):
     with pytest.raises(PosError) as error:
         point_service.start(cashier, sale.id, Decimal('100'))
     assert error.value.message.startswith('Falta configurar MercadoPago')
+
+
+# --- Timeout al crear la orden: no se pierde un cobro que MercadoPago si registro -----------------------
+
+def _flaky_create(monkeypatch, fail_times):
+    calls = {'n': 0}
+    original = FakeMercadoPago.create_order
+
+    def create(self, *args, **kwargs):
+        calls['n'] += 1
+        if calls['n'] <= fail_times:
+            raise mercadopago.MpUnavailable('timeout (simulado)')
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(FakeMercadoPago, 'create_order', create)
+    return calls
+
+
+def test_double_timeout_keeps_order_creating_and_recovers(ctx, monkeypatch):
+    user, cat, t1, _t2, _s = ctx
+    sale = billing_sale(user, cat, t1)
+    _flaky_create(monkeypatch, fail_times=2)
+    order = point_service.start(user, sale.id, Decimal('1800'))
+    assert order.status == 'creating' and order.mp_order_id is None  # ya no se da por fallida
+    key = order.idempotency_key
+    order = point_service.apply(order.id)  # recupera con la misma clave de idempotencia
+    assert order.status == 'created' and order.mp_order_id
+    assert order.idempotency_key == key
+
+
+def test_creating_order_reserves_terminal_until_stale(ctx, monkeypatch):
+    user, cat, t1, t2, _s = ctx
+    sale = billing_sale(user, cat, t1)
+    other = billing_sale(user, cat, t2)
+    _flaky_create(monkeypatch, fail_times=3)  # los dos del start y el de la recuperacion
+    order = point_service.start(user, sale.id, Decimal('500'))
+    assert order.status == 'creating'
+    with pytest.raises(PosError):  # recien creada: la terminal sigue reservada
+        point_service.start(user, other.id, Decimal('500'))
+    order.created_at = datetime.utcnow() - timedelta(minutes=3)
+    db.session.commit()
+    assert point_service.apply(order.id).status == 'failed'  # vencida y sin respuesta: se libera
+    assert point_service.start(user, other.id, Decimal('500')).status == 'created'

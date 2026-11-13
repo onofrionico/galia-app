@@ -7,6 +7,9 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, extract
 import csv
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 import pytz
 
 bp = Blueprint('sales', __name__, url_prefix='/api/v1/sales')
@@ -87,6 +90,10 @@ def get_sales_stats(current_user):
         except ValueError:
             return jsonify({'error': 'Formato de fecha_hasta inválido. Use YYYY-MM-DD'}), 400
     
+    # Las canceladas no cuentan en totales; siguen visibles en el desglose por estado.
+    por_estado_query = query
+    query = query.filter(Sale.estado != 'Cancelada')
+    
     total_ventas = query.count()
     total_monto = query.with_entities(func.sum(Sale.total)).scalar() or 0
     
@@ -109,7 +116,7 @@ def get_sales_stats(current_user):
         Sale.estado,
         func.count(Sale.id).label('cantidad'),
         func.sum(Sale.total).label('total')
-    ).filter(query.whereclause if query.whereclause is not None else True).group_by(Sale.estado).all()
+    ).filter(por_estado_query.whereclause if por_estado_query.whereclause is not None else True).group_by(Sale.estado).all()
     
     # Stats by origen
     por_origen = db.session.query(
@@ -240,13 +247,15 @@ def update_sale(current_user, sale_id):
 @token_required
 @module_required('Sales')
 def delete_sale(current_user, sale_id):
-    """Delete a sale"""
+    """Anula una venta importada (borrado lógico: estado 'Cancelada')."""
     sale = Sale.query.get_or_404(sale_id)
     if sale.source == 'galia':
         return jsonify({'error': 'Las ventas del POS se modifican desde el POS'}), 409
-    db.session.delete(sale)
-    db.session.commit()
-    return jsonify({'message': 'Venta eliminada correctamente'}), 200
+    if sale.estado != 'Cancelada':
+        sale.estado = 'Cancelada'
+        logger.info(f"[AUDIT] venta {sale.id} anulada por user {current_user.id} (total {sale.total})")
+        db.session.commit()
+    return jsonify({'message': 'Venta anulada correctamente'}), 200
 
 
 @bp.route('/import', methods=['POST'])

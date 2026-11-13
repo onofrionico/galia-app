@@ -144,6 +144,7 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
           </div>
           <p className="text-2xl font-bold text-gray-900">{daysWithWork}</p>
         </div>
+        {calendarData?.total_cost !== undefined && (
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="flex items-center space-x-2 text-gray-600 mb-2">
             <DollarSign className="h-5 w-5" />
@@ -153,6 +154,7 @@ const WorkedHoursCalendar = ({ employees = [], schedules = [] }) => {
             ${(calendarData?.total_cost ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
+        )}
       </div>
 
       {/* Calendario */}

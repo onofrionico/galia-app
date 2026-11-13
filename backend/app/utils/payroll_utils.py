@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, date
 from decimal import Decimal
 from app.models.time_tracking import TimeTracking
 from app.models.shift import Shift
+from app.extensions import db
 from app.models.ml_tracking import Holiday
 from app.models.absence_request import AbsenceRequest
 
@@ -268,7 +269,10 @@ def is_holiday(work_date):
     if isinstance(work_date, str):
         work_date = datetime.fromisoformat(work_date).date()
     
-    holiday = Holiday.query.filter_by(date=work_date).first()
+    # Los special_event (eventos para el forecast de ML) no son feriados pagos.
+    holiday = Holiday.query.filter(Holiday.date == work_date).filter(
+        db.or_(Holiday.type.is_(None), Holiday.type != 'special_event')
+    ).first()
     return holiday is not None
 
 

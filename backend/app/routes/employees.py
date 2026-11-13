@@ -344,7 +344,7 @@ def update_employee(current_user, employee_id):
             if old_status != 'inactivo' and data['status'] == 'inactivo':
                 Shift.query.filter(
                     Shift.employee_id == employee_id,
-                    Shift.date >= date.today()
+                    Shift.shift_date >= date.today()
                 ).delete()
                 employee.user.is_active = False
         
@@ -425,7 +425,7 @@ def change_employee_status(current_user, employee_id):
     if old_status != 'inactivo' and data['status'] == 'inactivo':
         Shift.query.filter(
             Shift.employee_id == employee_id,
-            Shift.date >= date.today()
+            Shift.shift_date >= date.today()
         ).delete()
         employee.user.is_active = False
     elif old_status == 'inactivo' and data['status'] != 'inactivo':
