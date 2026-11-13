@@ -48,3 +48,14 @@ def test_image_conditional_request_skips_storage(menu_client, storage):
     storage.objects.clear()  # si tocara el storage devolveria 404
     second = menu_client.get(f'/api/public/menu/images/{IMAGE_NAME}', headers={'If-None-Match': etag})
     assert second.status_code == 304
+
+
+def test_etag_matches_after_compress_rewrites_it(menu_client, storage):
+    """flask-compress devuelve el ETag como W/"hash:gzip"; el cliente lo reenvia asi y tiene que dar 304."""
+    menu_publish_service.publish(storage)
+    etag = menu_client.get('/api/public/menu.json').headers['ETag']
+    core = etag.strip('"')
+    for sent in (f'W/"{core}:gzip"', f'W/"{core}"', f'"x", "{core}"', '*'):
+        response = menu_client.get('/api/public/menu.json', headers={'If-None-Match': sent})
+        assert response.status_code == 304, sent
+    assert menu_client.get('/api/public/menu.json', headers={'If-None-Match': 'W/"otro:gzip"'}).status_code == 200
