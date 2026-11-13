@@ -24,6 +24,25 @@ ASSET_NAMES = {
 }
 
 
+def _etag_core(value):
+    """ETag sin W/, comillas ni sufijo ':gzip' (flask-compress reescribe el ETag de lo que comprime)."""
+    value = value.strip()
+    if value.startswith('W/'):
+        value = value[2:]
+    return value.strip('"').split(':', 1)[0]
+
+
+def _not_modified(etag):
+    """True si If-None-Match (puede traer varios valores, o '*') coincide con `etag`."""
+    header = request.headers.get('If-None-Match', '')
+    if not header:
+        return False
+    if header.strip() == '*':
+        return True
+    wanted = _etag_core(etag)
+    return any(_etag_core(v) == wanted for v in header.split(','))
+
+
 @bp.after_request
 def allow_any_origin(response):
     # Recursos públicos de sólo lectura, sin credenciales: accesibles desde cualquier origen.
@@ -59,7 +78,7 @@ def menu_json():
     if snapshot is None:
         return jsonify({'error': 'La carta todavía no se publicó'}), 404
     headers = {'Cache-Control': 'public, max-age=60', 'ETag': etag}
-    if request.headers.get('If-None-Match') == etag:
+    if _not_modified(etag):
         return Response(status=304, headers=headers)
     headers['Content-Type'] = 'application/json; charset=utf-8'
     return Response(snapshot, status=200, headers=headers)
@@ -85,7 +104,7 @@ def menu_asset(folder, name):
 def _serve_webp(key):
     # El nombre lleva el hash del contenido: nunca cambia, así que un pedido condicional no toca el storage.
     etag = '"' + key.rsplit('/', 1)[-1].rsplit('.', 1)[0] + '"'
-    if request.headers.get('If-None-Match') == etag:
+    if _not_modified(etag):
         return Response(status=304, headers={'ETag': etag, 'Cache-Control': 'public, max-age=31536000, immutable'})
     try:
         body, _ = get_menu_storage().get(key)
