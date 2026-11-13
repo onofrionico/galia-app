@@ -105,6 +105,21 @@ export const reportsService = {
   productsCompareDaily: async (key, monthA, monthB) => {
     const response = await api.get('/reports/products/compare/daily', { params: { key, month_a: monthA, month_b: monthB } })
     return response.data
+  },
+
+  getProductionForecast: async (date) => {
+    const response = await api.get('/reports/production-forecast', { params: date ? { date } : {} })
+    return response.data
+  },
+
+  getProductionSettings: async () => {
+    const response = await api.get('/reports/production-settings')
+    return response.data
+  },
+
+  updateProductionSettings: async (body) => {
+    const response = await api.put('/reports/production-settings', body)
+    return response.data
   }
 }
 

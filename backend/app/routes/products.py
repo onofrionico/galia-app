@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
@@ -6,6 +7,7 @@ from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.product_category import ProductCategory
 from app.models.supply import Supply
+from app.models.production import ProductComponent
 from app.models.menu import FudoProduct
 from app.services import cutover, menu_sync_service
 from app.utils.fudo_client import FudoClient
@@ -443,3 +445,89 @@ def detach_variant(current_user, product_id, variant_id):
     _refresh_active(product)
     db.session.commit()
     return jsonify(product_detail(new_product, _include_cost(current_user))), 201
+
+
+# ==================== COMPONENTES (combos) ====================
+
+def _variant_label(variant):
+    return f'{variant.product.name} — {variant.name}'
+
+
+def _components_payload(product_id):
+    variants = ProductVariant.query.filter_by(product_id=product_id, is_active=True).order_by(ProductVariant.name).all()
+    variant_ids = [v.id for v in variants]
+    components = ProductComponent.query.filter(ProductComponent.variant_id.in_(variant_ids),
+                                               ProductComponent.is_active.is_(True)).order_by(ProductComponent.id).all()
+    return {
+        'variants': [{'id': v.id, 'name': v.name} for v in variants],
+        'components': [{'id': c.id, 'variant_id': c.variant_id, 'component_variant_id': c.component_variant_id,
+                        'component_label': _variant_label(c.component_variant), 'quantity': float(c.quantity)}
+                       for c in components],
+    }
+
+
+@bp.route('/variants/search', methods=['GET'])
+@token_required
+@module_required('Products')
+def search_variants(current_user):
+    """Variantes activas cuyo producto o variante contiene `q` (máx. 20), para elegir componentes."""
+    q = (request.args.get('q') or '').strip()
+    query = ProductVariant.query.join(Product, ProductVariant.product_id == Product.id).filter(
+        ProductVariant.is_active.is_(True), Product.is_active.is_(True))
+    if q:
+        like = f'%{q}%'
+        query = query.filter(db.or_(Product.name.ilike(like), ProductVariant.name.ilike(like)))
+    variants = query.order_by(Product.name, ProductVariant.name).limit(20).all()
+    return jsonify([{'id': v.id, 'label': _variant_label(v)} for v in variants]), 200
+
+
+@bp.route('/<int:product_id>/components', methods=['GET'])
+@token_required
+@module_required('Products')
+def get_components(current_user, product_id):
+    Product.query.get_or_404(product_id)
+    return jsonify(_components_payload(product_id)), 200
+
+
+@bp.route('/<int:product_id>/components', methods=['PUT'])
+@token_required
+@module_required('Products')
+def save_components(current_user, product_id):
+    """Estado completo de los componentes del producto; lo que no viene se desactiva (no se borra)."""
+    Product.query.get_or_404(product_id)
+    data = json_object()
+    if data is None or not isinstance(data.get('components'), list):
+        return _bad_body()
+    own_ids = {v.id for v in ProductVariant.query.filter_by(product_id=product_id).all()}
+    wanted = {}
+    try:
+        for raw in data['components']:
+            variant_id, component_id = raw.get('variant_id'), raw.get('component_variant_id')
+            if variant_id not in own_ids:
+                raise ValueError('La variante del combo no es de este producto')
+            if component_id == variant_id:
+                raise ValueError('Un producto no puede ser componente de sí mismo')
+            if not isinstance(component_id, int) or db.session.get(ProductVariant, component_id) is None:
+                raise ValueError('Componente inexistente')
+            quantity = parse_decimal(raw.get('quantity'), 'La cantidad', maximum=MAX_STOCK)
+            if quantity <= 0:
+                raise ValueError('La cantidad tiene que ser mayor a 0')
+            wanted[(variant_id, component_id)] = quantity
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    now = datetime.utcnow()
+    current = {(c.variant_id, c.component_variant_id): c
+               for c in ProductComponent.query.filter(ProductComponent.variant_id.in_(own_ids)).all()}
+    for pair, quantity in wanted.items():
+        component = current.get(pair) or ProductComponent(variant_id=pair[0], component_variant_id=pair[1])
+        if component.id is None or not component.is_active or component.quantity != quantity:
+            component.quantity, component.is_active = quantity, True
+            component.updated_by, component.updated_at = current_user.id, now
+            db.session.add(component)
+    for pair, component in current.items():
+        if pair not in wanted and component.is_active:
+            component.is_active = False
+            component.updated_by, component.updated_at = current_user.id, now
+    db.session.commit()
+    return jsonify(_components_payload(product_id)), 200

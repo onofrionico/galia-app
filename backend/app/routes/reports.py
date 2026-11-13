@@ -1424,3 +1424,208 @@ def time_analysis(current_user):
             'labor': labor_hr
         }
     }), 200
+
+
+# ==================== PRODUCCIÓN: PRONÓSTICO POR TURNO ====================
+
+from app.models.ml_tracking import Holiday  # noqa: E402
+from app.models.product import Product  # noqa: E402
+from app.models.product_variant import ProductVariant  # noqa: E402
+from app.models.production import ProductComponent, ProductionSettings, SalesDayPart  # noqa: E402
+from app.services import production_forecast as pf  # noqa: E402
+from app.utils.timezone_utils import get_current_date_argentina  # noqa: E402
+from dateutil.relativedelta import relativedelta  # noqa: E402
+
+WEEKS_LOOKBACK_DAYS = 7 * 53  # búsqueda de días iguales de la semana (hasta 52 semanas atrás)
+HOLIDAY_TYPES = ('national', 'local')
+
+
+def _holidays(start, end):
+    """Feriados (no eventos especiales) del rango, por fecha → nombre."""
+    rows = Holiday.query.filter(Holiday.date >= start, Holiday.date <= end,
+                                or_(Holiday.type.in_(HOLIDAY_TYPES), Holiday.type.is_(None))).all()
+    return {h.date: h.name for h in rows}
+
+
+def _forecast_lines(start, end):
+    """Líneas vendidas, días con ventas y nombres para mostrar por key, de las ventas cerradas del rango."""
+    sale_days = {row.fecha for row in db.session.query(Sale.fecha).filter(
+        Sale.fecha >= start, Sale.fecha <= end, Sale.estado == 'Cerrada').distinct()}
+    rows = db.session.query(
+        Sale.fecha, Sale.cerrada, Sale.creacion, SaleItem.product_variant_id, SaleItem.product_name,
+        SaleItem.variant_name, SaleItem.category_name, SaleItem.quantity,
+    ).join(Sale, SaleItem.sale_id == Sale.id).filter(
+        Sale.fecha >= start, Sale.fecha <= end, Sale.estado == 'Cerrada'
+    ).order_by(Sale.fecha).all()
+    lines, labels = [], {}
+    for row in rows:
+        if row.product_variant_id:
+            key = ('v', row.product_variant_id)
+        else:
+            key = ('n', row.product_name, row.variant_name, row.category_name)
+        labels[key] = (row.product_name, row.variant_name, row.category_name)  # el más reciente gana
+        lines.append(pf.SoldLine(fecha=row.fecha, moment_utc=row.cerrada or row.creacion, key=key,
+                                 quantity=Decimal(row.quantity), variant_id=row.product_variant_id))
+    return lines, sale_days, labels
+
+
+def _active_components():
+    components = {}
+    for c in ProductComponent.query.filter_by(is_active=True).all():
+        components.setdefault(c.variant_id, []).append((c.component_variant_id, Decimal(c.quantity)))
+    return components
+
+
+def _catalog_label(variant_id):
+    variant = db.session.get(ProductVariant, variant_id)
+    if variant is None:
+        return ('Producto sin nombre', None, None)
+    product = db.session.get(Product, variant.product_id)
+    category = product.category.name if product and getattr(product, 'category', None) else None
+    return (product.name if product else 'Producto sin nombre', variant.name, category)
+
+
+def _coverage(days):
+    if not days:
+        return {'ventas_con_detalle': 0, 'ventas_total': 0}
+    base = Sale.query.filter(Sale.fecha.in_(days), Sale.estado == 'Cerrada')
+    with_items = base.filter(Sale.items.any()).count()
+    return {'ventas_con_detalle': with_items, 'ventas_total': base.count()}
+
+
+@bp.route('/production-forecast', methods=['GET'])
+@token_required
+@module_required('Reports')
+def production_forecast(current_user):
+    """Unidades esperadas por producto y turno para un día (por defecto mañana), con combos abiertos."""
+    target = parse_date(request.args.get('date')) or (get_current_date_argentina() + timedelta(days=1))
+    settings = ProductionSettings.get()
+    db.session.commit()
+    parts_rows = SalesDayPart.query.filter_by(is_active=True).order_by(SalesDayPart.position).all()
+    parts = [pf.DayPart(p.id, p.name, p.start_time, p.end_time) for p in parts_rows]
+
+    start = min(target - timedelta(days=WEEKS_LOOKBACK_DAYS),
+                target - relativedelta(months=settings.holiday_window_months))
+    holiday_names = _holidays(start, target)
+    holidays = set(holiday_names)
+    # Solo días completos: el de hoy todavía tiene ventas a medias.
+    last_complete = min(target, get_current_date_argentina()) - timedelta(days=1)
+    lines, sale_days, labels = _forecast_lines(start, last_complete)
+    lines = pf.expand_components(lines, _active_components())
+
+    days = pf.comparable_days(target, sale_days, holidays, settings.comparable_weeks,
+                              settings.holiday_window_months)
+    result = pf.forecast(lines, days, parts)
+    weekly = pf.weekday_averages(lines, sale_days, holidays, target, settings.comparable_weeks,
+                                 settings.holiday_window_months)
+
+    products = []
+    for key, values in result.items():
+        name, variant, category = labels.get(key) or _catalog_label(key[1])
+        products.append({
+            'key': ':'.join(str(k) for k in key),
+            'producto': name, 'variante': variant, 'categoria': category or SIN_CATEGORIA,
+            'total': values['total'],
+            'por_turno': {str(pid): v for pid, v in values['por_turno'].items()},
+            'fuera_de_turno': values['fuera_de_turno'], 'desde_combos': values['desde_combos'],
+            'semana': {str(k): v for k, v in weekly.get(key, {}).items()},
+        })
+    products.sort(key=lambda p: (p['categoria'], -p['total'], p['producto']))
+
+    return jsonify({
+        'date': target.isoformat(),
+        'is_holiday': target in holidays,
+        'holiday_name': holiday_names.get(target),
+        'day_parts': [p.to_dict() for p in parts_rows],
+        'based_on': [d.isoformat() for d in days],
+        'settings': {'comparable_weeks': settings.comparable_weeks,
+                     'holiday_window_months': settings.holiday_window_months},
+        'coverage': _coverage(days),
+        'products': products,
+    }), 200
+
+
+def _parse_hhmm(value, label):
+    try:
+        return datetime.strptime(str(value), '%H:%M').time()
+    except (TypeError, ValueError):
+        raise ValueError(f'{label}: la hora tiene que ser HH:MM')
+
+
+def _bounded_int(value, label, low, high):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{label} tiene que ser un número')
+    if not low <= number <= high:
+        raise ValueError(f'{label} tiene que estar entre {low} y {high}')
+    return number
+
+
+def _production_settings_payload():
+    settings = ProductionSettings.get()
+    parts = SalesDayPart.query.order_by(SalesDayPart.position, SalesDayPart.id).all()
+    return {'comparable_weeks': settings.comparable_weeks, 'holiday_window_months': settings.holiday_window_months,
+            'day_parts': [p.to_dict() for p in parts]}
+
+
+@bp.route('/production-settings', methods=['GET'])
+@token_required
+@module_required('Reports')
+def get_production_settings(current_user):
+    payload = _production_settings_payload()
+    db.session.commit()
+    return jsonify(payload), 200
+
+
+@bp.route('/production-settings', methods=['PUT'])
+@token_required
+@module_required('Reports')
+def update_production_settings(current_user):
+    """Actualiza semanas, meses de feriados y turnos. Los turnos no se borran: se desactivan."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('day_parts', []), list):
+        return jsonify({'error': 'Cuerpo inválido'}), 400
+    try:
+        weeks = _bounded_int(data.get('comparable_weeks'), 'Semanas a comparar', 1, 26)
+        months = _bounded_int(data.get('holiday_window_months'), 'Meses de feriados', 1, 36)
+        parsed = []
+        for index, raw in enumerate(data.get('day_parts', [])):
+            name = str(raw.get('name') or '').strip()[:50]
+            if not name:
+                raise ValueError('Cada turno necesita un nombre')
+            start = _parse_hhmm(raw.get('start'), name)
+            end = _parse_hhmm(raw.get('end'), name)
+            if start >= end:
+                raise ValueError(f'{name}: el inicio tiene que ser anterior al fin')
+            parsed.append({'id': raw.get('id'), 'name': name, 'start': start, 'end': end,
+                           'is_active': bool(raw.get('is_active', True)), 'position': index})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    existing = {p.id: p for p in SalesDayPart.query.all()}
+    if any(p['id'] is not None and p['id'] not in existing for p in parsed):
+        return jsonify({'error': 'Turno inexistente'}), 400
+    sent_ids = {p['id'] for p in parsed if p['id'] is not None}
+    active = [(p['name'], p['start'], p['end']) for p in parsed if p['is_active']]
+    active += [(p.name, p.start_time, p.end_time) for pid, p in existing.items()
+               if pid not in sent_ids and p.is_active]
+    active.sort(key=lambda item: item[1])
+    for (name_a, _start_a, end_a), (name_b, start_b, _end_b) in zip(active, active[1:]):
+        if start_b < end_a:
+            return jsonify({'error': f'{name_b} se superpone con {name_a}'}), 400
+
+    now = datetime.utcnow()
+    settings = ProductionSettings.get()
+    if (settings.comparable_weeks, settings.holiday_window_months) != (weeks, months):
+        settings.comparable_weeks, settings.holiday_window_months = weeks, months
+        settings.updated_by, settings.updated_at = current_user.id, now
+    for item in parsed:
+        part = existing.get(item['id']) or SalesDayPart()
+        values = (item['name'], item['start'], item['end'], item['is_active'], item['position'])
+        if part.id is None or (part.name, part.start_time, part.end_time, part.is_active, part.position) != values:
+            part.name, part.start_time, part.end_time, part.is_active, part.position = values
+            part.updated_by, part.updated_at = current_user.id, now
+            db.session.add(part)
+    db.session.commit()
+    return jsonify(_production_settings_payload()), 200

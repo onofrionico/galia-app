@@ -9,6 +9,7 @@ import { formatYield } from '../components/recipes/format'
 import productCategoriesService from '../services/productCategoriesService'
 import EditableNumberInput from '../components/EditableNumberInput'
 import ProductModifiersTab from '../components/products/ProductModifiersTab'
+import ProductComponentsTab from '../components/products/ProductComponentsTab'
 import FudoProductPicker from '../components/menu/FudoProductPicker'
 import {
   FUDO_LOCK_HINT,
@@ -289,7 +290,7 @@ const ProductDetail = () => {
 
       <div className="bg-white rounded-lg shadow">
         <div className="border-b flex">
-          {['info', 'variantes', 'receta', 'modificadores', 'historial'].map((tab) => (
+          {['info', 'variantes', 'receta', 'modificadores', 'componentes', 'historial'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -303,6 +304,7 @@ const ProductDetail = () => {
               {tab === 'variantes' && 'Variantes'}
               {tab === 'receta' && 'Receta'}
               {tab === 'modificadores' && 'Modificadores'}
+              {tab === 'componentes' && 'Componentes'}
               {tab === 'historial' && 'Historial'}
             </button>
           ))}
@@ -658,6 +660,11 @@ const ProductDetail = () => {
           {activeTab === 'modificadores' && product && <ProductModifiersTab productId={product.id} />}
           {activeTab === 'modificadores' && !product && (
             <div className="py-8 text-center text-gray-500">Guardá el producto para asignarle modificadores.</div>
+          )}
+
+          {activeTab === 'componentes' && product && <ProductComponentsTab productId={product.id} />}
+          {activeTab === 'componentes' && !product && (
+            <div className="py-8 text-center text-gray-500">Guardá el producto para cargarle componentes.</div>
           )}
 
           {activeTab === 'historial' && (

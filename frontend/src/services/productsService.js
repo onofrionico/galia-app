@@ -91,6 +91,21 @@ const productsService = {
     })
     return response.data.image_url
   },
+
+  async getComponents(productId) {
+    const response = await api.get(`/products/${productId}/components`)
+    return response.data
+  },
+
+  async saveComponents(productId, components) {
+    const response = await api.put(`/products/${productId}/components`, { components })
+    return response.data
+  },
+
+  async searchVariants(q) {
+    const response = await api.get('/products/variants/search', { params: { q } })
+    return response.data
+  },
 }
 
 export default productsService
