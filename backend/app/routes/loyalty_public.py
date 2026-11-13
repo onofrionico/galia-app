@@ -8,6 +8,7 @@ from app.models.loyalty import Customer, LoyaltyMovement, Reward
 from app.services.loyalty import customer_auth, wallet
 from app.services.loyalty.customer_auth import customer_required, issue_customer_token
 from app.services.loyalty.errors import LoyaltyError
+from app.utils.rate_limit import rate_limit
 
 bp = Blueprint('loyalty_public', __name__, url_prefix='/api/public/loyalty')
 
@@ -33,6 +34,7 @@ def _loyalty_error(exc):
 
 
 @bp.route('/auth/google', methods=['POST'])
+@rate_limit(10)
 def google_login():
     body = _body()
     info = customer_auth.verify_google_credential(body.get('credential'))
