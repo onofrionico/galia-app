@@ -11,9 +11,13 @@ const sale = (overrides = {}) => ({
 })
 
 describe('posPermissions', () => {
+  it('fidelización (cliente y canje) es solo de la caja', () => {
+    expect(posPermissions({ modules: ['Camarero', 'Cobrar'] }).loyalty).toBe(false)
+    expect(posPermissions({ modules: ['POS'] }).loyalty).toBe(true)
+  })
   it('el admin puede todo', () => {
     expect(posPermissions({ isAdmin: true })).toEqual({
-      pos: true, waiter: true, canUse: true, charge: true, cancel: true, discounts: true,
+      pos: true, waiter: true, canUse: true, charge: true, cancel: true, discounts: true, loyalty: true,
     })
   })
   it('Cobrar habilita cobrar sin POS', () => {

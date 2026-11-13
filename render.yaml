@@ -19,7 +19,10 @@ services:
       - key: FLASK_ENV
         value: production
       - key: CORS_ORIGINS
-        value: http://localhost:5173,https://galia-frontend.onrender.com
+        value: http://localhost:5173,https://galia-frontend.onrender.com,https://galia-carta.onrender.com
+      # Fidelización: OAuth Client ID de Google para "Mis cafecitos" en la carta
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: MENU_PUBLIC_BASE_URL
         sync: false
       # Opcional: par propio para firmar QZ Tray. Sin estas, Galia genera y guarda uno solo (docs/pos/impresion-qz.md)
@@ -55,8 +58,16 @@ services:
       - type: rewrite
         source: /links
         destination: /links.html
+      # Mis cafecitos (fidelización)
+      - type: rewrite
+        source: /cafecitos
+        destination: /cafecitos.html
     envVars:
       - key: VITE_MENU_URL
+        sync: false
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
         sync: false
 
   # Sync nocturno de la carta con Fudo (04:00 hora Argentina = 07:00 UTC)

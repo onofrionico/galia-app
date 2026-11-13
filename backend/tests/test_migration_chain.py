@@ -78,3 +78,7 @@ def test_recipes_follows_schedule_is_public():
 
 def test_drop_product_recipe_items_follows_recipes():
     assert _revisions()['b7a1_drop_product_recipe_items'] == ['b7a0_add_recipes']
+
+
+def test_loyalty_follows_fix_fudo_item_price():
+    assert _revisions()['b8a0_loyalty'] == ['b7b0_fix_fudo_item_price']

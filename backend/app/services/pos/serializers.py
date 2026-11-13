@@ -1,4 +1,5 @@
 from app.services.fiscal import guard
+from app.services.loyalty import wallet
 from app.services.mercadopago import summary as mp_summary
 from app.services.pos.common import display_name
 
@@ -17,6 +18,7 @@ def item_to_dict(item):
         'product_variant_id': item.product_variant_id,
         'product_name': item.product_name,
         'variant_name': item.variant_name,
+        'is_redemption': item.is_redemption,
         'unit_price': _money(item.unit_price),
         'quantity': float(item.quantity),
         'modifiers_total': _money(item.modifiers_total),
@@ -82,8 +84,12 @@ def sale_to_dict(sale, include_items=True):
         'split_from_id': sale.split_from_id,
         'is_practice': sale.is_practice,
         'sale_id': sale.sale_id,
+        'customer': {'id': sale.customer.id, 'full_name': sale.customer.full_name} if sale.customer else None,
     }
     if include_items:
+        if sale.customer:
+            data['customer']['balance'] = wallet.balance(sale.customer.id)
+        data['cafecitos_preview'] = wallet.earn_preview(sale) if sale.customer_id else 0
         data['items'] = [item_to_dict(i) for i in sale.items]
         data['discounts'] = [discount_to_dict(d) for d in sale.discounts]
         data['payments'] = [payment_to_dict(p) for p in sale.payments]

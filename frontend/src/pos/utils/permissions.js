@@ -11,6 +11,8 @@ export function posPermissions({ isAdmin = false, modules = [] } = {}) {
     charge: pos || has('Cobrar'),
     cancel: has('Anular'),
     discounts: has('Descuentos'),
+    // Asociar cliente y canjear cafecitos: solo la caja.
+    loyalty: pos,
   }
 }
 

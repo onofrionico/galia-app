@@ -33,6 +33,10 @@ def token_required(f):
 
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            # Los tokens de clientes de la carta (typ='customer') no tienen user_id y nunca entran acá.
+            if data.get('typ') == 'customer' or not data.get('user_id'):
+                _debug("Token sin user_id (no es de empleado)")
+                return jsonify({'error': 'Token inválido'}), 401
             current_user = User.query.get(data['user_id'])
             if not current_user:
                 _debug("Usuario no encontrado en BD")

@@ -14,6 +14,9 @@ PUBLIC_ENDPOINTS = {
     'public_menu.menu_image',
     'public_menu.menu_asset',
     'mercadopago.webhook',
+    # Mis cafecitos: el login con Google y la lista pública de premios (el resto exige token de cliente).
+    'loyalty_public.google_login',
+    'loyalty_public.rewards',
 }
 
 
