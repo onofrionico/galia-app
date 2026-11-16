@@ -10,6 +10,7 @@ const LABELS = {
   reopened: 'Reabrió',
   discount_added: 'Aplicó un descuento',
   discount_cancelled: 'Quitó un descuento',
+  voucher_redeemed: 'Canjeó un voucher',
   payment_added: 'Cobró',
   payment_cancelled: 'Anuló un pago',
   closed: 'Cerró la venta',

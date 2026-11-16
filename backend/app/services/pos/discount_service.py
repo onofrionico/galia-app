@@ -7,7 +7,8 @@ from app.models.pos import ACTIVE_SALE_STATUSES
 from app.services.pos import audit, pricing
 from app.services.pos.closing import close_if_settled
 from app.services.pos.common import load_sale, now, parse_id, recalc, require_module, require_status
-from app.services.pos.errors import PosError, bad_request, not_found
+from app.services.pos.errors import PosError, bad_request, forbidden, not_found
+from app.utils.permissions import check_module_access
 from app.utils.validation import clean_str, parse_decimal
 
 MAX_PERCENT = Decimal('100')
@@ -61,7 +62,7 @@ def add_discount(user, sale_id, item_id=None, template_id=None, kind=None, value
     return sale
 
 
-def cancel_discount(user, discount_id):
+def cancel_discount(user, discount_id, reason=None):
     discount = db.session.get(PosDiscount, parse_id(discount_id, 'El descuento'))
     if discount is None:
         raise not_found('El descuento no existe')
@@ -70,11 +71,19 @@ def cancel_discount(user, discount_id):
     db.session.refresh(discount)
     if discount.cancelled_at is not None:
         raise PosError('El descuento ya está anulado')
-    if discount.template is None or discount.template.restricted:
+    reason = clean_str(reason, 255)
+    if discount.voucher_id is not None:
+        # Quitar un voucher lo puede hacer quien cobra, sin el permiso de descuentos libres.
+        if not (check_module_access(user, 'POS') or check_module_access(user, 'Cobrar')):
+            raise forbidden('No tenés permiso para quitar un voucher')
+        if not reason:
+            raise bad_request('Indicá el motivo')
+    elif discount.template is None or discount.template.restricted:
         require_module(user, 'Descuentos', 'No tenés permiso para quitar ese descuento')
     discount.cancelled_at = now()
     discount.cancelled_by = user.id
     recalc(sale)
-    audit.record(sale, user, 'discount_cancelled', item_id=discount.item_id, discount_id=discount.id)
+    extra = {'reason': reason} if reason else {}
+    audit.record(sale, user, 'discount_cancelled', item_id=discount.item_id, discount_id=discount.id, **extra)
     db.session.commit()
     return sale

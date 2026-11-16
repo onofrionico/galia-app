@@ -2,6 +2,7 @@ from app.services.fiscal import guard
 from app.services.loyalty import wallet
 from app.services.mercadopago import summary as mp_summary
 from app.services.pos.common import display_name
+from app.services.vouchers.codes import format_code
 
 
 def _money(value):
@@ -42,6 +43,8 @@ def discount_to_dict(discount):
         'kind': discount.kind, 'value': _money(discount.value), 'amount': _money(discount.amount),
         'reason': discount.reason, 'is_active': discount.cancelled_at is None,
         'created_at': _iso(discount.created_at),
+        'voucher_id': discount.voucher_id,
+        'voucher_code': format_code(discount.voucher.code) if discount.voucher_id else None,
     }
 
 
