@@ -18,7 +18,13 @@ describe('posPermissions', () => {
   it('el admin puede todo', () => {
     expect(posPermissions({ isAdmin: true })).toEqual({
       pos: true, waiter: true, canUse: true, charge: true, cancel: true, discounts: true, loyalty: true,
+      vouchers: true,
     })
+  })
+  it('canjear vouchers lo hace quien cobra: POS o Cobrar, no solo Camarero', () => {
+    expect(posPermissions({ modules: ['POS'] }).vouchers).toBe(true)
+    expect(posPermissions({ modules: ['Camarero', 'Cobrar'] }).vouchers).toBe(true)
+    expect(posPermissions({ modules: ['Camarero', 'Descuentos'] }).vouchers).toBe(false)
   })
   it('Cobrar habilita cobrar sin POS', () => {
     expect(posPermissions({ modules: ['Camarero', 'Cobrar'] }).charge).toBe(true)

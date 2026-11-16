@@ -94,6 +94,8 @@ def create_app(config_name='development'):
     app.register_blueprint(loyalty_public.bp)
     app.register_blueprint(loyalty_admin.bp)
     app.register_blueprint(recipes_routes.bp)
+    from app.routes import vouchers as vouchers_routes
+    app.register_blueprint(vouchers_routes.bp)
     
     @app.route('/health')
     def health():

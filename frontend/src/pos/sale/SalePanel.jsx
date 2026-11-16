@@ -11,6 +11,7 @@ import CancelReasonModal from '../modals/CancelReasonModal'
 import DiscountModal from '../modals/DiscountModal'
 import PaymentModal from '../modals/PaymentModal'
 import SplitModal from '../modals/SplitModal'
+import VoucherRemoveModal from '../modals/VoucherRemoveModal'
 import WaiterModal from '../modals/WaiterModal'
 import CustomerSearchModal from '../loyalty/CustomerSearchModal'
 import RedeemModal from '../loyalty/RedeemModal'
@@ -119,7 +120,9 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
     remove: (item) => run(sale.id, () => posApi.deleteItem(sale.id, item.id)),
     discount: (item) => setModal({ type: 'discount', item }),
     cancel: (item) => setModal({ type: 'cancel-item', item }),
-    removeDiscount: (discount) => run(sale.id, () => posApi.cancelDiscount(discount.id)),
+    removeDiscount: (discount) => (discount.voucher_id
+      ? setModal({ type: 'remove-voucher', discount })
+      : run(sale.id, () => posApi.cancelDiscount(discount.id))),
   }
 
   const tabClass = (active) =>
@@ -175,6 +178,12 @@ export default function SalePanel({ saleId, siblings = [], initialModal = null, 
       {modal?.type === 'customer' && <CustomerSearchModal sale={sale} onClose={closeModal} />}
       {modal?.type === 'redeem' && <RedeemModal sale={sale} onClose={closeModal} />}
       {modal?.type === 'invoice' && <InvoiceModal saleId={sale.id} onClose={closeModal} />}
+      {modal?.type === 'remove-voucher' && (
+        <VoucherRemoveModal discount={modal.discount} busy={busy} onClose={closeModal}
+          onConfirm={async (reason) => {
+            if (await run(sale.id, () => posApi.cancelDiscount(modal.discount.id, reason))) closeModal()
+          }} />
+      )}
       {modal?.type === 'cancel-item' && (
         <CancelReasonModal title={`Anular ${modal.item.product_name}`} busy={busy} onClose={closeModal}
           onConfirm={async (body) => {

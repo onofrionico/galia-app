@@ -17,6 +17,7 @@
     "date-fns": "^3.0.6",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.303.0",
+    "qrcode": "^1.5.4",
     "qz-tray": "^2.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

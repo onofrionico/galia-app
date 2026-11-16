@@ -155,7 +155,8 @@ def add_discount(current_user, sale_id):
 @token_required
 @module_required('POS', 'Camarero')
 def cancel_discount(current_user, discount_id):
-    return _respond(lambda: discount_service.cancel_discount(current_user, discount_id))
+    return _respond(lambda: discount_service.cancel_discount(current_user, discount_id,
+                                                             reason=_body().get('reason')))
 
 
 @bp.route('/sales/<int:sale_id>/payments', methods=['POST'])

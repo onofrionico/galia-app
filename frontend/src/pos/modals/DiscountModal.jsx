@@ -16,6 +16,7 @@ export default function DiscountModal({ sale, item, onClose }) {
   const [value, setValue] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
+  const [code, setCode] = useState('')
   const { run, busy } = useSaleMutation()
 
   const scope = item ? 'item' : 'sale'
@@ -35,8 +36,27 @@ export default function DiscountModal({ sale, item, onClose }) {
     apply({ kind, value: number, reason: reason.trim() })
   }
 
+  const redeemVoucher = async () => {
+    if (!code.trim()) return setError('Escribí el código del voucher')
+    setError('')
+    const result = await run(sale.id, () => posApi.redeemVoucher(sale.id, code.trim()))
+    if (result) onClose()
+  }
+
   return (
     <Modal title={item ? `Descuento a ${item.product_name}` : 'Descuento a la venta'} onClose={onClose} size="md">
+      {!item && perms.vouchers && (
+        <div className="mb-6 border-b pb-4">
+          <p className="text-sm font-medium text-gray-700">Voucher</p>
+          <div className="mt-2 flex gap-2">
+            <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setError('') }} maxLength={20}
+              placeholder="GAL-XXXXX-XXXXX" aria-label="Código del voucher" autoCapitalize="characters" autoComplete="off"
+              className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono"
+              onKeyDown={(e) => { if (e.key === 'Enter') redeemVoucher() }} />
+            <button type="button" className={btn('primary')} disabled={busy} onClick={redeemVoucher}>Canjear</button>
+          </div>
+        </div>
+      )}
       <p className="text-sm font-medium text-gray-700">Plantillas</p>
       {isLoading && <p className="mt-2 text-sm text-gray-500">Cargando…</p>}
       {!isLoading && visible.length === 0 && <p className="mt-2 text-sm text-gray-500">No hay plantillas disponibles.</p>}
