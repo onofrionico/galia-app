@@ -5,7 +5,7 @@ import voucherService from '../../services/voucherService'
 import { formatMoney } from '../../pos/utils/money'
 import { ErrorText, button, dateTime, input } from '../loyalty/shared'
 import PrintSheet from './PrintSheet'
-import { STATUS_LABEL, formatExpiry, useVoucherMutation, voucherKeys } from './voucherUtils'
+import { STATUS_LABEL, availableKey, formatExpiry, useVoucherMutation, voucherKeys } from './voucherUtils'
 
 const STATUS_STYLE = {
   available: 'bg-green-100 text-green-800',
@@ -25,18 +25,19 @@ export default function BatchDetail({ batchId, onBack }) {
   const [voiding, setVoiding] = useState(null)
   const [reason, setReason] = useState('')
   const [preview, setPreview] = useState(false)
-  const [ready, setReady] = useState(false)
+  const [readyKey, setReadyKey] = useState(null)
   const [wantPrint, setWantPrint] = useState(false)
   const extend = useVoucherMutation(() => voucherService.extendExpiry(batchId, newExpiry))
   const voidVoucher = useVoucherMutation(({ id, text }) => voucherService.voidVoucher(id, text))
+  const key = batch ? availableKey(batch) : ''
 
-  // Imprime cuando el usuario lo pidió y los QR ya están generados.
+  // Imprime cuando el usuario lo pidió y los QR de los vouchers disponibles de ahora ya están listos.
   useEffect(() => {
-    if (wantPrint && ready) {
+    if (wantPrint && key && readyKey === key) {
       setWantPrint(false)
       window.print()
     }
-  }, [wantPrint, ready])
+  }, [wantPrint, readyKey, key])
 
   if (!batch) return <p className="text-sm text-gray-500">Cargando…</p>
 
@@ -49,7 +50,8 @@ export default function BatchDetail({ batchId, onBack }) {
         <h2 className="text-lg font-semibold">{batch.name}</h2>
         <span className="text-sm text-gray-600">{formatMoney(batch.amount)} · vence el {formatExpiry(batch.expires_at)}
           {batch.min_sale_amount ? ` · mínimo ${formatMoney(batch.min_sale_amount)}` : ''}</span>
-        <button type="button" className={`${button(true)} ml-auto`} onClick={print}><Printer size={16} /> Imprimir</button>
+        <button type="button" className={`${button(true)} ml-auto`} onClick={print} disabled={!key}
+          title={key ? undefined : 'No hay vouchers disponibles para imprimir'}><Printer size={16} /> Imprimir</button>
       </div>
 
       <div className="grid grid-cols-3 gap-2 md:grid-cols-7">
@@ -78,7 +80,7 @@ export default function BatchDetail({ batchId, onBack }) {
               <td className="py-2 font-mono">{v.code}</td>
               <td><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[v.status]}`}>{STATUS_LABEL[v.status]}</span>
                 {v.void_reason ? <span className="ml-2 text-xs text-gray-500">{v.void_reason}</span> : null}</td>
-              <td>{v.sale_id ? `#${v.sale_id}` : '—'}</td>
+              <td>{v.sale_number ? `#${v.sale_number} · ${formatExpiry(v.sale_date)}` : '—'}</td>
               <td>{dateTime(v.redeemed_at)}</td>
               <td className="text-right">
                 {['available', 'expired'].includes(v.status) && voiding !== v.id && (
@@ -103,7 +105,7 @@ export default function BatchDetail({ batchId, onBack }) {
         <section>
           <h3 className="mb-2 font-semibold">Vista previa de impresión</h3>
           <div className="overflow-x-auto rounded-lg border bg-gray-100 p-2">
-            <div className="mx-auto w-[194mm]"><PrintSheet batch={batch} onReady={() => setReady(true)} /></div>
+            <div className="mx-auto w-[194mm]"><PrintSheet batch={batch} onReady={setReadyKey} /></div>
           </div>
         </section>
       )}

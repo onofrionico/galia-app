@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { STATUS_LABEL, chunk, formatExpiry } from './voucherUtils'
+import { PRINT_CSS, STATUS_LABEL, availableKey, chunk, formatExpiry } from './voucherUtils'
+
+describe('PRINT_CSS', () => {
+  it('oculta la app con display:none para no imprimir páginas en blanco', () => {
+    expect(PRINT_CSS).toContain('#root { display: none')
+    expect(PRINT_CSS).not.toContain('visibility: hidden')
+  })
+  it('fuerza los colores de fondo de la marca al imprimir', () => {
+    expect(PRINT_CSS).toContain('print-color-adjust: exact')
+  })
+  it('corta la página después de cada hoja de 8', () => {
+    expect(PRINT_CSS).toContain('break-after: page')
+  })
+})
+
+describe('availableKey', () => {
+  it('cambia cuando cambian los vouchers disponibles, no solo su cantidad', () => {
+    const vouchers = (ids) => ids.map((id) => ({ id, status: 'available' }))
+    expect(availableKey({ vouchers: vouchers([1, 2]) })).toBe('1,2')
+    expect(availableKey({ vouchers: vouchers([1, 3]) })).not.toBe(availableKey({ vouchers: vouchers([1, 2]) }))
+    expect(availableKey({ vouchers: [{ id: 1, status: 'redeemed' }] })).toBe('')
+  })
+})
 
 describe('chunk', () => {
   it('arma páginas de 8', () => {

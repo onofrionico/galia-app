@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import QRCode from 'qrcode'
 import { formatMoney } from '../../pos/utils/money'
-import { chunk, formatExpiry } from './voucherUtils'
+import { PRINT_CSS, availableKey, chunk, formatExpiry } from './voucherUtils'
 
 const PER_PAGE = 8
+const LOAD_TIMEOUT_MS = 5000
 
-// Oculta el resto de la app al imprimir y deja solo la hoja de vouchers en A4.
-const PRINT_CSS = `
-@media print {
-  @page { size: A4; margin: 8mm; }
-  body * { visibility: hidden; }
-  #voucher-print-area, #voucher-print-area * { visibility: visible; }
-  #voucher-print-area { position: absolute; left: 0; top: 0; width: 100%; }
-  .voucher-page { break-after: page; }
-  .voucher-page:last-child { break-after: auto; }
-}`
+// Resuelve cuando la imagen terminó de cargar (o falló). No usamos img.decode(): no resuelve dentro de display:none.
+function whenLoaded(img) {
+  if (img.complete) return Promise.resolve()
+  return new Promise((resolve) => {
+    img.addEventListener('load', resolve, { once: true })
+    img.addEventListener('error', resolve, { once: true })
+  })
+}
 
 function VoucherCard({ batch, voucher, qr }) {
   return (
@@ -40,33 +40,52 @@ function VoucherCard({ batch, voucher, qr }) {
   )
 }
 
-// Hoja imprimible: 8 vouchers por A4 (2 × 4), solo los disponibles. `onReady` avisa cuando los QR están listos.
+function Pages({ batch, vouchers, qrs }) {
+  return chunk(vouchers, PER_PAGE).map((page, index) => (
+    <div key={index} className="voucher-page grid grid-cols-2 gap-0">
+      {page.map((voucher) => <VoucherCard key={voucher.id} batch={batch} voucher={voucher} qr={qrs[voucher.id]} />)}
+    </div>
+  ))
+}
+
+// Hoja imprimible: 8 vouchers por A4 (2 × 4), solo los disponibles. Se muestra una vista previa en pantalla y
+// una copia en un portal bajo <body> que es la única que sale en papel. `onReady(key)` avisa cuando los QR y las
+// imágenes están listos para el conjunto de vouchers `key` (ver `availableKey`).
 export default function PrintSheet({ batch, onReady }) {
   const available = batch.vouchers.filter((v) => v.status === 'available')
+  const key = availableKey(batch)
   const [qrs, setQrs] = useState({})
 
   useEffect(() => {
     let cancelled = false
+    setQrs({})
     Promise.all(available.map(async (v) => [v.id, await QRCode.toDataURL(v.code_raw, { margin: 0, width: 220 })]))
-      .then((pairs) => {
-        if (cancelled) return
-        setQrs(Object.fromEntries(pairs))
-        onReady?.()
-      })
+      .then((pairs) => { if (!cancelled) setQrs(Object.fromEntries(pairs)) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batch.id, available.length])
+  }, [key])
+
+  // Cuando todos los QR están en el DOM, espera a que las imágenes se decodifiquen antes de avisar.
+  useEffect(() => {
+    if (available.length === 0 || !available.every((v) => qrs[v.id])) return undefined
+    let cancelled = false
+    const images = [...document.querySelectorAll('#voucher-print-portal img')]
+    Promise.race([Promise.all(images.map(whenLoaded)), new Promise((resolve) => setTimeout(resolve, LOAD_TIMEOUT_MS))])
+      .then(() => { if (!cancelled) onReady?.(key) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrs, key])
 
   if (available.length === 0) return <p className="text-sm text-gray-500">No hay vouchers disponibles para imprimir.</p>
 
   return (
-    <div id="voucher-print-area" className="bg-white">
+    <>
       <style>{PRINT_CSS}</style>
-      {chunk(available, PER_PAGE).map((page, index) => (
-        <div key={index} className="voucher-page grid grid-cols-2 gap-0">
-          {page.map((voucher) => <VoucherCard key={voucher.id} batch={batch} voucher={voucher} qr={qrs[voucher.id]} />)}
-        </div>
-      ))}
-    </div>
+      <div className="voucher-screen bg-white"><Pages batch={batch} vouchers={available} qrs={qrs} /></div>
+      {createPortal(
+        <div id="voucher-print-portal" className="bg-white"><Pages batch={batch} vouchers={available} qrs={qrs} /></div>,
+        document.body,
+      )}
+    </>
   )
 }

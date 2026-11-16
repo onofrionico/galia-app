@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from app.extensions import db
-from app.models.pos import PosDiscount
+from app.models.pos import PosDiscount, PosSale
 from app.models.vouchers import VoucherChangeLog
 from app.services.pos.errors import PosError
 from app.services.vouchers import batches
@@ -118,6 +118,11 @@ def test_batch_summary_counts(pos_app):
     assert detail['discount_total'] == 1000
     statuses = {v['id']: v['status'] for v in detail['vouchers']}
     assert statuses[redeemed.id] == 'redeemed' and statuses[free.id] == 'available'
+    redeemed_row = detail['vouchers'][0]
+    sale = PosSale.query.get(redeemed_row['sale_id'])
+    assert redeemed_row['sale_number'] == sale.number  # el número del día que ve la caja, no el id interno
+    assert redeemed_row['sale_date'] == sale.business_date.isoformat()
+    assert detail['vouchers'][3]['sale_number'] is None
     assert detail['vouchers'][0]['code'] == format_code(redeemed.code)
     listing = batches.list_batches()
     assert listing[0]['redeemed'] == 1 and 'vouchers' not in listing[0]

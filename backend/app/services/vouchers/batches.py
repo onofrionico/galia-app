@@ -106,6 +106,8 @@ def _summary(batch, rows, today):
             total += Decimal(row[0].amount)
         items.append({'id': voucher.id, 'code': format_code(voucher.code), 'code_raw': voucher.code,
                       'status': status, 'sale_id': row[1].id if row else None,
+                      'sale_number': row[1].number if row else None,
+                      'sale_date': row[1].business_date.isoformat() if row else None,
                       'redeemed_at': row[0].created_at.isoformat() if row else None,
                       'void_reason': voucher.void_reason})
     summary = {'id': batch.id, 'name': batch.name, 'amount': float(batch.amount),
