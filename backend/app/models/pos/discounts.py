@@ -22,11 +22,18 @@ class DiscountTemplate(db.Model):
 
 class PosDiscount(db.Model):
     __tablename__ = 'pos_discounts'
+    __table_args__ = (
+        # Un voucher solo puede tener un descuento activo a la vez (garantía contra el doble canje).
+        db.Index('uq_pos_discounts_active_voucher', 'voucher_id', unique=True,
+                 postgresql_where=db.text('cancelled_at IS NULL AND voucher_id IS NOT NULL'),
+                 sqlite_where=db.text('cancelled_at IS NULL AND voucher_id IS NOT NULL')),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     sale_id = db.Column(db.Integer, db.ForeignKey('pos_sales.id'), nullable=False, index=True)
     item_id = db.Column(db.Integer, db.ForeignKey('pos_sale_items.id'), nullable=True, index=True)
     template_id = db.Column(db.Integer, db.ForeignKey('discount_templates.id'), nullable=True)
+    voucher_id = db.Column(db.Integer, db.ForeignKey('vouchers.id'), nullable=True, index=True)
     kind = db.Column(db.String(10), nullable=False)
     value = db.Column(db.Numeric(10, 2), nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
@@ -39,6 +46,7 @@ class PosDiscount(db.Model):
     sale = db.relationship('PosSale', back_populates='discounts')
     item = db.relationship('PosSaleItem', back_populates='discounts')
     template = db.relationship('DiscountTemplate')
+    voucher = db.relationship('Voucher')
 
     @property
     def is_active(self):

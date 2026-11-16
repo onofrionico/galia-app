@@ -39,8 +39,10 @@ from app.models.fiscal import ArcaToken, FiscalCustomer, FiscalSettings, Invoice
 from app.models.mercadopago import MpFetchDay, MpMovement, MpPointOrder, MpReconciliation, MpSettings
 from app.models.operation_settings import FudoImportMonth, OperationSettings
 from app.models.loyalty import Customer, LoyaltyChangeLog, LoyaltyMovement, LoyaltySettings, Reward
+from app.models.vouchers import Voucher, VoucherBatch, VoucherChangeLog
 
 __all__ = [
+    'Voucher', 'VoucherBatch', 'VoucherChangeLog',
     'Customer', 'LoyaltyChangeLog', 'LoyaltyMovement', 'LoyaltySettings', 'Reward',
     'FudoImportMonth', 'OperationSettings',
     'MpFetchDay', 'MpMovement', 'MpPointOrder', 'MpReconciliation', 'MpSettings',
