@@ -13,6 +13,8 @@ export function posPermissions({ isAdmin = false, modules = [] } = {}) {
     discounts: has('Descuentos'),
     // Asociar cliente y canjear cafecitos: solo la caja.
     loyalty: pos,
+    // Canjear un voucher (y quitarlo) lo hace quien cobra, sin necesitar el permiso de descuentos libres.
+    vouchers: pos || has('Cobrar'),
   }
 }
 
