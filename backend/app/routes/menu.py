@@ -461,7 +461,7 @@ def _apply_tag_payload(tag, data):
 @module_required('Menu')
 def create_tag(current_user):
     data = request.get_json() or {}
-    tag = MenuTag(color='#5C2E46')
+    tag = MenuTag(color='#673b4c')
     error = _apply_tag_payload(tag, {'name': data.get('name'), **({'color': data['color']} if 'color' in data else {})})
     if error:
         return _error(error)

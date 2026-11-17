@@ -143,7 +143,7 @@ class MenuTag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     slug = db.Column(db.String(60), nullable=False, unique=True)
-    color = db.Column(db.String(7), nullable=False, default='#5C2E46')
+    color = db.Column(db.String(7), nullable=False, default='#673b4c')
 
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'slug': self.slug, 'color': self.color}

@@ -105,7 +105,7 @@ function Wallet({ onLogout }) {
       const [me, movements, rewards] = await Promise.all([cafecitosApi.me(), cafecitosApi.movements(), cafecitosApi.rewards()])
       setState({ status: 'ready', me, movements, rewards })
       setPhone(me.phone || '')
-      setQr(await QRCode.toDataURL(me.qr_token, { margin: 1, width: 240, color: { dark: '#43203A', light: '#FFFFFF' } }))
+      setQr(await QRCode.toDataURL(me.qr_token, { margin: 1, width: 240, color: { dark: '#673b4c', light: '#FFFFFF' } }))
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onLogout()
       else setState({ status: 'error', message: err.message })
