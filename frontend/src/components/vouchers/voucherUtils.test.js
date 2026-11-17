@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PRINT_CSS, STATUS_LABEL, availableKey, chunk, formatExpiry } from './voucherUtils'
+import { PRINT_CSS, STATUS_LABEL, availableKey, chunk, formatExpiry, printKey } from './voucherUtils'
 
 describe('PRINT_CSS', () => {
   it('oculta la app con display:none para no imprimir páginas en blanco', () => {
@@ -20,6 +20,16 @@ describe('availableKey', () => {
     expect(availableKey({ vouchers: vouchers([1, 2]) })).toBe('1,2')
     expect(availableKey({ vouchers: vouchers([1, 3]) })).not.toBe(availableKey({ vouchers: vouchers([1, 2]) }))
     expect(availableKey({ vouchers: [{ id: 1, status: 'redeemed' }] })).toBe('')
+  })
+})
+
+describe('printKey', () => {
+  const batch = { vouchers: [{ id: 1, status: 'available' }] }
+  it('cambia si se agrega o se quita el dorso', () => {
+    expect(printKey(batch, true)).not.toBe(printKey(batch, false))
+  })
+  it('queda vacío si no hay nada para imprimir', () => {
+    expect(printKey({ vouchers: [{ id: 1, status: 'redeemed' }] }, true)).toBe('')
   })
 })
 
