@@ -35,7 +35,7 @@ function GoogleButton({ onCredential }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <div ref={ref} aria-label="Entrar con Google" />
-      {error && <p className="text-sm text-coral">{error}</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
     </div>
   )
 }
@@ -89,7 +89,7 @@ function Welcome({ onLoggedIn }) {
           </button>
         </form>
       )}
-      {error && <p className="mt-3 text-sm text-coral">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
   )
 }
@@ -115,7 +115,7 @@ function Wallet({ onLogout }) {
   useEffect(() => { load() }, [load])
 
   if (state.status === 'loading') return <p className="mt-10 text-center text-plum-light">Cargando…</p>
-  if (state.status === 'error') return <p className="mt-10 text-center text-coral">{state.message}</p>
+  if (state.status === 'error') return <p className="mt-10 text-center text-red-700">{state.message}</p>
   const { me, movements, rewards } = state
   const { available, next } = reachable(me.balance, rewards)
 
@@ -155,7 +155,7 @@ function Wallet({ onLogout }) {
           {movements.map((m, i) => (
             <li key={`${m.date}-${i}`} className="flex justify-between">
               <span>{m.date.split('-').reverse().slice(0, 2).join('/')} · {m.label}</span>
-              <span className={m.amount < 0 ? 'text-coral' : 'text-plum'}>{m.amount > 0 ? `+${m.amount}` : m.amount}</span>
+              <span className={m.amount < 0 ? 'text-red-700' : 'text-plum'}>{m.amount > 0 ? `+${m.amount}` : m.amount}</span>
             </li>
           ))}
         </ul>

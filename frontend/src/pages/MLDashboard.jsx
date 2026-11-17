@@ -79,7 +79,7 @@ const MLDashboard = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-2" />
+          <RefreshCw className="h-8 w-8 animate-spin text-purple-700 mx-auto mb-2" />
           <p className="text-gray-600">Cargando dashboard ML...</p>
         </div>
       </div>
@@ -92,7 +92,7 @@ const MLDashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center space-x-3">
-            <Brain className="h-8 w-8 text-purple-600" />
+            <Brain className="h-8 w-8 text-purple-700" />
             <span>Dashboard ML</span>
           </h1>
           <p className="text-gray-600 mt-1">
@@ -203,7 +203,7 @@ const MLDashboard = () => {
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Precisión de Ventas</h3>
-              <Target className="h-5 w-5 text-purple-600" />
+              <Target className="h-5 w-5 text-purple-700" />
             </div>
             <div className="space-y-3">
               <div>
@@ -270,7 +270,7 @@ const MLDashboard = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Precisión por Hora del Día</h3>
-            <Clock className="h-5 w-5 text-purple-600" />
+            <Clock className="h-5 w-5 text-purple-700" />
           </div>
           <div className="grid grid-cols-6 md:grid-cols-13 gap-2">
             {byHour.by_hour.map((item) => (
@@ -294,7 +294,7 @@ const MLDashboard = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Precisión por Día de la Semana</h3>
-            <Calendar className="h-5 w-5 text-purple-600" />
+            <Calendar className="h-5 w-5 text-purple-700" />
           </div>
           {byDay.success && Array.isArray(byDay.by_day) && byDay.by_day.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
