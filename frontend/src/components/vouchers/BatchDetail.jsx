@@ -5,7 +5,7 @@ import voucherService from '../../services/voucherService'
 import { formatMoney } from '../../pos/utils/money'
 import { ErrorText, button, dateTime, input } from '../loyalty/shared'
 import PrintSheet from './PrintSheet'
-import { STATUS_LABEL, availableKey, formatExpiry, useVoucherMutation, voucherKeys } from './voucherUtils'
+import { STATUS_LABEL, formatExpiry, printKey, useVoucherMutation, voucherKeys } from './voucherUtils'
 
 const STATUS_STYLE = {
   available: 'bg-green-100 text-green-800',
@@ -27,9 +27,10 @@ export default function BatchDetail({ batchId, onBack }) {
   const [preview, setPreview] = useState(false)
   const [readyKey, setReadyKey] = useState(null)
   const [wantPrint, setWantPrint] = useState(false)
+  const [withBack, setWithBack] = useState(true)
   const extend = useVoucherMutation(() => voucherService.extendExpiry(batchId, newExpiry))
   const voidVoucher = useVoucherMutation(({ id, text }) => voucherService.voidVoucher(id, text))
-  const key = batch ? availableKey(batch) : ''
+  const key = batch ? printKey(batch, withBack) : ''
 
   // Imprime cuando el usuario lo pidió y los QR de los vouchers disponibles de ahora ya están listos.
   useEffect(() => {
@@ -50,7 +51,10 @@ export default function BatchDetail({ batchId, onBack }) {
         <h2 className="text-lg font-semibold">{batch.name}</h2>
         <span className="text-sm text-gray-600">{formatMoney(batch.amount)} · vence el {formatExpiry(batch.expires_at)}
           {batch.min_sale_amount ? ` · mínimo ${formatMoney(batch.min_sale_amount)}` : ''}</span>
-        <button type="button" className={`${button(true)} ml-auto`} onClick={print} disabled={!key}
+        <label className="ml-auto flex items-center gap-1 text-sm">
+          <input type="checkbox" checked={withBack} onChange={(e) => setWithBack(e.target.checked)} /> Imprimir dorso (doble cara)
+        </label>
+        <button type="button" className={button(true)} onClick={print} disabled={!key}
           title={key ? undefined : 'No hay vouchers disponibles para imprimir'}><Printer size={16} /> Imprimir</button>
       </div>
 
@@ -105,7 +109,7 @@ export default function BatchDetail({ batchId, onBack }) {
         <section>
           <h3 className="mb-2 font-semibold">Vista previa de impresión</h3>
           <div className="overflow-x-auto rounded-lg border bg-gray-100 p-2">
-            <div className="mx-auto w-[194mm]"><PrintSheet batch={batch} onReady={setReadyKey} /></div>
+            <div className="mx-auto w-[194mm]"><PrintSheet batch={batch} onReady={setReadyKey} withBack={withBack} /></div>
           </div>
         </section>
       )}
