@@ -33,6 +33,12 @@ export function availableKey(batch) {
   return batch.vouchers.filter((v) => v.status === 'available').map((v) => v.id).join(',')
 }
 
+// Lo que hay que esperar antes de imprimir: los vouchers disponibles y si se imprime el dorso (otra imagen a cargar).
+export function printKey(batch, withBack) {
+  const key = availableKey(batch)
+  return key ? `${key}|${withBack ? 'back' : 'front'}` : ''
+}
+
 // Páginas de `size` elementos: la hoja A4 lleva 8 vouchers.
 export function chunk(list, size) {
   const pages = []
