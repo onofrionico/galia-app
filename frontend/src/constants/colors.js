@@ -1,13 +1,15 @@
 // frontend/src/constants/colors.js
+// Paleta oficial de Galia: viene de shared/galia-tokens.js (sistema de diseño).
+import { GALIA_COLORS } from '../../../shared/galia-tokens.js'
 
 export const GALIA = {
-  amarillo: '#D4E157',      // Primary accent
-  marron: '#6B4C5C',        // Secondary/brand
-  crema: '#E8DCC4',         // Main background
-  blanco: '#FFFBF8',        // Card/overlay background
-  grisClaro: '#8A8A8A',     // Secondary text
-  grisLigero: '#E5E5E5',    // Borders
-  verde: '#7CB342',         // Status: Libre
+  amarillo: GALIA_COLORS.lime,       // Primary accent
+  marron: GALIA_COLORS.plum,         // Secondary/brand
+  crema: GALIA_COLORS.cream,         // Main background
+  blanco: GALIA_COLORS.white,        // Card/overlay background
+  grisClaro: '#8A8A8A',              // Secondary text
+  grisLigero: '#E5E5E5',             // Borders
+  verde: '#7CB342',                  // Status: Libre
 }
 
 export const galiaTailwind = {

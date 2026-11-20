@@ -266,7 +266,7 @@ const TimeTracking = () => {
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Calendar className="w-5 md:w-6 h-5 md:h-6 text-purple-600" />
+          <Calendar className="w-5 md:w-6 h-5 md:h-6 text-purple-700" />
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">Información</h2>
         </div>
 
