@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, Response
 from app.extensions import db
 from app.models.sale import Sale
+from app.services.pos.in_progress import in_progress_sales
 from app.utils.jwt_utils import token_required
 from app.utils.decorators import module_required
 from datetime import datetime, date, timedelta
@@ -13,6 +14,14 @@ logger = logging.getLogger(__name__)
 import pytz
 
 bp = Blueprint('sales', __name__, url_prefix='/api/v1/sales')
+
+@bp.route('/in-progress', methods=['GET'])
+@token_required
+@module_required('Sales')
+def get_sales_in_progress(current_user):
+    """Ventas del POS abiertas o con la cuenta pedida (aún no están en `sales`)."""
+    return jsonify(in_progress_sales()), 200
+
 
 @bp.route('', methods=['GET'])
 @token_required

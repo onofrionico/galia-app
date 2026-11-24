@@ -9,6 +9,7 @@ import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
 import DateQuickFilter from '../components/common/DateQuickFilter';
+import InProgressSales from '../components/sales/InProgressSales';
 import { defaultRange } from '../utils/monthRange';
 
 // La vista inicial muestra las ventas de hoy.
@@ -24,6 +25,7 @@ const Sales = () => {
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
   const [dateFilterKey, setDateFilterKey] = useState(0);
+  const [inProgressKey, setInProgressKey] = useState(0);
   const [filterOptions, setFilterOptions] = useState({
     estados: [],
     tipos_venta: [],
@@ -451,7 +453,7 @@ const Sales = () => {
           </button>
           
           <button
-            onClick={() => { fetchSales(); fetchStats(); }}
+            onClick={() => { fetchSales(); fetchStats(); setInProgressKey(key => key + 1); }}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
           >
             <RefreshCw className="w-4 h-4" />
@@ -514,6 +516,9 @@ const Sales = () => {
           </div>
         )}
       </div>
+
+      {/* Ventas del POS que todavía no cerraron (solo lectura, fuera de las estadísticas) */}
+      <InProgressSales refreshKey={inProgressKey} />
 
       {/* Sales Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
