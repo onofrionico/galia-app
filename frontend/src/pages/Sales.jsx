@@ -8,19 +8,22 @@ import api from '../services/api';
 import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
+import DateQuickFilter from '../components/sales/DateQuickFilter';
+import { currentMonthRange } from '../utils/monthRange';
+
+// La vista inicial muestra el mes en curso.
+const initialFilters = () => {
+  const { from, to } = currentMonthRange();
+  return { fecha_desde: from, fecha_hasta: to, estado: '', tipo_venta: '', origen: '' };
+};
 
 const Sales = () => {
   const { fudo_off: fudoOff } = useCutover();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [filters, setFilters] = useState({
-    fecha_desde: '',
-    fecha_hasta: '',
-    estado: '',
-    tipo_venta: '',
-    origen: ''
-  });
+  const [filters, setFilters] = useState(initialFilters);
+  const [dateFilterKey, setDateFilterKey] = useState(0);
   const [filterOptions, setFilterOptions] = useState({
     estados: [],
     tipos_venta: [],
@@ -125,14 +128,15 @@ const Sales = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  const handleDatesChange = (fecha_desde, fecha_hasta) => {
+    setFilters(prev => ({ ...prev, fecha_desde, fecha_hasta }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Limpiar vuelve a la vista inicial: mes en curso y sin los demás filtros.
   const clearFilters = () => {
-    setFilters({
-      fecha_desde: '',
-      fecha_hasta: '',
-      estado: '',
-      tipo_venta: '',
-      origen: ''
-    });
+    setFilters(initialFilters());
+    setDateFilterKey(key => key + 1);
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -424,6 +428,14 @@ const Sales = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow mb-6">
+        <div className="p-4 border-b">
+          <DateQuickFilter
+            key={dateFilterKey}
+            from={filters.fecha_desde}
+            to={filters.fecha_hasta}
+            onChange={handleDatesChange}
+          />
+        </div>
         <div className="p-4 border-b flex items-center justify-between">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -431,7 +443,7 @@ const Sales = () => {
           >
             <Filter className="w-4 h-4" />
             Filtros
-            {Object.values(filters).some(v => v) && (
+            {[filters.estado, filters.tipo_venta, filters.origen].some(v => v) && (
               <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
                 Activos
               </span>
@@ -448,27 +460,7 @@ const Sales = () => {
         </div>
         
         {showFilters && (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-              <input
-                type="date"
-                value={filters.fecha_desde}
-                onChange={(e) => handleFilterChange('fecha_desde', e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-              <input
-                type="date"
-                value={filters.fecha_hasta}
-                onChange={(e) => handleFilterChange('fecha_hasta', e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
+          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
               <select
@@ -511,7 +503,7 @@ const Sales = () => {
               </select>
             </div>
             
-            <div className="md:col-span-5 flex justify-end">
+            <div className="md:col-span-3 flex justify-end">
               <button
                 onClick={clearFilters}
                 className="text-sm text-gray-600 hover:text-gray-800"
