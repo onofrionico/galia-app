@@ -120,6 +120,24 @@ def test_open_sale_rejects_waiter_without_permission(pos_app):
     assert response.status_code == 400
 
 
+def test_open_sale_only_assigns_the_opener_as_waiter(pos_app):
+    client = pos_app.test_client()
+    cashier = make_user('caja@test.com', modules=('POS',))
+    waiter = make_user('mozo@test.com', modules=('Camarero',))
+    _s, t1, t2 = make_floor()
+    headers = auth_headers(client, cashier)
+    other = client.post('/api/v1/pos/sales', headers=headers,
+                        json={'sale_type': 'salon', 'table_id': t1.id, 'people': 2, 'waiter_id': waiter.id})
+    assert other.status_code == 400
+    own = client.post('/api/v1/pos/sales', headers=headers,
+                      json={'sale_type': 'salon', 'table_id': t1.id, 'people': 2, 'waiter_id': cashier.id})
+    assert own.status_code == 200, own.get_json()
+    assert own.get_json()['waiter']['id'] == cashier.id
+    default = client.post('/api/v1/pos/sales', headers=headers,
+                          json={'sale_type': 'salon', 'table_id': t2.id, 'people': 1})
+    assert default.get_json()['waiter']['id'] == cashier.id
+
+
 def test_changes_without_since_returns_last_event(pos_app):
     client = pos_app.test_client()
     waiter = make_user('mozo@test.com', modules=('Camarero',))

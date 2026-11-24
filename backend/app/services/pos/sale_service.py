@@ -57,10 +57,10 @@ def open_sale(user, sale_type, table_id=None, people=None, customer_name=None, c
     else:
         require_module(user, 'POS', 'Solo la caja puede abrir ventas de mostrador')
         people = None
+    # El mozo de una venta nueva es siempre quien la abre; para cambiarlo está change_waiter.
+    if waiter_id is not None and parse_id(waiter_id, 'El mozo') != user.id:
+        raise bad_request('La venta se abre a nombre de quien la abre')
     waiter = user.id
-    if waiter_id is not None:
-        require_module(user, 'POS', 'Solo la caja puede asignar el mozo')
-        waiter = waiters.get_waiter(waiter_id).id
     sale = PosSale(business_date=get_current_date_argentina(), sale_type=sale_type,
                    table_id=table.id if table else None, people=people, customer_name=customer_name,
                    comment=comment, waiter_id=waiter, status='open', opened_at=now(), opened_by=user.id,
