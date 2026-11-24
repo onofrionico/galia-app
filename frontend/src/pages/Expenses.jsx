@@ -11,11 +11,11 @@ import FudoSyncExpensesModal from '../components/fudo/FudoSyncExpensesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
 import MoneyFormat from '../components/MoneyFormat';
 import DateQuickFilter from '../components/common/DateQuickFilter';
-import { currentMonthRange } from '../utils/monthRange';
+import { defaultRange } from '../utils/monthRange';
 
-// La vista inicial muestra el mes en curso.
+// La vista inicial muestra los gastos de hoy.
 const initialFilters = () => {
-  const { from, to } = currentMonthRange();
+  const { from, to } = defaultRange();
   return {
     fecha_desde: from, fecha_hasta: to, proveedor: '', category_id: '', estado_pago: '', medio_pago: ''
   };
@@ -151,7 +151,7 @@ const Expenses = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Limpiar vuelve a la vista inicial: mes en curso y sin los demás filtros.
+  // Limpiar vuelve a la vista inicial: hoy y sin los demás filtros.
   const clearFilters = () => {
     setFilters(initialFilters());
     setDateFilterKey(key => key + 1);

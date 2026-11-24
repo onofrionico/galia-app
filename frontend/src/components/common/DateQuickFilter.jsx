@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { monthRangeOf, periodRange, shiftMonth } from '../../utils/monthRange';
+import { DEFAULT_PERIOD, monthRangeOf, periodRange, shiftMonth } from '../../utils/monthRange';
 
 const MODES = [
   ['month', 'Por Mes'],
@@ -27,12 +27,12 @@ const nowMonth = () => {
 };
 
 // Filtro rápido de fechas (mismo esquema que Reportes): por mes, período o rango.
-// Informa los cambios con onChange({ from, to }). Para volver al mes actual desde afuera,
+// Informa los cambios con onChange({ from, to }). Para volver a la vista por defecto (hoy) desde afuera,
 // remontar el componente cambiándole la `key`.
 export default function DateQuickFilter({ from, to, onChange }) {
-  const [mode, setMode] = useState('month');
+  const [mode, setMode] = useState('period');
   const [month, setMonth] = useState(nowMonth);
-  const [period, setPeriod] = useState('mensual');
+  const [period, setPeriod] = useState(DEFAULT_PERIOD);
 
   const apply = ({ from: f, to: t }) => onChange(f, t);
 

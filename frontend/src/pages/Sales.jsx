@@ -9,11 +9,11 @@ import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
 import DateQuickFilter from '../components/common/DateQuickFilter';
-import { currentMonthRange } from '../utils/monthRange';
+import { defaultRange } from '../utils/monthRange';
 
-// La vista inicial muestra el mes en curso.
+// La vista inicial muestra las ventas de hoy.
 const initialFilters = () => {
-  const { from, to } = currentMonthRange();
+  const { from, to } = defaultRange();
   return { fecha_desde: from, fecha_hasta: to, estado: '', tipo_venta: '', origen: '' };
 };
 
@@ -133,7 +133,7 @@ const Sales = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Limpiar vuelve a la vista inicial: mes en curso y sin los demás filtros.
+  // Limpiar vuelve a la vista inicial: hoy y sin los demás filtros.
   const clearFilters = () => {
     setFilters(initialFilters());
     setDateFilterKey(key => key + 1);

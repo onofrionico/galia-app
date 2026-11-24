@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentMonthRange, monthRangeOf, periodRange, shiftMonth } from './monthRange'
+import { currentMonthRange, DEFAULT_PERIOD, defaultRange, monthRangeOf, periodRange, shiftMonth } from './monthRange'
 
 describe('currentMonthRange', () => {
   it('devuelve el primer y el último día del mes de la fecha dada', () => {
@@ -46,5 +46,14 @@ describe('periodRange', () => {
     expect(periodRange('mensual', wed)).toEqual({ from: '2026-11-01', to: '2026-11-30' })
     expect(periodRange('trimestral', wed)).toEqual({ from: '2026-10-01', to: '2026-12-31' })
     expect(periodRange('anual', wed)).toEqual({ from: '2026-01-01', to: '2026-12-31' })
+  })
+})
+
+describe('vista por defecto', () => {
+  it('es el período de hoy', () => {
+    expect(DEFAULT_PERIOD).toBe('diario')
+    const today = periodRange('diario')
+    expect(defaultRange()).toEqual(today)
+    expect(today.from).toBe(today.to)
   })
 })
