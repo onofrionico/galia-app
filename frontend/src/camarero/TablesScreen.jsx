@@ -73,7 +73,7 @@ export default function TablesScreen() {
         )}
       </div>
       {openTable && (
-        <OpenTableModal table={openTable} allowWaiterPick={false} onClose={() => setOpenTable(null)}
+        <OpenTableModal table={openTable} onClose={() => setOpenTable(null)}
           onOpened={(id, isNew) => {
             setOpenTable(null)
             // Si la hoja sigue abierta, se reemplaza su entrada de historial en vez de apilar encima (quedaría huérfana).

@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { posApi } from '../api/posApi'
-import { useLookup } from '../hooks/usePosQueries'
-import { usePosPermissions } from '../hooks/usePosPermissions'
 import { useSaleMutation } from '../hooks/useSaleMutation'
 import Modal from '../ui/Modal'
 import { useToast } from '../ui/Toasts'
@@ -10,20 +7,14 @@ import { btn } from '../ui/buttons'
 import { conflictSaleId } from '../utils/errors'
 
 // onOpened(saleId, isNew): isNew = false cuando la mesa ya tenía una venta (409) y se muestra esa.
-// allowWaiterPick: por defecto solo la caja (POS) elige mozo; el celular pasa false (el mozo es quien abre).
-export default function OpenTableModal({ table, onClose, onOpened, allowWaiterPick }) {
-  const perms = usePosPermissions()
-  const pickWaiter = allowWaiterPick ?? perms.pos
-  const { user } = useAuth()
+// El mozo de la venta es siempre quien la abre (el backend lo fija); no se elige acá.
+export default function OpenTableModal({ table, onClose, onOpened }) {
   const toast = useToast()
-  const { data: waiters = [] } = useLookup('waiters', pickWaiter)
   const [people, setPeople] = useState(2)
-  const [waiterId, setWaiterId] = useState(user?.id ?? null)
   const { run, busy } = useSaleMutation()
 
   const submit = async () => {
     const body = { sale_type: 'salon', table_id: table.id, people }
-    if (pickWaiter && waiterId && waiterId !== user?.id) body.waiter_id = waiterId
     const sale = await run(null, () => posApi.openSale(body), {
       onError: (error) => {
         const existing = conflictSaleId(error)
@@ -53,19 +44,6 @@ export default function OpenTableModal({ table, onClose, onOpened, allowWaiterPi
         <button type="button" className={btn('secondary', 'w-14 text-xl')} aria-label="Una persona más"
           onClick={() => setPeople((p) => Math.min(100, p + 1))}>+</button>
       </div>
-      {pickWaiter && (
-        <div className="mt-5">
-          <p className="text-sm font-medium text-gray-700">Mozo</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {waiters.map((waiter) => (
-              <button key={waiter.id} type="button" onClick={() => setWaiterId(waiter.id)}
-                className={btn(waiter.id === waiterId ? 'primary' : 'secondary', 'justify-start truncate')}>
-                {waiter.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </Modal>
   )
 }
