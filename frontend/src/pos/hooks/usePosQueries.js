@@ -26,6 +26,21 @@ export const useCounterSales = () => useQuery({
   staleTime: 10_000,
 })
 
+// Pestaña Ventas: las que siguen abiertas (de cualquier día) y las cerradas/anuladas de un día comercial.
+export const useInProgressSales = () => useQuery({
+  queryKey: posKeys.salesInProgress,
+  queryFn: () => posApi.listSales({ status: 'open,billing' }),
+  refetchInterval: 30_000,
+  staleTime: 5_000,
+})
+
+export const useDaySales = (day) => useQuery({
+  queryKey: posKeys.salesDay(day),
+  queryFn: () => posApi.listSales({ status: 'closed,cancelled', date: day }),
+  refetchInterval: 30_000,
+  staleTime: 5_000,
+})
+
 export const useCatalog = () => useQuery({
   queryKey: posKeys.catalog,
   queryFn: posApi.getCatalog,

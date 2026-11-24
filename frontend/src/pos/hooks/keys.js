@@ -5,6 +5,8 @@ export const posKeys = {
   floor: (salonId) => ['pos', 'floor', salonId ?? 'default'],
   sales: ['pos', 'sales'],
   counter: ['pos', 'sales', 'counter'],
+  salesInProgress: ['pos', 'sales', 'in-progress'],
+  salesDay: (day) => ['pos', 'sales', 'day', day],
   sale: (id) => ['pos', 'sale', id],
   events: (id) => ['pos', 'events', id],
   catalog: ['pos', 'catalog'],

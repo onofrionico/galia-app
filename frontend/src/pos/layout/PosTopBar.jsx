@@ -28,6 +28,7 @@ export default function PosTopBar() {
         ))}
         {perms.pos && <NavLink to="/pos/mostrador" className={tabClass}>Mostrador</NavLink>}
         {perms.pos && <NavLink to="/pos/caja" className={tabClass}>Caja</NavLink>}
+        {perms.pos && <NavLink to="/pos/ventas" className={tabClass}>Ventas</NavLink>}
       </nav>
       {perms.pos && (
         <NavLink to="/pos/config" className={tabClass} aria-label="Configuración del POS">
