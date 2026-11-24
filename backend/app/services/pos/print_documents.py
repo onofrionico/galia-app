@@ -39,6 +39,18 @@ def _waiter(sale):
     return f'Mozo: {display_name(sale.waiter) or "—"}'
 
 
+def _order_header(sale):
+    """Encabezado común de comandas y anulaciones: venta, mesa - sala, personas y mozo."""
+    if sale.table is not None:
+        place = f'{sale.table.label} - {sale.table.salon.name}'
+    else:
+        place = 'Mostrador'
+    header = [f'Venta #{sale.number}', place]
+    if sale.people:
+        header.append(f'Personas: {sale.people}')
+    return header + [_waiter(sale)]
+
+
 def _text(item):
     variant = db.session.get(ProductVariant, item.product_variant_id)
     several = variant is not None and variant.product.variants.filter_by(is_active=True).count() > 1
@@ -74,12 +86,12 @@ def _document(title, header, lines, totals=None, footer=None, large_body=False):
 
 
 def order_document(sale, station, batch, items):
-    return _document(_title(sale, station.name.upper()), [_place(sale), _waiter(sale), f'Tanda {batch}', _when()],
+    return _document(_title(sale, station.name.upper()), _order_header(sale) + [f'Tanda {batch}', _when()],
                      [_line(item) for item in items], large_body=True)
 
 
 def void_document(sale, station, items, reason):
-    return _document(_title(sale, f'ANULACIÓN · {station.name.upper()}'), [_place(sale), _waiter(sale), _when()],
+    return _document(_title(sale, f'ANULACIÓN · {station.name.upper()}'), _order_header(sale) + [_when()],
                      [_line(item, strike=True) for item in items], footer=[f'Motivo: {reason}'], large_body=True)
 
 

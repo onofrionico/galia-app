@@ -36,7 +36,8 @@ def test_batch_is_split_by_station_with_details(ctx):
     assert [(j.station_id, j.batch, j.sale_id) for j in jobs] == [(cocina.id, 1, sale.id), (barra.id, 1, sale.id)]
     kitchen_doc, bar_doc = jobs[0].document, jobs[1].document
     assert kitchen_doc['title'] == 'COCINA'
-    assert kitchen_doc['header'][0] == 'Mesa 1' and 'Tanda 1' in kitchen_doc['header']
+    assert kitchen_doc['header'][:3] == [f'Venta #{sale.number}', 'Mesa 1 - Salón', 'Personas: 2']
+    assert 'Tanda 1' in kitchen_doc['header']
     assert kitchen_doc['lines'] == [{'qty': '2', 'text': 'Tostado', 'amount': None, 'details': ['Nota: sin sal'],
                                      'strike': False}]
     assert bar_doc['title'] == 'BARRA'
@@ -90,7 +91,9 @@ def test_waiter_confirm_route_and_counter_payment_print(ctx, pos_app):
     sale_service.add_item(user, counter.id, cat.unidad.id)
     payment_service.add_payment(user, counter.id, cat.efectivo.id, 900)
     jobs = _jobs()
-    assert len(jobs) == 2 and jobs[1].document['header'][0] == f'Mostrador #{counter.number}'
+    assert len(jobs) == 2
+    assert jobs[1].document['header'][:2] == [f'Venta #{counter.number}', 'Mostrador']
+    assert not any(line.startswith('Personas') for line in jobs[1].document['header'])
 
 
 def test_cancelling_items_and_sales_prints_voids(ctx):
@@ -109,6 +112,7 @@ def test_cancelling_items_and_sales_prints_voids(ctx):
     voids = _jobs('void')
     assert [(v.station_id, v.document['title']) for v in voids] == [(barra.id, 'ANULACIÓN · BARRA')]
     assert voids[0].document['lines'][0]['strike'] is True
+    assert voids[0].document['header'][:3] == [f'Venta #{sale.number}', 'Mesa 1 - Salón', 'Personas: 1']
     assert 'Motivo: Error de carga' in voids[0].document['footer']
     sale_service.cancel_sale(user, sale.id, 'Se fueron')
     assert sorted(v.station_id for v in _jobs('void')[1:]) == sorted([cocina.id, barra.id])
