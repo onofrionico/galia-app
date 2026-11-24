@@ -411,7 +411,7 @@ const Expenses = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <Wallet className="w-6 h-6 text-purple-600" />
+                <Wallet className="w-6 h-6 text-purple-700" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Promedio</p>

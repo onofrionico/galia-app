@@ -1,17 +1,17 @@
+import galiaPreset from '../shared/galia-preset.js'
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  presets: [galiaPreset],
   content: ['./index.html', './links.html', './cafecitos.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      // Alias históricos de la carta: apuntan a la paleta oficial (ver ../shared/galia-preset.js).
       colors: {
-        cream: '#F5F1EA',
-        plum: { DEFAULT: '#5C2E46', dark: '#43203A', light: '#8A5A72' },
-        lime: '#C5D94A',
-        coral: '#E0866A',
-      },
-      fontFamily: {
-        display: ['Anton', 'Impact', 'sans-serif'],
-        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        cream: '#edece4',
+        plum: { DEFAULT: '#673b4c', dark: '#52303e', light: '#8a5670' },
+        lime: '#cbd159',
+        coral: '#dd8c76',
       },
     },
   },

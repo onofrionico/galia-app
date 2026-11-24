@@ -186,7 +186,7 @@ const Payroll = () => {
                   {summary.employee_count}
                 </p>
               </div>
-              <Users className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+              <Users className="w-8 h-8 md:w-10 md:h-10 text-purple-700" />
             </div>
           </div>
 

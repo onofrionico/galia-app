@@ -45,7 +45,7 @@ const TagRow = ({ tag, onChanged, onError }) => {
 
 const MenuSettingsPanel = ({ tags, onChanged }) => {
   const [settings, setSettings] = useState({ footer_text: '', instagram: '' })
-  const [newTag, setNewTag] = useState({ name: '', color: '#5C2E46' })
+  const [newTag, setNewTag] = useState({ name: '', color: '#673b4c' })
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -70,7 +70,7 @@ const MenuSettingsPanel = ({ tags, onChanged }) => {
     setError('')
     try {
       await menuService.createTag(newTag)
-      setNewTag({ name: '', color: '#5C2E46' })
+      setNewTag({ name: '', color: '#673b4c' })
       onChanged()
     } catch (err) {
       setError(errorMessage(err, 'Error al crear la etiqueta'))

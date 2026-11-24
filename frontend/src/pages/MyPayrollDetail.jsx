@@ -265,7 +265,7 @@ const MyPayrollDetail = () => {
 
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center gap-3 mb-2">
-            <Calendar className="w-5 h-5 text-purple-600" />
+            <Calendar className="w-5 h-5 text-purple-700" />
             <span className="text-sm text-gray-600">Horas Programadas</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{formatHoursToHHMM(payroll.scheduled_hours)}</p>
@@ -329,7 +329,7 @@ const MyPayrollDetail = () => {
             {payroll.hours_by_type.sunday_hours && (
               <div className="bg-white p-3 rounded-lg shadow-sm">
                 <span className="text-xs text-gray-600 block mb-1">Horas Domingo</span>
-                <p className="text-lg font-bold text-purple-600">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours.hours)}</p>
+                <p className="text-lg font-bold text-purple-700">{formatHoursToHHMM(payroll.hours_by_type.sunday_hours.hours)}</p>
                 <span className="text-xs text-gray-500">x{payroll.hours_by_type.sunday_hours.multiplier}</span>
               </div>
             )}
@@ -404,7 +404,7 @@ const MyPayrollDetail = () => {
                       </div>
                       
                       <div>
-                        <h5 className="text-sm font-medium text-purple-600 mb-2 flex items-center gap-1">
+                        <h5 className="text-sm font-medium text-purple-700 mb-2 flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           Horas Grilla
                         </h5>
@@ -413,7 +413,7 @@ const MyPayrollDetail = () => {
                             {scheduledRecords.map((record, idx) => (
                               <div key={idx} className="flex justify-between items-center bg-purple-50 p-2 rounded text-sm">
                                 <span>{record.start_time} - {record.end_time}</span>
-                                <span className="font-semibold text-purple-600">{formatHoursToHHMM(record.hours)}</span>
+                                <span className="font-semibold text-purple-700">{formatHoursToHHMM(record.hours)}</span>
                               </div>
                             ))}
                           </div>

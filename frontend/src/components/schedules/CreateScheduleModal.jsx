@@ -104,7 +104,7 @@ const CreateScheduleModal = ({ isOpen, onClose }) => {
                 className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors"
               >
                 <div className="flex items-center space-x-2">
-                  <Brain className="h-5 w-5 text-purple-600" />
+                  <Brain className="h-5 w-5 text-purple-700" />
                   <span className="font-medium text-purple-900">
                     {showRecommendations ? 'Ocultar' : 'Ver'} Recomendaciones IA
                   </span>

@@ -21,7 +21,7 @@ const MLRecommendations = ({ startDate, endDate }) => {
     return (
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
         <div className="flex items-center space-x-3">
-          <Brain className="h-6 w-6 text-purple-600 animate-pulse" />
+          <Brain className="h-6 w-6 text-purple-700 animate-pulse" />
           <div>
             <h3 className="font-semibold text-gray-900">Analizando datos...</h3>
             <p className="text-sm text-gray-600">Generando recomendaciones con IA</p>
@@ -66,7 +66,7 @@ const MLRecommendations = ({ startDate, endDate }) => {
             <div>
               <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
                 <span>Recomendaciones con IA</span>
-                <Sparkles className="h-4 w-4 text-purple-600" />
+                <Sparkles className="h-4 w-4 text-purple-700" />
               </h3>
               <p className="text-sm text-gray-600">
                 Predicciones basadas en datos históricos
@@ -96,7 +96,7 @@ const MLRecommendations = ({ startDate, endDate }) => {
                   </div>
                 </div>
                 <div className="bg-purple-100 rounded-full p-2">
-                  <Users className="h-5 w-5 text-purple-600" />
+                  <Users className="h-5 w-5 text-purple-700" />
                 </div>
               </div>
 
@@ -125,7 +125,7 @@ const MLRecommendations = ({ startDate, endDate }) => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Personal recomendado</span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-purple-600">
+                      <span className="text-lg font-bold text-purple-700">
                         {day.avg_staff_needed}
                       </span>
                       <span className="text-xs text-gray-500">promedio</span>

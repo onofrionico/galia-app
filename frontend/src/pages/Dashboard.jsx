@@ -297,7 +297,7 @@ const Dashboard = () => {
 
                       <div className="bg-purple-50 rounded-lg p-3 md:p-4">
                         <p className="text-xs md:text-sm text-gray-600 mb-1">Horas</p>
-                        <p className="text-xl md:text-2xl font-bold text-purple-600">
+                        <p className="text-xl md:text-2xl font-bold text-purple-700">
                           {todayRecord?.total_hours !== undefined && todayRecord.total_hours > 0
                             ? `${todayRecord.total_hours}h ${todayRecord.total_minutes || 0}m`
                             : '0h'}

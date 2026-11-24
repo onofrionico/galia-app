@@ -247,7 +247,7 @@ const Reports = () => {
     const colorClasses = {
       blue: 'bg-blue-50 text-blue-600',
       green: 'bg-green-50 text-green-600',
-      purple: 'bg-purple-50 text-purple-600',
+      purple: 'bg-purple-50 text-purple-700',
       amber: 'bg-amber-50 text-amber-600',
       red: 'bg-red-50 text-red-600'
     }
@@ -650,7 +650,7 @@ const Reports = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <PieChart size={20} className="text-purple-600" />
+                <PieChart size={20} className="text-purple-700" />
                 Distribución de Gastos
               </h3>
               
@@ -720,7 +720,7 @@ const Reports = () => {
                 </div>
                 
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-2xl font-bold text-purple-700">
                     {dashboard.ventas?.total > 0 
                       ? ((dashboard.gastos?.indirectos / dashboard.ventas.total) * 100).toFixed(1)
                       : 0}%
