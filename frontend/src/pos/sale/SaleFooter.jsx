@@ -1,12 +1,20 @@
-import { useState } from 'react'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { ArrowRightLeft, Ban, CheckCircle2, Percent, Plus, Printer, SplitSquareHorizontal } from 'lucide-react'
 import InvoiceTag from '../fiscal/InvoiceTag'
 import { btn } from '../ui/buttons'
 import { formatMoney } from '../utils/money'
 import { saleCounts } from '../utils/permissions'
+import { footerChips } from '../utils/saleLayout'
+
+const CHIP_ICONS = {
+  discount: Percent,
+  printBill: Printer,
+  move: ArrowRightLeft,
+  split: SplitSquareHorizontal,
+  close: CheckCircle2,
+  cancelSale: Ban,
+}
 
 export default function SaleFooter({ sale, actions, handlers, busy }) {
-  const [moreOpen, setMoreOpen] = useState(false)
   const { pending } = saleCounts(sale)
 
   if (!['open', 'billing'].includes(sale.status)) {
@@ -28,14 +36,7 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
     )
   }
 
-  const more = [
-    actions.discount && ['Descuento a la venta', handlers.discount],
-    actions.printBill && ['Precuenta', handlers.printBill],
-    actions.move && ['Mover de mesa', handlers.move],
-    actions.split && ['Dividir la cuenta', handlers.split],
-    actions.close && ['Cerrar con saldo 0', handlers.close],
-    actions.cancelSale && ['Anular la venta', handlers.cancelSale, 'danger'],
-  ].filter(Boolean)
+  const chips = footerChips(actions)
   const showBalance = sale.paid_total > 0
 
   return (
@@ -64,20 +65,18 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
         {actions.pay && (
           <button type="button" className={btn('primary')} onClick={handlers.pay} disabled={busy}>Cobrar</button>
         )}
-        {more.length > 0 && (
-          <button type="button" className={btn('ghost')} onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen}>
-            <MoreHorizontal size={18} /> Más
-          </button>
-        )}
       </div>
-      {moreOpen && (
-        <div className="grid grid-cols-2 gap-2">
-          {more.map(([label, onClick, variant]) => (
-            <button key={label} type="button" className={btn(variant ?? 'secondary')} disabled={busy}
-              onClick={() => { setMoreOpen(false); onClick() }}>
-              {label}
-            </button>
-          ))}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {chips.map(({ key, label, danger }) => {
+            const Icon = CHIP_ICONS[key]
+            return (
+              <button key={key} type="button" disabled={busy} onClick={() => handlers[key]()}
+                className={btn(danger ? 'danger' : 'secondary', `min-h-[40px] px-3 text-sm ${danger ? 'ml-auto' : ''}`)}>
+                <Icon size={16} /> {label}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
