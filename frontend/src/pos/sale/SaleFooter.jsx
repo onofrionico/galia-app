@@ -37,6 +37,7 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
   }
 
   const chips = footerChips(actions)
+  const normalCount = chips.filter((chip) => !chip.danger).length
   const showBalance = sale.paid_total > 0
 
   return (
@@ -45,7 +46,7 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
         <span className="text-sm text-gray-600">{showBalance ? 'Saldo' : 'Total'}</span>
         <span className="text-2xl font-bold text-galia-plum">{formatMoney(showBalance ? sale.balance : sale.total)}</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
         {actions.addItems && (
           <button type="button" className={btn('secondary')} onClick={handlers.add} disabled={busy}>
             <Plus size={18} /> Agregar
@@ -67,12 +68,14 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
         )}
       </div>
       {chips.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {chips.map(({ key, label, danger }) => {
+        <div className="grid grid-cols-2 gap-2">
+          {chips.map(({ key, label, danger }, index) => {
             const Icon = CHIP_ICONS[key]
+            // Anular ocupa su propia fila; un chip normal que quedaría solo en su fila ocupa todo el ancho.
+            const wide = danger || (index === normalCount - 1 && index % 2 === 0)
             return (
               <button key={key} type="button" disabled={busy} onClick={() => handlers[key]()}
-                className={btn(danger ? 'danger' : 'secondary', `min-h-[40px] px-3 text-sm ${danger ? 'ml-auto' : ''}`)}>
+                className={btn(danger ? 'danger' : 'secondary', `min-h-[40px] px-2 text-sm ${wide ? 'col-span-2' : ''}`)}>
                 <Icon size={16} /> {label}
               </button>
             )
