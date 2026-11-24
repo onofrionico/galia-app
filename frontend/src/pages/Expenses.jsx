@@ -10,20 +10,24 @@ import ExpenseClassifierModal from '../components/expenses/ExpenseClassifierModa
 import FudoSyncExpensesModal from '../components/fudo/FudoSyncExpensesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
 import MoneyFormat from '../components/MoneyFormat';
+import DateQuickFilter from '../components/common/DateQuickFilter';
+import { currentMonthRange } from '../utils/monthRange';
+
+// La vista inicial muestra el mes en curso.
+const initialFilters = () => {
+  const { from, to } = currentMonthRange();
+  return {
+    fecha_desde: from, fecha_hasta: to, proveedor: '', category_id: '', estado_pago: '', medio_pago: ''
+  };
+};
 
 const Expenses = () => {
   const { fudo_off: fudoOff } = useCutover();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [filters, setFilters] = useState({
-    fecha_desde: '',
-    fecha_hasta: '',
-    proveedor: '',
-    category_id: '',
-    estado_pago: '',
-    medio_pago: ''
-  });
+  const [filters, setFilters] = useState(initialFilters);
+  const [dateFilterKey, setDateFilterKey] = useState(0);
   const [filterOptions, setFilterOptions] = useState({
     categorias: [],
     proveedores: [],
@@ -142,17 +146,19 @@ const Expenses = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const clearFilters = () => {
-    setFilters({
-      fecha_desde: '',
-      fecha_hasta: '',
-      proveedor: '',
-      category_id: '',
-      estado_pago: '',
-      medio_pago: ''
-    });
+  const handleDatesChange = (fecha_desde, fecha_hasta) => {
+    setFilters(prev => ({ ...prev, fecha_desde, fecha_hasta }));
     setPagination(prev => ({ ...prev, page: 1 }));
   };
+
+  // Limpiar vuelve a la vista inicial: mes en curso y sin los demás filtros.
+  const clearFilters = () => {
+    setFilters(initialFilters());
+    setDateFilterKey(key => key + 1);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const filtersChanged = JSON.stringify(filters) !== JSON.stringify(initialFilters());
 
   const handleImportFile = (e) => {
     const file = e.target.files[0];
@@ -426,6 +432,14 @@ const Expenses = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="mb-4 pb-4 border-b border-gray-200">
+          <DateQuickFilter
+            key={dateFilterKey}
+            from={filters.fecha_desde}
+            to={filters.fecha_hasta}
+            onChange={handleDatesChange}
+          />
+        </div>
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -433,13 +447,13 @@ const Expenses = () => {
           >
             <Filter className="w-4 h-4 mr-2" />
             Filtros
-            {Object.values(filters).some(v => v) && (
+            {[filters.proveedor, filters.category_id, filters.estado_pago, filters.medio_pago].some(v => v) && (
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
                 Activos
               </span>
             )}
           </button>
-          {Object.values(filters).some(v => v) && (
+          {filtersChanged && (
             <button
               onClick={clearFilters}
               className="text-sm text-red-600 hover:text-red-800"
@@ -450,25 +464,7 @@ const Expenses = () => {
         </div>
         
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Desde</label>
-              <input
-                type="date"
-                value={filters.fecha_desde}
-                onChange={(e) => handleFilterChange('fecha_desde', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
-              <input
-                type="date"
-                value={filters.fecha_hasta}
-                onChange={(e) => handleFilterChange('fecha_hasta', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Proveedor</label>
               <input

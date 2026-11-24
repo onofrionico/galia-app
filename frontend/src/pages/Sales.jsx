@@ -8,7 +8,7 @@ import api from '../services/api';
 import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
-import DateQuickFilter from '../components/sales/DateQuickFilter';
+import DateQuickFilter from '../components/common/DateQuickFilter';
 import { currentMonthRange } from '../utils/monthRange';
 
 // La vista inicial muestra el mes en curso.
