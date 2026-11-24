@@ -65,6 +65,7 @@ import SalonPage from './pos/floor/SalonPage'
 import CounterPage from './pos/counter/CounterPage'
 import PosConfigPage from './pos/config/PosConfigPage'
 import CashPage from './pos/cash/CashPage'
+import SalesPage from './pos/sales/SalesPage'
 import CamareroLayout from './camarero/CamareroLayout'
 import TablesScreen from './camarero/TablesScreen'
 import SaleScreen from './camarero/SaleScreen'
@@ -82,6 +83,7 @@ function App() {
             <Route path="mostrador" element={<PosRoute require="pos"><CounterPage /></PosRoute>} />
             <Route path="config" element={<PosRoute require="pos"><PosConfigPage /></PosRoute>} />
             <Route path="caja" element={<PosRoute require="pos"><CashPage /></PosRoute>} />
+            <Route path="ventas" element={<PosRoute require="pos"><SalesPage /></PosRoute>} />
           </Route>
           <Route path="/camarero" element={<ProtectedRoute><PosRoute><CamareroLayout /></PosRoute></ProtectedRoute>}>
             <Route index element={<TablesScreen />} />

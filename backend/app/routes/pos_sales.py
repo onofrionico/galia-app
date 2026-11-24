@@ -1,5 +1,6 @@
 """API de ventas del POS. Las rutas solo validan permisos y traducen errores; la lógica está en los servicios."""
 import logging
+from datetime import date
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import DataError, IntegrityError
@@ -59,6 +60,12 @@ def list_sales(current_user):
     sale_type = request.args.get('type')
     if sale_type in SALE_TYPES:
         query = query.filter_by(sale_type=sale_type)
+    day = request.args.get('date')
+    if day:
+        try:
+            query = query.filter(PosSale.business_date == date.fromisoformat(day))
+        except ValueError:
+            return jsonify({'error': 'La fecha tiene que ser AAAA-MM-DD'}), 400
     sales = query.order_by(PosSale.opened_at.desc()).limit(200).all()
     return jsonify({'sales': [sale_to_dict(s, include_items=False) for s in sales]}), 200
 
