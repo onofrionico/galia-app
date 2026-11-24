@@ -8,18 +8,17 @@ import api from '../services/api';
 import MoneyFormat from '../components/MoneyFormat';
 import FudoSyncSalesModal from '../components/fudo/FudoSyncSalesModal';
 import { useCutover } from '@/pos/hooks/useCutover';
+import { currentMonthRange } from '../utils/monthRange';
 
 const Sales = () => {
   const { fudo_off: fudoOff } = useCutover();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [filters, setFilters] = useState({
-    fecha_desde: '',
-    fecha_hasta: '',
-    estado: '',
-    tipo_venta: '',
-    origen: ''
+  // La vista inicial muestra el mes en curso; "Limpiar filtros" vuelve a ver todo.
+  const [filters, setFilters] = useState(() => {
+    const { from, to } = currentMonthRange();
+    return { fecha_desde: from, fecha_hasta: to, estado: '', tipo_venta: '', origen: '' };
   });
   const [filterOptions, setFilterOptions] = useState({
     estados: [],
