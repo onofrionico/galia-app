@@ -14,6 +14,10 @@ const CHIP_ICONS = {
   cancelSale: Ban,
 }
 
+// Altura reducida (el `!` gana a la altura base de btn): el detalle de la venta necesita el espacio.
+const MAIN = '!min-h-[40px]'
+const SPANS = { 1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3' }
+
 export default function SaleFooter({ sale, actions, handlers, busy }) {
   const { pending } = saleCounts(sale)
 
@@ -37,46 +41,45 @@ export default function SaleFooter({ sale, actions, handlers, busy }) {
   }
 
   const chips = footerChips(actions)
-  const normalCount = chips.filter((chip) => !chip.danger).length
   const showBalance = sale.paid_total > 0
 
   return (
-    <div className="space-y-2 border-t bg-gray-50 px-3 py-3">
+    <div className="space-y-1.5 border-t bg-gray-50 px-3 py-2">
       <div className="flex items-baseline justify-between px-1">
         <span className="text-sm text-gray-600">{showBalance ? 'Saldo' : 'Total'}</span>
-        <span className="text-2xl font-bold text-galia-plum">{formatMoney(showBalance ? sale.balance : sale.total)}</span>
+        <span className="text-xl font-bold text-galia-plum">{formatMoney(showBalance ? sale.balance : sale.total)}</span>
       </div>
-      <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
+      <div className="grid grid-cols-2 gap-1.5 [&>*:last-child:nth-child(odd)]:col-span-2">
         {actions.addItems && (
-          <button type="button" className={btn('secondary')} onClick={handlers.add} disabled={busy}>
+          <button type="button" className={btn('secondary', MAIN)} onClick={handlers.add} disabled={busy}>
             <Plus size={18} /> Agregar
           </button>
         )}
         {actions.confirm && (
-          <button type="button" className={btn('primary')} onClick={handlers.confirm} disabled={busy}>
+          <button type="button" className={btn('primary', MAIN)} onClick={handlers.confirm} disabled={busy}>
             Confirmar tanda ({pending})
           </button>
         )}
         {actions.requestBill && (
-          <button type="button" className={btn('secondary')} onClick={handlers.requestBill} disabled={busy}>Pedir cuenta</button>
+          <button type="button" className={btn('secondary', MAIN)} onClick={handlers.requestBill} disabled={busy}>Pedir cuenta</button>
         )}
         {actions.reopen && (
-          <button type="button" className={btn('secondary')} onClick={handlers.reopen} disabled={busy}>Reabrir</button>
+          <button type="button" className={btn('secondary', MAIN)} onClick={handlers.reopen} disabled={busy}>Reabrir</button>
         )}
         {actions.pay && (
-          <button type="button" className={btn('primary')} onClick={handlers.pay} disabled={busy}>Cobrar</button>
+          <button type="button" className={btn('primary', MAIN)} onClick={handlers.pay} disabled={busy}>Cobrar</button>
         )}
       </div>
       {chips.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {chips.map(({ key, label, danger }, index) => {
             const Icon = CHIP_ICONS[key]
-            // Anular ocupa su propia fila; un chip normal que quedaría solo en su fila ocupa todo el ancho.
-            const wide = danger || (index === normalCount - 1 && index % 2 === 0)
+            // El último chip rellena la fila para que no quede un hueco a la derecha.
+            const span = index === chips.length - 1 ? 3 - (index % 3) : 1
             return (
               <button key={key} type="button" disabled={busy} onClick={() => handlers[key]()}
-                className={btn(danger ? 'danger' : 'secondary', `min-h-[40px] px-2 text-sm ${wide ? 'col-span-2' : ''}`)}>
-                <Icon size={16} /> {label}
+                className={btn(danger ? 'danger' : 'secondary', `!min-h-[34px] !gap-1 !px-1.5 text-xs ${SPANS[span]}`)}>
+                <Icon size={14} className="flex-shrink-0" /> <span className="truncate">{label}</span>
               </button>
             )
           })}
