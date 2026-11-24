@@ -8,6 +8,8 @@ export function monthRangeOf({ year, month }) {
   return range(new Date(year, month - 1, 1), new Date(year, month, 0))
 }
 
+export const DEFAULT_PERIOD = 'diario'
+
 export function currentMonthRange(now = new Date()) {
   return monthRangeOf({ year: now.getFullYear(), month: now.getMonth() + 1 })
 }
@@ -39,3 +41,6 @@ export function periodRange(period, now = new Date()) {
       return currentMonthRange(now)
   }
 }
+
+// Vista inicial de Ventas y Gastos: hoy.
+export const defaultRange = () => periodRange(DEFAULT_PERIOD)
