@@ -5,6 +5,7 @@ import { posCashApi } from '../api/posApi'
 import { useCashMutation, useExpenseCategories } from '../hooks/useCash'
 import Modal from '../ui/Modal'
 import { btn } from '../ui/buttons'
+import { argentinaDate, openedBeforeToday } from '../utils/cashMath'
 import { parseAmount } from '../utils/money'
 
 const TITLES = { expense: 'Gasto de caja', withdrawal: 'Retiro de efectivo', deposit: 'Ingreso de efectivo' }
@@ -21,6 +22,9 @@ export default function MovementModal({ session, kind, onClose }) {
   const [reason, setReason] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [supplierId, setSupplierId] = useState('')
+  const today = argentinaDate(new Date().toISOString())
+  const pickDate = isExpense && openedBeforeToday(session, today)
+  const [expenseDate, setExpenseDate] = useState(today)
   const [error, setError] = useState('')
   const { run, busy } = useCashMutation()
 
@@ -39,6 +43,10 @@ export default function MovementModal({ session, kind, onClose }) {
     if (isExpense) {
       body.category_id = Number(categoryId)
       if (supplierId) body.supplier_id = Number(supplierId)
+      if (pickDate) {
+        if (!expenseDate) return setError('Indicá la fecha del gasto')
+        body.expense_date = expenseDate
+      }
     }
     if (await run(() => posCashApi.addMovement(session.id, body))) onClose()
   }
@@ -66,6 +74,12 @@ export default function MovementModal({ session, kind, onClose }) {
               <option value="">Elegí una categoría</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+          </label>
+        )}
+        {pickDate && (
+          <label className="block text-sm font-medium text-gray-700">Fecha del gasto
+            <input type="date" value={expenseDate} min={argentinaDate(session.opened_at)} max={today}
+              onChange={(e) => { setExpenseDate(e.target.value); setError('') }} className={field} />
           </label>
         )}
         {canPickSupplier && (

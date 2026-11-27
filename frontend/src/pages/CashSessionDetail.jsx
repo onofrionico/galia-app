@@ -27,7 +27,8 @@ function Detail() {
       <Link to="/cash-sessions" className="text-galia-plum underline">← Cajas</Link>
       <h1 className="text-3xl">{session.register.name} · {session.status === 'open' ? 'abierta' : 'cerrada'}</h1>
       <p className="text-sm text-gray-600">
-        Apertura {when(session.opened_at)} por {session.opened_by?.name} · fondo {formatMoney(session.opening_float)}
+        Apertura {when(session.opened_at)} por {session.opened_by?.name}
+        {session.backdated && ` (cargada después el ${when(session.registered_at)})`} · fondo {formatMoney(session.opening_float)}
         {session.closed_at && ` · cierre ${when(session.closed_at)} por ${session.closed_by?.name}`}
       </p>
       {session.closing_note && <p className="rounded bg-gray-50 p-3 text-sm">Nota: {session.closing_note}</p>}

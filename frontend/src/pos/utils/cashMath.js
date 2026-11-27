@@ -1,5 +1,5 @@
 import { parseAmount, round2 } from './money'
-import { timeLabel } from './time'
+import { parseServerDate, timeLabel } from './time'
 
 // Diferencia en vivo del arqueo (contado − esperado). Lo guardado lo calcula el backend.
 export function countDifference(expected, text) {
@@ -43,4 +43,51 @@ export function cashStatusLabel(register, formatTime = timeLabel) {
   if (!register) return 'Sin caja configurada'
   if (!register.open_session) return 'Caja cerrada'
   return `Caja abierta · desde ${formatTime(register.open_session.opened_at)}`
+}
+
+// --- Apertura con hora anterior. Argentina no tiene horario de verano: el offset es siempre -03:00.
+const AR_TZ = 'America/Argentina/Buenos_Aires'
+
+function argentinaParts(date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: AR_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date)
+  return Object.fromEntries(parts.map((p) => [p.type, p.value]))
+}
+
+// Valor de un <input type="datetime-local"> (hora de Argentina) → ISO con offset para el backend.
+export function toArgentinaIso(localValue) {
+  if (!localValue) return null
+  return `${localValue.slice(0, 16)}:00-03:00`
+}
+
+// Instante → valor de datetime-local en hora de Argentina ("YYYY-MM-DDTHH:mm").
+export function argentinaLocalInput(date) {
+  const p = argentinaParts(date)
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`
+}
+
+// "2026-11-26T08:00" → "26/11 08:00".
+export function localInputLabel(localValue) {
+  const [day, time] = localValue.split('T')
+  const [, month, dd] = day.split('-')
+  return `${dd}/${month} ${time.slice(0, 5)}`
+}
+
+// Hora UTC del backend → día de Argentina ("YYYY-MM-DD").
+export function argentinaDate(iso) {
+  const date = parseServerDate(iso)
+  if (!date) return null
+  const p = argentinaParts(date)
+  return `${p.year}-${p.month}-${p.day}`
+}
+
+// Hora UTC del backend → "dd/mm HH:MM" en hora de Argentina.
+export function dateTimeLabel(iso) {
+  const date = parseServerDate(iso)
+  return date ? localInputLabel(argentinaLocalInput(date)) : ''
+}
+
+export function openedBeforeToday(session, today) {
+  return Boolean(session?.opened_at) && argentinaDate(session.opened_at) < today
 }
