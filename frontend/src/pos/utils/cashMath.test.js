@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cashStatusLabel, closeValidation, countDifference, differenceTone } from './cashMath'
+import { argentinaDate, dateTimeLabel, cashStatusLabel, closeValidation, countDifference, differenceTone, argentinaLocalInput, localInputLabel, openedBeforeToday, toArgentinaIso } from './cashMath'
 
 const methods = [
   { payment_method_id: 1, method_name: 'Efectivo', kind: 'cash', expected: 1900 },
@@ -52,8 +52,45 @@ describe('closeValidation', () => {
 describe('cashStatusLabel', () => {
   it('describe el estado de la caja', () => {
     const fmt = () => '09:02'
-    expect(cashStatusLabel({ open_session: { opened_at: '2026-10-13T12:02:00' } }, fmt)).toBe('Caja abierta · desde 09:02')
+    expect(cashStatusLabel({ open_session: { opened_at: '2026-10-13T12:02:00' } }, fmt, '2026-10-13')).toBe('Caja abierta · desde 09:02')
     expect(cashStatusLabel({ open_session: null }, fmt)).toBe('Caja cerrada')
     expect(cashStatusLabel(null, fmt)).toBe('Sin caja configurada')
+  })
+})
+
+describe('apertura con hora anterior', () => {
+  it('agrega el offset de Argentina a la hora del datetime-local', () => {
+    expect(toArgentinaIso('2026-11-26T08:00')).toBe('2026-11-26T08:00:00-03:00')
+    expect(toArgentinaIso('')).toBe(null)
+  })
+  it('lleva una hora UTC del backend al día de Argentina', () => {
+    expect(argentinaDate('2026-11-27T02:30:00')).toBe('2026-11-26')
+    expect(argentinaDate('2026-11-27T03:30:00')).toBe('2026-11-27')
+  })
+  it('dice si la caja se abrió un día anterior a hoy', () => {
+    expect(openedBeforeToday({ opened_at: '2026-11-26T11:00:00' }, '2026-11-27')).toBe(true)
+    expect(openedBeforeToday({ opened_at: '2026-11-27T11:00:00' }, '2026-11-27')).toBe(false)
+  })
+})
+
+describe('argentinaLocalInput', () => {
+  it('formatea un instante como valor de datetime-local en hora de Argentina', () => {
+    expect(argentinaLocalInput(new Date('2026-11-27T14:05:00Z'))).toBe('2026-11-27T11:05')
+  })
+  it('lleva el valor a dd/mm HH:MM para el aviso', () => {
+    expect(localInputLabel('2026-11-26T08:00')).toBe('26/11 08:00')
+  })
+})
+
+describe('dateTimeLabel', () => {
+  it('muestra la hora del backend en dd/mm HH:MM de Argentina', () => {
+    expect(dateTimeLabel('2026-11-26T11:00:00')).toBe('26/11 08:00')
+  })
+})
+
+describe('cashStatusLabel con apertura de otro día', () => {
+  it('muestra la fecha si la caja se abrió antes de hoy', () => {
+    const register = { open_session: { opened_at: '2026-11-26T11:00:00' } }
+    expect(cashStatusLabel(register, undefined, '2026-11-27')).toBe('Caja abierta · desde 26/11 08:00')
   })
 })

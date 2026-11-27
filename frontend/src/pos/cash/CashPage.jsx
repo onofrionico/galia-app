@@ -5,8 +5,10 @@ import { posKeys } from '../hooks/keys'
 import { useCashSession, useMainRegister } from '../hooks/useCash'
 import CenteredMessage from '../ui/CenteredMessage'
 import { btn } from '../ui/buttons'
+import { argentinaDate, dateTimeLabel, openedBeforeToday } from '../utils/cashMath'
 import { formatMoney } from '../utils/money'
 import { timeLabel } from '../utils/time'
+import BackdatedTag from './BackdatedTag'
 import CashSummaryCards from './CashSummaryCards'
 import CloseSessionModal, { CloseSummaryModal } from './CloseSessionModal'
 import MovementList from './MovementList'
@@ -59,7 +61,9 @@ export default function CashPage() {
         <div>
           <h2 className="text-xl font-semibold text-galia-plum">{session.register.name}</h2>
           <p className="text-sm text-gray-600">
-            Abierta {timeLabel(session.opened_at)} por {session.opened_by?.name} · fondo {formatMoney(session.opening_float)}
+            Abierta {openedBeforeToday(session, argentinaDate(new Date().toISOString()))
+              ? `el ${dateTimeLabel(session.opened_at)}` : timeLabel(session.opened_at)} por {session.opened_by?.name} · fondo {formatMoney(session.opening_float)}
+            {session.backdated && <BackdatedTag />}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { posCashApi } from '@/pos/api/posApi'
+import BackdatedTag from '@/pos/cash/BackdatedTag'
 import { posKeys } from '@/pos/hooks/keys'
 import { formatMoney } from '@/pos/utils/money'
 
@@ -27,7 +28,7 @@ function Sessions({ params, setPage }) {
           {data.sessions.map((s) => (
             <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
               <td className="p-3"><Link to={`/cash-sessions/${s.id}`} className="font-medium text-galia-plum underline">{s.register.name}</Link></td>
-              <td>{when(s.opened_at)} · {s.opened_by?.name}</td>
+              <td>{when(s.opened_at)} · {s.opened_by?.name}{s.backdated && <BackdatedTag title={`Registrada ${when(s.registered_at)}`} />}</td>
               <td>{s.closed_at ? `${when(s.closed_at)} · ${s.closed_by?.name}` : '—'}</td>
               <td>{formatMoney(s.collected_net)}</td>
               <td className={s.cash_difference < 0 ? 'text-red-700' : s.cash_difference > 0 ? 'text-amber-700' : ''}>

@@ -5,7 +5,7 @@ anulación posterior al cierre afecta a la sesión en la que ocurre y una sesió
 movimientos (fondo, gastos, retiros, ingresos) se aplican al primer medio de efectivo por `position`.
 """
 from collections import namedtuple
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from math import ceil
 
@@ -80,25 +80,103 @@ def load_session(session_id, lock=False):
     return session
 
 
-def open_session(user, register_id, opening_float):
+CLOCK_TOLERANCE = timedelta(minutes=1)
+
+
+def _argentina_label(moment):
+    return pytz.utc.localize(moment).astimezone(ARGENTINA_TZ).strftime('%d/%m %H:%M')
+
+
+def parse_opened_at(value):
+    """Hora de apertura en UTC naive. Sin offset se interpreta como hora de Argentina; vacía es None."""
+    if value is None or value == '':
+        return None
+    try:
+        moment = datetime.fromisoformat(str(value))
+    except ValueError:
+        raise bad_request('La hora de apertura es inválida')
+    if moment.tzinfo is None:
+        moment = ARGENTINA_TZ.localize(moment)
+    return moment.astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def _validate_backdate(register, opened_at, practice):
+    current = now()
+    if opened_at > current + CLOCK_TOLERANCE:
+        raise bad_request('La apertura no puede ser futura')
+    # Los pagos sin caja no son de ninguna caja en particular: el límite es el último cierre de cualquier caja
+    # del mismo modo, y con otra caja abierta los pagos de ese período ya quedaron repartidos.
+    if opened_at < current and CashSession.query.filter(CashSession.status == 'open',
+                                                        CashSession.is_practice.is_(practice)).first():
+        raise bad_request('Hay otra caja abierta: cerrala antes de abrir con hora anterior')
+    last_close = (db.session.query(func.max(CashSession.closed_at))
+                  .filter(CashSession.status == 'closed', CashSession.is_practice.is_(practice)).scalar())
+    if last_close is not None and opened_at < last_close:
+        raise bad_request(f'La apertura no puede ser anterior al último cierre ({_argentina_label(last_close)})')
+
+
+def _take_unassigned(session, since):
+    """Asigna a la sesión los pagos y anulaciones sin caja desde `since`, de ventas del mismo modo (real/práctica)."""
+    sale_ids = db.session.query(PosSale.id).filter(PosSale.is_practice.is_(session.is_practice))
+    taken = {}
+    for label, session_col, time_col in (('payments', PosPayment.cash_session_id, PosPayment.created_at),
+                                         ('cancellations', PosPayment.cancel_cash_session_id,
+                                          PosPayment.cancelled_at)):
+        rows = PosPayment.query.filter(session_col.is_(None), time_col >= since,
+                                       PosPayment.sale_id.in_(sale_ids)).all()
+        for payment in rows:
+            setattr(payment, session_col.key, session.id)
+        taken[f'{label}_taken'] = len(rows)
+        taken[f'{label}_total'] = pricing.money(sum((p.amount for p in rows), ZERO))
+    return taken
+
+
+def open_session(user, register_id, opening_float, opened_at=None):
     amount = _money(opening_float, 'El fondo inicial', Decimal('0'))
+    opened_at = parse_opened_at(opened_at)
     register = _load_register(register_id, lock=True)
     if not register.is_active:
         raise bad_request('La caja no está activa')
     if CashSession.query.filter_by(register_id=register.id, status='open').first() is not None:
         raise PosError('La caja ya está abierta')
-    session = CashSession(register_id=register.id, status='open', opened_at=now(), opened_by=user.id,
-                          opening_float=amount, is_practice=cutover.practice_mode())
+    practice = cutover.practice_mode()
+    current = now()
+    backdated = opened_at is not None and opened_at < current
+    if opened_at is not None:
+        _validate_backdate(register, opened_at, practice)
+    start = opened_at if backdated else current
+    session = CashSession(register_id=register.id, status='open', opened_at=start, opened_by=user.id,
+                          opening_float=amount, is_practice=practice,
+                          registered_at=current if backdated else None)
     db.session.add(session)
     db.session.flush()
     db.session.add(CashMovement(session_id=session.id, kind='opening_float', amount=amount, created_by=user.id,
-                                created_at=now()))
-    _event(register.id, session.id, user, 'opened', opening_float=amount)
+                                created_at=start))
+    extra = {}
+    if backdated:
+        extra = dict(backdated=True, opened_at=start.isoformat(), registered_at=current.isoformat(),
+                     **_take_unassigned(session, start))
+    _event(register.id, session.id, user, 'opened', opening_float=amount, **extra)
     db.session.commit()
     return session
 
 
-def _create_expense(user, session, amount, reason, category_id, supplier_id):
+def _expense_date(session, value):
+    """Fecha del gasto: hoy por defecto, o un día entre el de apertura (Argentina) y hoy."""
+    today = get_current_date_argentina()
+    if value is None or value == '':
+        return today
+    try:
+        day = date.fromisoformat(str(value))
+    except ValueError:
+        raise bad_request('La fecha del gasto es inválida')
+    opened_day = pytz.utc.localize(session.opened_at).astimezone(ARGENTINA_TZ).date()
+    if not opened_day <= day <= today:
+        raise bad_request('La fecha del gasto debe estar entre la apertura y hoy')
+    return day
+
+
+def _create_expense(user, session, amount, reason, category_id, supplier_id, fecha):
     category = db.session.get(ExpenseCategory, parse_id(category_id, 'La categoría'))
     if category is None or not category.is_active:
         raise bad_request('La categoría de gasto no existe')
@@ -107,7 +185,7 @@ def _create_expense(user, session, amount, reason, category_id, supplier_id):
         supplier = db.session.get(Supplier, parse_id(supplier_id, 'El proveedor'))
         if supplier is None:
             raise bad_request('El proveedor no existe')
-    expense = Expense(fecha=get_current_date_argentina(), importe=amount, comentario=reason,
+    expense = Expense(fecha=fecha, importe=amount, comentario=reason,
                       category_id=category.id, supplier_id=supplier.id if supplier else None,
                       proveedor=supplier.name[:200] if supplier else None, de_caja=True,
                       caja=session.register.name[:100], medio_pago='Efectivo', estado_pago='Pagado',
@@ -117,7 +195,7 @@ def _create_expense(user, session, amount, reason, category_id, supplier_id):
     return expense
 
 
-def add_movement(user, session_id, kind, amount, reason, category_id=None, supplier_id=None):
+def add_movement(user, session_id, kind, amount, reason, category_id=None, supplier_id=None, expense_date=None):
     if kind not in MOVEMENT_KINDS:
         raise bad_request('El tipo de movimiento es inválido')
     session = load_session(session_id, lock=True)
@@ -125,10 +203,11 @@ def add_movement(user, session_id, kind, amount, reason, category_id=None, suppl
         raise PosError('La caja está cerrada')
     amount = _money(amount, 'El monto', Decimal('0.01'))
     reason = require_reason(reason)
+    fecha = _expense_date(session, expense_date) if kind == 'expense' else None
     movement = CashMovement(session_id=session.id, kind=kind, amount=amount, reason=reason, created_by=user.id,
                             created_at=now())
     if kind == 'expense' and not session.is_practice:  # un gasto de práctica no crea un gasto real
-        movement.expense_id = _create_expense(user, session, amount, reason, category_id, supplier_id).id
+        movement.expense_id = _create_expense(user, session, amount, reason, category_id, supplier_id, fecha).id
     db.session.add(movement)
     db.session.flush()
     _event(session.register_id, session.id, user, 'movement_added', movement_id=movement.id, kind=kind,
@@ -332,6 +411,8 @@ def list_sessions(from_date, to_date, register_id=None, page=1, per_page=50):
         rows.append({
             'id': session.id, 'register': {'id': session.register.id, 'name': session.register.name},
             'status': session.status, 'opened_at': session.opened_at.isoformat(), 'opened_by': _person(session.opener),
+            'registered_at': session.registered_at.isoformat() if session.registered_at else None,
+            'backdated': session.registered_at is not None,
             'closed_at': session.closed_at.isoformat() if session.closed_at else None,
             'closed_by': _person(session.closer), 'collected_net': float(net.get(session.id, ZERO)),
             'cash_difference': float(cash_count.difference) if cash_count is not None else None,

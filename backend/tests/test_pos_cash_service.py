@@ -155,3 +155,13 @@ def test_cancel_movement_rules(cashier):
     with pytest.raises(PosError) as error:
         cash_service.cancel_movement(admin, deposit.id, 'x')
     assert error.value.status == 409
+
+
+def test_normal_open_is_not_backdated(cashier):
+    from app.services.pos.cash_serializers import session_to_dict
+    session = cash_service.open_session(cashier, make_register().id, 0)
+    data = session_to_dict(session, cash_service.session_summary(session))
+    assert data['registered_at'] is None and data['backdated'] is False
+    rows = cash_service.list_sessions(cash_service.get_current_date_argentina(),
+                                      cash_service.get_current_date_argentina())['sessions']
+    assert rows[0]['backdated'] is False and rows[0]['registered_at'] is None

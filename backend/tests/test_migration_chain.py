@@ -82,3 +82,7 @@ def test_drop_product_recipe_items_follows_recipes():
 
 def test_loyalty_follows_fix_fudo_item_price():
     assert _revisions()['b8a0_loyalty'] == ['b7b0_fix_fudo_item_price']
+
+
+def test_cash_backdated_follows_vouchers():
+    assert _revisions()['b9b0_cash_backdated_open'] == ['b9a0_vouchers']
