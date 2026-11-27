@@ -91,7 +91,8 @@ def registers(current_user):
 def open_session(current_user):
     def action():
         data = _body()
-        return _payload(cash_service.open_session(current_user, data.get('register_id'), data.get('opening_float')))
+        return _payload(cash_service.open_session(current_user, data.get('register_id'), data.get('opening_float'),
+                                                  opened_at=data.get('opened_at')))
     return _run(action)
 
 

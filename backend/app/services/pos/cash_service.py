@@ -80,20 +80,79 @@ def load_session(session_id, lock=False):
     return session
 
 
-def open_session(user, register_id, opening_float):
+CLOCK_TOLERANCE = timedelta(minutes=1)
+
+
+def _argentina_label(moment):
+    return pytz.utc.localize(moment).astimezone(ARGENTINA_TZ).strftime('%d/%m %H:%M')
+
+
+def parse_opened_at(value):
+    """Hora de apertura en UTC naive. Sin offset se interpreta como hora de Argentina; vacía es None."""
+    if value is None or value == '':
+        return None
+    try:
+        moment = datetime.fromisoformat(str(value))
+    except ValueError:
+        raise bad_request('La hora de apertura es inválida')
+    if moment.tzinfo is None:
+        moment = ARGENTINA_TZ.localize(moment)
+    return moment.astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def _validate_backdate(register, opened_at, practice):
+    current = now()
+    if opened_at > current + CLOCK_TOLERANCE:
+        raise bad_request('La apertura no puede ser futura')
+    last_close = (db.session.query(func.max(CashSession.closed_at))
+                  .filter(CashSession.register_id == register.id, CashSession.status == 'closed',
+                          CashSession.is_practice.is_(practice)).scalar())
+    if last_close is not None and opened_at < last_close:
+        raise bad_request(f'La apertura no puede ser anterior al último cierre ({_argentina_label(last_close)})')
+
+
+def _take_unassigned(session, since):
+    """Asigna a la sesión los pagos y anulaciones sin caja desde `since`, de ventas del mismo modo (real/práctica)."""
+    sale_ids = db.session.query(PosSale.id).filter(PosSale.is_practice.is_(session.is_practice))
+    taken = {}
+    for label, session_col, time_col in (('payments', PosPayment.cash_session_id, PosPayment.created_at),
+                                         ('cancellations', PosPayment.cancel_cash_session_id,
+                                          PosPayment.cancelled_at)):
+        rows = PosPayment.query.filter(session_col.is_(None), time_col >= since,
+                                       PosPayment.sale_id.in_(sale_ids)).all()
+        for payment in rows:
+            setattr(payment, session_col.key, session.id)
+        taken[f'{label}_taken'] = len(rows)
+        taken[f'{label}_total'] = pricing.money(sum((p.amount for p in rows), ZERO))
+    return taken
+
+
+def open_session(user, register_id, opening_float, opened_at=None):
     amount = _money(opening_float, 'El fondo inicial', Decimal('0'))
+    opened_at = parse_opened_at(opened_at)
     register = _load_register(register_id, lock=True)
     if not register.is_active:
         raise bad_request('La caja no está activa')
     if CashSession.query.filter_by(register_id=register.id, status='open').first() is not None:
         raise PosError('La caja ya está abierta')
-    session = CashSession(register_id=register.id, status='open', opened_at=now(), opened_by=user.id,
-                          opening_float=amount, is_practice=cutover.practice_mode())
+    practice = cutover.practice_mode()
+    current = now()
+    backdated = opened_at is not None and opened_at < current
+    if opened_at is not None:
+        _validate_backdate(register, opened_at, practice)
+    start = opened_at if backdated else current
+    session = CashSession(register_id=register.id, status='open', opened_at=start, opened_by=user.id,
+                          opening_float=amount, is_practice=practice,
+                          registered_at=current if backdated else None)
     db.session.add(session)
     db.session.flush()
     db.session.add(CashMovement(session_id=session.id, kind='opening_float', amount=amount, created_by=user.id,
-                                created_at=now()))
-    _event(register.id, session.id, user, 'opened', opening_float=amount)
+                                created_at=start))
+    extra = {}
+    if backdated:
+        extra = dict(backdated=True, opened_at=start.isoformat(), registered_at=current.isoformat(),
+                     **_take_unassigned(session, start))
+    _event(register.id, session.id, user, 'opened', opening_float=amount, **extra)
     db.session.commit()
     return session
 
