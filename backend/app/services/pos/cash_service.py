@@ -5,7 +5,7 @@ anulación posterior al cierre afecta a la sesión en la que ocurre y una sesió
 movimientos (fondo, gastos, retiros, ingresos) se aplican al primer medio de efectivo por `position`.
 """
 from collections import namedtuple
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from math import ceil
 
@@ -157,7 +157,22 @@ def open_session(user, register_id, opening_float, opened_at=None):
     return session
 
 
-def _create_expense(user, session, amount, reason, category_id, supplier_id):
+def _expense_date(session, value):
+    """Fecha del gasto: hoy por defecto, o un día entre el de apertura (Argentina) y hoy."""
+    today = get_current_date_argentina()
+    if value is None or value == '':
+        return today
+    try:
+        day = date.fromisoformat(str(value))
+    except ValueError:
+        raise bad_request('La fecha del gasto es inválida')
+    opened_day = pytz.utc.localize(session.opened_at).astimezone(ARGENTINA_TZ).date()
+    if not opened_day <= day <= today:
+        raise bad_request('La fecha del gasto debe estar entre la apertura y hoy')
+    return day
+
+
+def _create_expense(user, session, amount, reason, category_id, supplier_id, fecha):
     category = db.session.get(ExpenseCategory, parse_id(category_id, 'La categoría'))
     if category is None or not category.is_active:
         raise bad_request('La categoría de gasto no existe')
@@ -166,7 +181,7 @@ def _create_expense(user, session, amount, reason, category_id, supplier_id):
         supplier = db.session.get(Supplier, parse_id(supplier_id, 'El proveedor'))
         if supplier is None:
             raise bad_request('El proveedor no existe')
-    expense = Expense(fecha=get_current_date_argentina(), importe=amount, comentario=reason,
+    expense = Expense(fecha=fecha, importe=amount, comentario=reason,
                       category_id=category.id, supplier_id=supplier.id if supplier else None,
                       proveedor=supplier.name[:200] if supplier else None, de_caja=True,
                       caja=session.register.name[:100], medio_pago='Efectivo', estado_pago='Pagado',
@@ -176,7 +191,7 @@ def _create_expense(user, session, amount, reason, category_id, supplier_id):
     return expense
 
 
-def add_movement(user, session_id, kind, amount, reason, category_id=None, supplier_id=None):
+def add_movement(user, session_id, kind, amount, reason, category_id=None, supplier_id=None, expense_date=None):
     if kind not in MOVEMENT_KINDS:
         raise bad_request('El tipo de movimiento es inválido')
     session = load_session(session_id, lock=True)
@@ -184,10 +199,11 @@ def add_movement(user, session_id, kind, amount, reason, category_id=None, suppl
         raise PosError('La caja está cerrada')
     amount = _money(amount, 'El monto', Decimal('0.01'))
     reason = require_reason(reason)
+    fecha = _expense_date(session, expense_date) if kind == 'expense' else None
     movement = CashMovement(session_id=session.id, kind=kind, amount=amount, reason=reason, created_by=user.id,
                             created_at=now())
     if kind == 'expense' and not session.is_practice:  # un gasto de práctica no crea un gasto real
-        movement.expense_id = _create_expense(user, session, amount, reason, category_id, supplier_id).id
+        movement.expense_id = _create_expense(user, session, amount, reason, category_id, supplier_id, fecha).id
     db.session.add(movement)
     db.session.flush()
     _event(session.register_id, session.id, user, 'movement_added', movement_id=movement.id, kind=kind,

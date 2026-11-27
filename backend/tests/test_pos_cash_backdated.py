@@ -165,3 +165,66 @@ def test_api_open_with_opened_at(pos_app):
                            headers=headers)
     assert response.status_code == 200
     assert response.get_json()['backdated'] is True
+
+
+def _category():
+    from app.models import ExpenseCategory
+    category = ExpenseCategory(name='Insumos')
+    db.session.add(category)
+    db.session.commit()
+    return category
+
+
+def _open_days_ago(user, days):
+    return cash_service.open_session(user, make_register().id, 0,
+                                     opened_at=(now() - timedelta(days=days)).isoformat() + '+00:00')
+
+
+def test_expense_with_past_date(ctx):
+    from app.models import Expense
+    from app.utils.timezone_utils import get_current_date_argentina
+    user, _cat, _tables = ctx
+    session = _open_days_ago(user, 2)
+    yesterday = get_current_date_argentina() - timedelta(days=1)
+    cash_service.add_movement(user, session.id, 'expense', 100, 'Hielo', category_id=_category().id,
+                              expense_date=yesterday.isoformat())
+    assert Expense.query.one().fecha == yesterday
+
+
+def test_expense_date_out_of_range(ctx):
+    from app.utils.timezone_utils import get_current_date_argentina
+    user, _cat, _tables = ctx
+    session = _open_days_ago(user, 2)
+    category = _category()
+    today = get_current_date_argentina()
+    for day in (today - timedelta(days=5), today + timedelta(days=1)):
+        with pytest.raises(PosError) as error:
+            cash_service.add_movement(user, session.id, 'expense', 100, 'Hielo', category_id=category.id,
+                                      expense_date=day.isoformat())
+        assert error.value.status == 400
+        assert str(error.value) == 'La fecha del gasto debe estar entre la apertura y hoy'
+        db.session.rollback()
+
+
+def test_expense_date_defaults_to_today(ctx):
+    from app.models import Expense
+    from app.utils.timezone_utils import get_current_date_argentina
+    user, _cat, _tables = ctx
+    category = _category()
+    session = _open_days_ago(user, 2)
+    cash_service.add_movement(user, session.id, 'expense', 100, 'Hielo', category_id=category.id)
+    assert Expense.query.one().fecha == get_current_date_argentina()
+    _close(session, now())
+    today_session = cash_service.open_session(user, session.register_id, 0)
+    cash_service.add_movement(user, today_session.id, 'expense', 50, 'Pan', category_id=category.id,
+                              expense_date=get_current_date_argentina().isoformat())
+    assert Expense.query.count() == 2
+
+
+def test_expense_date_invalid(ctx):
+    user, _cat, _tables = ctx
+    session = _open_days_ago(user, 1)
+    with pytest.raises(PosError) as error:
+        cash_service.add_movement(user, session.id, 'expense', 100, 'Hielo', category_id=_category().id,
+                                  expense_date='x')
+    assert error.value.status == 400

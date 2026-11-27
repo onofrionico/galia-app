@@ -124,7 +124,8 @@ def add_movement(current_user, session_id):
         data = _body()
         return _payload(cash_service.add_movement(
             current_user, session_id, data.get('kind'), data.get('amount'), data.get('reason'),
-            category_id=data.get('category_id'), supplier_id=data.get('supplier_id')))
+            category_id=data.get('category_id'), supplier_id=data.get('supplier_id'),
+            expense_date=data.get('expense_date')))
     return _run(action)
 
 
