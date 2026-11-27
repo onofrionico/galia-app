@@ -89,7 +89,7 @@ def test_does_not_take_payments_of_other_sessions(ctx):
     other = cash_service.open_session(user, make_register('Barra').id, 0)
     payment = _paid_at(user, cat, t1, now() - timedelta(minutes=30))
     assert payment.cash_session_id == other.id
-    _close(other, now())
+    _close(other, now() - timedelta(hours=2))  # cierre forzado antes, para que no limite la apertura
     cash_service.open_session(user, make_register().id, 0,
                               opened_at=(now() - timedelta(hours=1)).isoformat() + '+00:00')
     assert db.session.get(PosPayment, payment.id).cash_session_id == other.id
@@ -128,10 +128,8 @@ def test_before_last_close_rejected(ctx):
                                   opened_at=(closed_at - timedelta(hours=1)).isoformat() + '+00:00')
     assert error.value.status == 400 and 'anterior al último cierre' in str(error.value)
     db.session.rollback()
-    other = make_register('Terraza')
-    _close(cash_service.open_session(user, other.id, 0), now() - timedelta(hours=3))
-    session = cash_service.open_session(user, other.id, 0,
-                                        opened_at=(closed_at - timedelta(minutes=30)).isoformat() + '+00:00')
+    session = cash_service.open_session(user, register.id, 0,
+                                        opened_at=(closed_at + timedelta(minutes=10)).isoformat() + '+00:00')
     assert session.registered_at is not None
 
 
@@ -228,3 +226,24 @@ def test_expense_date_invalid(ctx):
         cash_service.add_movement(user, session.id, 'expense', 100, 'Hielo', category_id=_category().id,
                                   expense_date='x')
     assert error.value.status == 400
+
+
+def test_last_close_of_any_register_bounds_backdate(ctx):
+    user, _cat, _tables = ctx
+    barra, nueva = make_register('Barra'), make_register('Nueva')
+    closed_at = now() - timedelta(hours=1)
+    _close(cash_service.open_session(user, barra.id, 0), closed_at)
+    with pytest.raises(PosError) as error:
+        cash_service.open_session(user, nueva.id, 0,
+                                  opened_at=(closed_at - timedelta(minutes=30)).isoformat() + '+00:00')
+    assert error.value.status == 400 and 'anterior al último cierre' in str(error.value)
+
+
+def test_backdate_rejected_while_other_register_open(ctx):
+    user, _cat, _tables = ctx
+    cash_service.open_session(user, make_register('Barra').id, 0)
+    with pytest.raises(PosError) as error:
+        cash_service.open_session(user, make_register().id, 0,
+                                  opened_at=(now() - timedelta(hours=1)).isoformat() + '+00:00')
+    assert error.value.status == 400
+    assert str(error.value) == 'Hay otra caja abierta: cerrala antes de abrir con hora anterior'

@@ -35,7 +35,8 @@ Migración `b9b0_cash_backdated_open` con `down_revision = 'b9a0_vouchers'`:
 - Acepta `opened_at` opcional (ISO, hora de Argentina desde la UI, guardado en UTC como el resto). Si no viene, es la hora actual, como hoy.
 - Reglas, con 400 en castellano:
   - no puede ser futuro (se tolera un minuto de desfase de reloj);
-  - no puede ser anterior al `closed_at` de la última sesión cerrada de esa caja (real o de práctica, según el modo): "La apertura no puede ser anterior al último cierre (dd/mm HH:MM)".
+  - no puede ser anterior al `closed_at` de la última sesión cerrada de **cualquier** caja del mismo modo (real o de práctica): "La apertura no puede ser anterior al último cierre (dd/mm HH:MM)". Los pagos sin caja no son de ninguna caja en particular, así que una caja nueva o que nunca se cerró no puede quedarse con pagos de días de otra;
+  - si es anterior, no puede haber otra caja abierta del mismo modo: "Hay otra caja abierta: cerrala antes de abrir con hora anterior".
 - Si es anterior, en la misma transacción:
   - `registered_at = now()`;
   - el movimiento `opening_float` lleva `created_at = opened_at`;

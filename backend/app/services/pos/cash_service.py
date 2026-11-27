@@ -104,9 +104,13 @@ def _validate_backdate(register, opened_at, practice):
     current = now()
     if opened_at > current + CLOCK_TOLERANCE:
         raise bad_request('La apertura no puede ser futura')
+    # Los pagos sin caja no son de ninguna caja en particular: el límite es el último cierre de cualquier caja
+    # del mismo modo, y con otra caja abierta los pagos de ese período ya quedaron repartidos.
+    if opened_at < current and CashSession.query.filter(CashSession.status == 'open',
+                                                        CashSession.is_practice.is_(practice)).first():
+        raise bad_request('Hay otra caja abierta: cerrala antes de abrir con hora anterior')
     last_close = (db.session.query(func.max(CashSession.closed_at))
-                  .filter(CashSession.register_id == register.id, CashSession.status == 'closed',
-                          CashSession.is_practice.is_(practice)).scalar())
+                  .filter(CashSession.status == 'closed', CashSession.is_practice.is_(practice)).scalar())
     if last_close is not None and opened_at < last_close:
         raise bad_request(f'La apertura no puede ser anterior al último cierre ({_argentina_label(last_close)})')
 
