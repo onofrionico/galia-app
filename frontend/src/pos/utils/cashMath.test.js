@@ -52,7 +52,7 @@ describe('closeValidation', () => {
 describe('cashStatusLabel', () => {
   it('describe el estado de la caja', () => {
     const fmt = () => '09:02'
-    expect(cashStatusLabel({ open_session: { opened_at: '2026-10-13T12:02:00' } }, fmt)).toBe('Caja abierta · desde 09:02')
+    expect(cashStatusLabel({ open_session: { opened_at: '2026-10-13T12:02:00' } }, fmt, '2026-10-13')).toBe('Caja abierta · desde 09:02')
     expect(cashStatusLabel({ open_session: null }, fmt)).toBe('Caja cerrada')
     expect(cashStatusLabel(null, fmt)).toBe('Sin caja configurada')
   })
