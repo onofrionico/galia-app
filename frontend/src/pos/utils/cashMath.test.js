@@ -87,3 +87,10 @@ describe('dateTimeLabel', () => {
     expect(dateTimeLabel('2026-11-26T11:00:00')).toBe('26/11 08:00')
   })
 })
+
+describe('cashStatusLabel con apertura de otro día', () => {
+  it('muestra la fecha si la caja se abrió antes de hoy', () => {
+    const register = { open_session: { opened_at: '2026-11-26T11:00:00' } }
+    expect(cashStatusLabel(register, undefined, '2026-11-27')).toBe('Caja abierta · desde 26/11 08:00')
+  })
+})

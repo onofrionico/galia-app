@@ -39,10 +39,13 @@ export function closeValidation(methods, texts, note) {
   return { ok: true, error: null, counts }
 }
 
-export function cashStatusLabel(register, formatTime = timeLabel) {
+// `today` (YYYY-MM-DD de Argentina): si la caja se abrió otro día, el texto lleva la fecha.
+export function cashStatusLabel(register, formatTime = timeLabel, today = argentinaDate(new Date().toISOString())) {
   if (!register) return 'Sin caja configurada'
   if (!register.open_session) return 'Caja cerrada'
-  return `Caja abierta · desde ${formatTime(register.open_session.opened_at)}`
+  const session = register.open_session
+  const when = openedBeforeToday(session, today) ? dateTimeLabel(session.opened_at) : formatTime(session.opened_at)
+  return `Caja abierta · desde ${when}`
 }
 
 // --- Apertura con hora anterior. Argentina no tiene horario de verano: el offset es siempre -03:00.
