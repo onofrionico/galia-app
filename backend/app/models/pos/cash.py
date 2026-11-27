@@ -29,6 +29,8 @@ class CashSession(db.Model):
     opened_at = db.Column(db.DateTime, nullable=False)
     opened_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     opening_float = db.Column(db.Numeric(12, 2), nullable=False)
+    # Momento real del registro cuando la apertura se cargó con hora anterior; nulo en una apertura normal.
+    registered_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
     closed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     closing_note = db.Column(db.String(500), nullable=True)

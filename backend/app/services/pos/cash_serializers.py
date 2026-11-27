@@ -29,7 +29,8 @@ def session_to_dict(session, summary, events=None):
     data = {
         'id': session.id, 'register': {'id': session.register.id, 'name': session.register.name},
         'status': session.status, 'opened_at': _iso(session.opened_at), 'opened_by': person(session.opener),
-        'opening_float': _money(session.opening_float), 'closed_at': _iso(session.closed_at),
+        'opening_float': _money(session.opening_float), 'registered_at': _iso(session.registered_at),
+        'backdated': session.registered_at is not None, 'closed_at': _iso(session.closed_at),
         'closed_by': person(session.closer), 'closing_note': session.closing_note, 'summary': summary,
         'movements': [movement_to_dict(m) for m in session.movements],
         'counts': [count_to_dict(c) for c in session.counts],
@@ -42,4 +43,5 @@ def session_to_dict(session, summary, events=None):
 def register_to_dict(register, open_session):
     return {'id': register.id, 'name': register.name, 'position': register.position,
             'open_session': ({'id': open_session.id, 'opened_at': _iso(open_session.opened_at),
-                              'opened_by': person(open_session.opener)} if open_session else None)}
+                              'opened_by': person(open_session.opener),
+                              'backdated': open_session.registered_at is not None} if open_session else None)}

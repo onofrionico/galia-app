@@ -332,6 +332,8 @@ def list_sessions(from_date, to_date, register_id=None, page=1, per_page=50):
         rows.append({
             'id': session.id, 'register': {'id': session.register.id, 'name': session.register.name},
             'status': session.status, 'opened_at': session.opened_at.isoformat(), 'opened_by': _person(session.opener),
+            'registered_at': session.registered_at.isoformat() if session.registered_at else None,
+            'backdated': session.registered_at is not None,
             'closed_at': session.closed_at.isoformat() if session.closed_at else None,
             'closed_by': _person(session.closer), 'collected_net': float(net.get(session.id, ZERO)),
             'cash_difference': float(cash_count.difference) if cash_count is not None else None,
